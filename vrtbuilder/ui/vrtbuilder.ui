@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>764</width>
-    <height>499</height>
+    <height>600</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -70,6 +70,9 @@
              <iconset resource="resources.qrc">
               <normaloff>:/vrtbuilder/mActionExpandTree.png</normaloff>:/vrtbuilder/mActionExpandTree.png</iconset>
             </property>
+            <property name="autoRaise">
+             <bool>true</bool>
+            </property>
            </widget>
           </item>
           <item>
@@ -83,6 +86,9 @@
             <property name="icon">
              <iconset resource="resources.qrc">
               <normaloff>:/vrtbuilder/mActionCollapseTree.png</normaloff>:/vrtbuilder/mActionCollapseTree.png</iconset>
+            </property>
+            <property name="autoRaise">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -98,6 +104,9 @@
              <iconset resource="resources.qrc">
               <normaloff>:/vrtbuilder/mActionImportVirtualRaster.png</normaloff>:/vrtbuilder/mActionImportVirtualRaster.png</iconset>
             </property>
+            <property name="autoRaise">
+             <bool>true</bool>
+            </property>
            </widget>
           </item>
           <item>
@@ -111,6 +120,9 @@
             <property name="icon">
              <iconset resource="resources.qrc">
               <normaloff>:/vrtbuilder/mActionNewVirtualLayer.png</normaloff>:/vrtbuilder/mActionNewVirtualLayer.png</iconset>
+            </property>
+            <property name="autoRaise">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -129,6 +141,9 @@
              <iconset resource="resources.qrc">
               <normaloff>:/vrtbuilder/mActionRemoveVirtualRaster.png</normaloff>:/vrtbuilder/mActionRemoveVirtualRaster.png</iconset>
             </property>
+            <property name="autoRaise">
+             <bool>true</bool>
+            </property>
            </widget>
           </item>
           <item>
@@ -141,6 +156,9 @@
             </property>
             <property name="text">
              <string>About</string>
+            </property>
+            <property name="autoRaise">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -319,7 +337,7 @@
        <item>
         <widget class="QTabWidget" name="tabWidgetSettings">
          <property name="currentIndex">
-          <number>1</number>
+          <number>0</number>
          </property>
          <widget class="QWidget" name="tabSrcFiles">
           <attribute name="title">
@@ -337,13 +355,6 @@
              <property name="spacing">
               <number>2</number>
              </property>
-             <item>
-              <widget class="QLabel" name="label_9">
-               <property name="text">
-                <string>Band sources</string>
-               </property>
-              </widget>
-             </item>
              <item>
               <spacer name="horizontalSpacer_2">
                <property name="orientation">
@@ -369,6 +380,9 @@
                 <iconset resource="resources.qrc">
                  <normaloff>:/vrtbuilder/mActionExpandTree.png</normaloff>:/vrtbuilder/mActionExpandTree.png</iconset>
                </property>
+               <property name="autoRaise">
+                <bool>true</bool>
+               </property>
               </widget>
              </item>
              <item>
@@ -382,6 +396,9 @@
                <property name="icon">
                 <iconset resource="resources.qrc">
                  <normaloff>:/vrtbuilder/mActionCollapseTree.png</normaloff>:/vrtbuilder/mActionCollapseTree.png</iconset>
+               </property>
+               <property name="autoRaise">
+                <bool>true</bool>
                </property>
               </widget>
              </item>
@@ -397,6 +414,9 @@
                 <iconset resource="resources.qrc">
                  <normaloff>:/vrtbuilder/mActionImportFromRegistry.png</normaloff>:/vrtbuilder/mActionImportFromRegistry.png</iconset>
                </property>
+               <property name="autoRaise">
+                <bool>true</bool>
+               </property>
               </widget>
              </item>
              <item>
@@ -410,6 +430,9 @@
                <property name="icon">
                 <iconset resource="resources.qrc">
                  <normaloff>:/vrtbuilder/mActionAddRasterLayer.png</normaloff>:/vrtbuilder/mActionAddRasterLayer.png</iconset>
+               </property>
+               <property name="autoRaise">
+                <bool>true</bool>
                </property>
               </widget>
              </item>
@@ -427,6 +450,9 @@
                <property name="icon">
                 <iconset resource="resources.qrc">
                  <normaloff>:/vrtbuilder/mActionRemoveRasterLayer.png</normaloff>:/vrtbuilder/mActionRemoveRasterLayer.png</iconset>
+               </property>
+               <property name="autoRaise">
+                <bool>true</bool>
                </property>
               </widget>
              </item>
@@ -481,7 +507,7 @@
                 <x>0</x>
                 <y>0</y>
                 <width>455</width>
-                <height>451</height>
+                <height>552</height>
                </rect>
               </property>
               <layout class="QGridLayout" name="gridLayout_2">

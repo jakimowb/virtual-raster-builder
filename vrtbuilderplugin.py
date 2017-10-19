@@ -46,8 +46,9 @@ class VRTBuilderPlugin:
         site.addsitedir(DIR_REPO)
 
         # init main UI
+        import vrtbuilder
         from vrtbuilder import TITLE, PATH_ICON
-        print(PATH_ICON)
+
         icon = QIcon(PATH_ICON)
         action = QAction(icon, TITLE, self.iface)
         action.triggered.connect(self.run)
@@ -63,9 +64,9 @@ class VRTBuilderPlugin:
 
         def addToMapCanvas(path):
             if self.vrtBuilder.cbAddtoMap.isChecked():
-                self.iface.addRaserLayer(path)
+                self.iface.addRasterLayer(path)
 
-        self.vrtBuilder.sigRasterCreated.connect()
+        self.vrtBuilder.sigRasterCreated.connect(addToMapCanvas)
         self.vrtBuilder.show()
 
 
@@ -76,7 +77,6 @@ class VRTBuilderPlugin:
 
         #print('Unload plugin')
         for action in self.toolbarActions:
-            print(action)
             self.iface.removeToolBarIcon(action)
 
         if isinstance(self.vrtBuilder, VRTBuilderWidget):

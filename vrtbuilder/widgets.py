@@ -392,7 +392,7 @@ class VRTRasterPreviewMapCanvas(QgsMapCanvas):
             extent = layer.extent()
             return extent.width() * extent.height()
         layers = list(sorted(layers, key = lambda lyr: area(lyr), reverse=True))
-        QgsMapLayerRegistry.instance().addMapLayers(layers)
+        QgsMapLayerRegistry.instance().addMapLayers(layers, False)
 
         super(VRTRasterPreviewMapCanvas, self).setLayerSet([QgsMapCanvasLayer(l) for l in layers])
 
