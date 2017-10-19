@@ -1,11 +1,20 @@
 <RCC>
  <qresource prefix="vrtbuilder">
+  <file>CRS.png</file>
+  <file>logo_dlr.png</file>
+  <file>logo_gfz.png</file>
+  <file>logo_hu-berlin.png</file>
   <file>mActionAddRasterLayer.png</file>
   <file>mActionAddVirtualRaster.png</file>
   <file>mActionCollapseTree.png</file>
   <file>mActionExpandTree.png</file>
+  <file>mActionImportFromRegistry.png</file>
   <file>mActionImportVirtualRaster.png</file>
+  <file>mActionNewVirtualLayer.png</file>
+  <file>mActionRemoveRasterLayer.png</file>
   <file>mActionRemoveVirtualRaster.png</file>
+  <file>mIconRaster.png</file>
   <file>mIconVirtualRaster.png</file>
+  <file>qgis_icon.png</file>
  </qresource>
 </RCC>

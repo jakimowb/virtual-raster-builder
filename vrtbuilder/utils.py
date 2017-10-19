@@ -43,7 +43,7 @@ dn = os.path.dirname
 
 
 def settings():
-    return QSettings('HU-Berlin', 'HUB TimeSeriesViewer')
+    return QSettings('HU-Berlin', 'Virtual Raster Builder')
 
 
 def initQgisApplication(pythonPlugins=None, PATH_QGIS=None, qgisDebug=False):

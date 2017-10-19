@@ -13,7 +13,7 @@
    height="24"
    id="svg5692"
    version="1.1"
-   inkscape:version="0.91 r13725"
+   inkscape:version="0.92.2 (5c3e80d, 2017-08-06)"
    sodipodi:docname="mActionImportVirtualRaster.svg"
    inkscape:export-filename="/home/denis/Desktop/oracle.png"
    inkscape:export-xdpi="67.5"
@@ -106,8 +106,10 @@
        enabled="true"
        snapvisiblegridlinesonly="true"
        dotted="true"
-       originx="2.5px"
-       originy="2.5px" />
+       originx="2.5"
+       originy="2.5"
+       spacingx="1"
+       spacingy="1" />
   </sodipodi:namedview>
   <metadata
      id="metadata5697">

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 /***************************************************************************
-                              HUB TimeSeriesViewer
+                              Virtual Raster Builder
                               -------------------
         begin                : 2017-08-04
         git sha              : $Format:%H$
@@ -20,15 +20,7 @@
 """
 # noinspection PyPep8Naming
 from __future__ import absolute_import
-import inspect
-import os
-import six
-import traceback
-import sys
-import importlib
-import re
-import site
-import logging
+import os, site, logging
 logger = logging.getLogger(__name__)
 from qgis.gui import *
 from qgis.core import *
@@ -41,7 +33,7 @@ class VRTBuilderPlugin:
 
     def __init__(self, iface):
         self.iface = iface
-        self.tsv = None
+        self.vrtBuilder = None
         import console.console as CONSOLE
         if CONSOLE._console is None:
             CONSOLE._console = CONSOLE.PythonConsole(iface.mainWindow())
@@ -50,11 +42,13 @@ class VRTBuilderPlugin:
     def initGui(self):
         self.toolbarActions = []
 
-        dir_repo = os.path.dirname(__file__)
-        import vrtbuilder
+        DIR_REPO = os.path.dirname(__file__)
+        site.addsitedir(DIR_REPO)
+
         # init main UI
-        from vrtbuilder import DIR_UI, jp, TITLE
-        icon = timeseriesviewer.icon()
+        from vrtbuilder import TITLE, PATH_ICON
+        print(PATH_ICON)
+        icon = QIcon(PATH_ICON)
         action = QAction(icon, TITLE, self.iface)
         action.triggered.connect(self.run)
         self.toolbarActions.append(action)
@@ -64,22 +58,30 @@ class VRTBuilderPlugin:
             self.iface.addToolBarIcon(action)
 
     def run(self):
-        from vrtbuilder.widgets import TimeSeriesViewer
-        self.tsv = TimeSeriesViewer(self.iface)
-        self.tsv.run()
+        from vrtbuilder.widgets import VRTBuilderWidget
+        self.vrtBuilder = VRTBuilderWidget()
+
+        def addToMapCanvas(path):
+            if self.vrtBuilder.cbAddtoMap.isChecked():
+                self.iface.addRaserLayer(path)
+
+        self.vrtBuilder.sigRasterCreated.connect()
+        self.vrtBuilder.show()
+
+
 
 
     def unload(self):
-        from timeseriesviewer.main import TimeSeriesViewer
+        from vrtbuilder.widgets import VRTBuilderWidget
 
         #print('Unload plugin')
         for action in self.toolbarActions:
             print(action)
             self.iface.removeToolBarIcon(action)
 
-        if isinstance(self.tsv, TimeSeriesViewer):
-            self.tsv.ui.close()
-            self.tsv = None
+        if isinstance(self.vrtBuilder, VRTBuilderWidget):
+            self.vrtBuilder.close()
+            self.vrtBuilder = None
 
 
     def tr(self, message):
