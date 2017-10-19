@@ -1,0 +1,11 @@
+<RCC>
+ <qresource prefix="vrtbuilder">
+  <file>mActionAddRasterLayer.png</file>
+  <file>mActionAddVirtualRaster.png</file>
+  <file>mActionCollapseTree.png</file>
+  <file>mActionExpandTree.png</file>
+  <file>mActionImportVirtualRaster.png</file>
+  <file>mActionRemoveVirtualRaster.png</file>
+  <file>mIconVirtualRaster.png</file>
+ </qresource>
+</RCC>

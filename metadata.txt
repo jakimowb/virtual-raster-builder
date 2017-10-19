@@ -1,0 +1,17 @@
+[general]
+name=Virtual Raster Builder
+description=A QGIS Plugin to create virtual rasters by drag and drop.
+version=0.1
+qgisMinimumVersion=2.18
+author=Benjamin Jakimow, Geomatics Lab, Humboldt-Universität zu Berlin
+about=The VRT Raster Builder is developed at Humboldt-Universität zu Berlin. 
+It is developed under contract by the German Research Centre for Geosciences (GFZ) as part of the EnMAP Core Science Team activities (www.enmap.org), funded by DLR and granted by the Federal Ministry of Economic Affairs and Energy (BMWi, grant no. 50EE1529)
+email=benjamin.jakimow@geo.hu-berlin.de
+icon=timeseriesviewer/ui/icons/icon.png
+homepage=https://bitbucket.org/jakimowb/vrtbuilder
+tracker=https://bitbucket.org/jakimowb/vrtbuilder/issues
+repository=https://bitbucket.org/jakimowb/vrtbuilder
+experimental=False
+deprecated=False
+tags=remote sensing, raster, time series
+category=Raster
