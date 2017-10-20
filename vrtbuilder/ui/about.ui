@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>476</width>
-    <height>425</height>
+    <height>430</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -105,6 +105,9 @@
           <property name="textFormat">
            <enum>Qt::RichText</enum>
           </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
           <property name="wordWrap">
            <bool>true</bool>
           </property>
@@ -115,12 +118,18 @@
           <property name="text">
            <string>&lt;version&gt;</string>
           </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
          </widget>
         </item>
         <item>
          <widget class="QLabel" name="labelVersion_2">
           <property name="text">
-           <string>A QGIS Plugin to create GDAL virtual rasters (VRT) by drag and drop.</string>
+           <string>          </string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
           </property>
           <property name="wordWrap">
            <bool>true</bool>
@@ -141,7 +150,7 @@
       </sizepolicy>
      </property>
      <property name="text">
-      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;Website, Source Code and more&lt;br/&gt;&lt;a href=&quot;https://bitbucket.org/hu-geomatics/enmap-box&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;https://bitbucket.org/jakimowb/vrtbuilder&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;Licenced under the GNU General Public Licence&lt;br/&gt;&lt;a href=&quot;http://www.gnu.org/licenses/&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;http://www.gnu.org/licenses/&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;The VRT Raster Builder is developed at the Geography Department of the Humboldt-Universitaet zu Berlin. It is part of the &lt;a href=&quot;https://bitbucket.org/hu-geomatics/enmap-box&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;EnMAP-Box project&lt;/span&gt;&lt;/a&gt; and the EnMAP Core Science Team activities (&lt;a href=&quot;https://www.enmap.org&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;www.enmap.org&lt;/span&gt;&lt;/a&gt;), under contract of the German Research Centre for Geosciences (GFZ), funded by DLR and granted by the Federal Ministry of Economic Affairs and Energy (BMWi, grant no. 50EE1529) . &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;A QGIS Plugin to create GDAL virtual rasters (VRT) by drag and drop.&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;Website, Source Code and more&lt;br/&gt;&lt;a href=&quot;https://bitbucket.org/jakimowb/virtual-raster-builder&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;https://bitbucket.org/jakimowb/virtual-raster-builder&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;Licenced under the GNU General Public Licence&lt;br/&gt;&lt;a href=&quot;http://www.gnu.org/licenses/&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;http://www.gnu.org/licenses/&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;The VRT Raster Builder is developed at the Geography Department of the Humboldt-Universit&amp;auml;t zu Berlin. It is part of the &lt;a href=&quot;https://bitbucket.org/hu-geomatics/enmap-box&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;EnMAP-Box project&lt;/span&gt;&lt;/a&gt; and the EnMAP Core Science Team activities (&lt;a href=&quot;https://www.enmap.org&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;www.enmap.org&lt;/span&gt;&lt;/a&gt;), under contract of the German Research Centre for Geosciences (GFZ), funded by DLR and granted by the Federal Ministry of Economic Affairs and Energy (BMWi, grant no. 50EE1529) . &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
      <property name="scaledContents">
       <bool>true</bool>
@@ -293,8 +302,8 @@
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>248</x>
-     <y>254</y>
+     <x>254</x>
+     <y>423</y>
     </hint>
     <hint type="destinationlabel">
      <x>157</x>
@@ -309,12 +318,28 @@
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>316</x>
-     <y>260</y>
+     <x>322</x>
+     <y>423</y>
     </hint>
     <hint type="destinationlabel">
      <x>286</x>
      <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>About</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>439</x>
+     <y>410</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>357</x>
+     <y>-15</y>
     </hint>
    </hints>
   </connection>
