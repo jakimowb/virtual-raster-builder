@@ -12,7 +12,7 @@
    viewBox="0 0 85.03937 85.03937"
    height="24mm"
    width="24mm"
-   inkscape:version="0.91 r13725"
+   inkscape:version="0.92.2 (5c3e80d, 2017-08-06)"
    sodipodi:docname="mIconVirtualRaster.svg">
   <sodipodi:namedview
      pagecolor="#ffffff"
@@ -24,13 +24,13 @@
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
      inkscape:window-width="1280"
-     inkscape:window-height="1002"
+     inkscape:window-height="962"
      id="namedview6021"
      showgrid="false"
      inkscape:zoom="4.329828"
-     inkscape:cx="68.992469"
+     inkscape:cx="26.842989"
      inkscape:cy="20.381026"
-     inkscape:window-x="1272"
+     inkscape:window-x="-8"
      inkscape:window-y="-8"
      inkscape:window-maximized="1"
      inkscape:current-layer="g6493"
@@ -45,7 +45,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -233,11 +233,10 @@
      id="path3347-8" />
   <text
      transform="scale(1.0245321,0.97605531)"
-     sodipodi:linespacing="125%"
      id="text6146-8-8"
      y="-31.783478"
      x="3.4679489"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:37.23497391px;line-height:125%;font-family:'Arial Rounded MT Bold';-inkscape-font-specification:'Arial Rounded MT Bold, Normal';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#bebe00;fill-opacity:1;stroke:none;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:0%;font-family:'Arial Rounded MT Bold';-inkscape-font-specification:'Arial Rounded MT Bold, Normal';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#bebe00;fill-opacity:1;stroke:none;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
      xml:space="preserve"><tspan
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:37.23497391px;line-height:125%;font-family:'Arial Rounded MT Bold';-inkscape-font-specification:'Arial Rounded MT Bold, Normal';text-align:start;writing-mode:lr-tb;text-anchor:start;fill:#bebe00;fill-opacity:1;stroke:none;stroke-width:2;stroke-miterlimit:4;stroke-dasharray:none"
        y="-31.783478"
