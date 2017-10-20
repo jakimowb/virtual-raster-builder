@@ -1140,19 +1140,40 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         self.treeViewVRT.setSelectionModel(self.vrtTreeSelectionModel)
 
         # 2. expand the parent nodes
-        # vBandNodes = set([n.parentNode() for n in srcNodes
-        #                  if isinstance(n.parentNode(), VRTRasterBandNode)])
-        # for n in vBandNodes:
-        #    self.treeViewVRT.expand(self.vrtBuilderModel.node2idx(n))
-
-
-        # self.vrtBuilderModel.redirectDropEvent(self.treeViewVRT)
-        # self.treeViewVRT.dragEnterEvent = self.vrtBuilderModel.dragEnterEvent
-        # self.treeViewVRT.dragMoveEvent = self.vrtBuilderModel.dragMoveEvent
-
         self.treeViewVRT.setAutoExpandDelay(50)
         self.treeViewVRT.setDragEnabled(True)
         self.treeViewVRT.contextMenuEvent = self.vrtTreeViewContextMenuEvent
+
+        #extents
+        self.cbBoundsFromSourceFiles.clicked.connect(self.onExtentChanged)
+        for tb in [self.tbBoundsXMin, self.tbBoundsXMax, self.tbBoundsYMin, self.tbBoundsYMax]:
+            tb.textChanged.connect(self.onExtentChanged)
+            tb.setValidator(QDoubleValidator(0.000000000000001, 999999999999999999999, 20))
+
+        #todo. set extent from map or other file
+
+        #resolution settings
+        self.cbResolution.currentIndexChanged.connect(self.onResolutionChanged)
+
+        for tb in [self.tbResolutionX, self.tbResolutionY]:
+            tb.setValidator(QDoubleValidator(0.000000000000001, 999999999999999999999, 5))
+            tb.textChanged.connect(self.onResolutionChanged)
+        self.cbResolution.setCurrentIndex(2) #== average resolution
+
+        #todo: self.btnResFromFile.clicked.connect()
+
+        #resampling settings
+        from virtualrasters import LUT_ResampleAlgs
+        self.cbResampling.clear()
+        for k, v in LUT_ResampleAlgs.items():
+            self.cbResampling.addItem(k, v)
+
+        self.cbResampling.currentIndexChanged.connect(lambda :
+                                                      self.vrtRaster.setResamplingAlg(
+                                                          self.cbResampling.currentText()
+                                                      ))
+        self.vrtRaster.sigResamplingAlgChanged.connect(lambda alg:
+                                                       self.cbResampling.setCurrentIndex(LUT_ResampleAlgs.keys().index(str(alg))))
 
         self.btnExpandAllVRT.clicked.connect(lambda: self.expandSelectedNodes(self.treeViewVRT, True))
         self.btnCollapseAllVRT.clicked.connect(lambda: self.expandSelectedNodes(self.treeViewVRT, False))
@@ -1191,6 +1212,38 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         self.mQgsProjectionSelectionWidget.crsChanged.connect(self.vrtRaster.setCrs)
 
         self.restoreLastSettings()
+
+    def onExtentChanged(self,*args):
+
+        if not self.frameExtent.isEnabled():
+            self.vrtRaster.setExtent(None)
+        else:
+            values = [tb.text() for tb in [self.tbBoundsXMin, self.tbBoundsYMin, self.tbBoundsXMax, self.tbBoundsYMax]]
+            if '' not in values:
+                values = [float(v) for v in values]
+                rectangle = QgsRectangle(*values)
+                self.vrtRaster.setExtent(rectangle)
+
+    def validateInputs(self):
+
+        isValid = True
+        self.buttonBox.button(QDialogButtonBox.Save).setEnabled(isValid)
+
+    def onResolutionChanged(self, *args):
+
+        mode = str(self.cbResolution.currentText())
+        isUserMode = mode == 'user'
+        self.frameUserResolution.setEnabled(isUserMode)
+        self.validateInputs()
+        if isUserMode:
+            x = str(self.tbResolutionX.text())
+            y = str(self.tbResolutionY.text())
+            if len(x) > 0 and len(y) > 0:
+                x = float(x)
+                y = float(y)
+                self.vrtRaster.setResolution(QSizeF(x,y))
+        else:
+            self.vrtRaster.setResolution(mode)
 
     def restoreDefaultSettings(self):
         self.cbAddtoMap.setChecked(True)

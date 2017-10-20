@@ -136,13 +136,14 @@ class VRTRasterBand(QObject):
             infos.append('\t{} SourceFileName {} SourceBand {}'.format(i + 1, info.mPath, info.mBandIndex))
         return '\n'.join(infos)
 
-LUT_ReampleAlg = {'nearest': gdal.GRA_NearestNeighbour,
-                  'bilinear': gdal.GRA_Bilinear,
-                  'mode':gdal.GRA_Mode,
-                  'lanczos':gdal.GRA_Lanczos,
-                  'average':gdal.GRA_Average,
-                  'cubic':gdal.GRA_Cubic,
-                  'cubic_spline':gdal.GRA_CubicSpline}
+LUT_ResampleAlgs = OrderedDict()
+LUT_ResampleAlgs['nearest'] = gdal.GRA_NearestNeighbour
+LUT_ResampleAlgs['bilinear'] = gdal.GRA_Bilinear
+LUT_ResampleAlgs['mode'] = gdal.GRA_Mode
+LUT_ResampleAlgs['lanczos'] = gdal.GRA_Lanczos
+LUT_ResampleAlgs['average'] = gdal.GRA_Average
+LUT_ResampleAlgs['cubic'] = gdal.GRA_Cubic
+LUT_ResampleAlgs['cubic_spline'] = gdal.GRA_CubicSpline
 
 
 
@@ -156,27 +157,121 @@ class VRTRaster(QObject):
     sigBandInserted = pyqtSignal(int, VRTRasterBand)
     sigBandRemoved = pyqtSignal(int, VRTRasterBand)
     sigCrsChanged = pyqtSignal(QgsCoordinateReferenceSystem)
-
+    sigResolutionChanged = pyqtSignal()
+    sigResamplingAlgChanged = pyqtSignal(str)
+    sigExtentChanged = pyqtSignal()
 
     def __init__(self, parent=None):
         super(VRTRaster, self).__init__(parent)
         self.mBands = []
         self.mCrs = None
-        self.mResampleAlg = gdal.GRA_NearestNeighbour
+        self.mResamplingAlg = gdal.GRA_NearestNeighbour
         self.mMetadata = dict()
         self.mSourceRasterBounds = dict()
-        self.mOutputBounds = None
+        self.mExtent = None
+        self.mResolution = None
         self.sigSourceBandRemoved.connect(self.updateSourceRasterBounds)
         self.sigSourceBandInserted.connect(self.updateSourceRasterBounds)
         self.sigBandRemoved.connect(self.updateSourceRasterBounds)
         self.sigBandInserted.connect(self.updateSourceRasterBounds)
 
+
+    def setResamplingAlg(self, value):
+        """
+        Sets the resampling algorithm
+        :param value:
+            - Any gdal.GRA_* constant, like gdal.GRA_NearestNeighbor
+            - nearest,bilinear,cubic,cubicspline,lanczos,average,mode
+            - None (will set the default value to 'nearest'
+        """
+        last = self.mResamplingAlg
+        if value is None:
+            self.mResamplingAlg = gdal.GRA_NearestNeighbour
+        elif value in LUT_ResampleAlgs.keys():
+            self.mResamplingAlg = LUT_ResampleAlgs[value]
+        else:
+            assert value in LUT_ResampleAlgs.values()
+            self.mResamplingAlg = value
+        if last != self.mResamplingAlg:
+            self.sigResamplingAlgChanged.emit(self.resamplingAlg(asString=True))
+
+
+    def resamplingAlg(self, asString=False):
+        """
+        "Returns the resampling algorithms.
+        :param asString: Set True to return the resampling algorithm as string.
+        :return:  gdal.GRA* constant or descriptive string.
+        """
+        if asString:
+            return LUT_ResampleAlgs.keys()[LUT_ResampleAlgs.values().index(self.mResamplingAlg)]
+        else:
+            self.mResamplingAlg
+
+    def setExtent(self, rectangle):
+        last = self.mExtent
+        if rectangle is None:
+            #use implicit/automatic values
+            self.mExtent = None
+        else:
+            assert isinstance(rectangle, QgsRectangle)
+            assert rectangle.width() > 0
+            assert rectangle.height() > 0
+            self.mExtent = rectangle
+
+        if last != self.mExtent:
+            self.sigExtentChanged.emit()
+        pass
+
+    def extent(self):
+        return self.mExtent
+
+    def setResolution(self, xy):
+        """
+        Set the VRT resolution.
+        :param xy: explicit value given as QSizeF(x,y) object or
+                   implicit as 'highest','lowest','average'
+        """
+        last = self.mResolution
+        if xy is None:
+            self.mResolution = 'average'
+        else:
+            if isinstance(xy, QSizeF):
+                assert xy.width() > 0
+                assert xy.height() > 0
+                self.mResolution = QSizeF(xy)
+            else:
+                assert type(xy) in [str, unicode]
+                xy = str(xy)
+                assert xy in ['average','highest','lowest']
+                self.mResolution = xy
+
+        if last != self.mResolution:
+            self.sigResolutionChanged.emit()
+
+    def resolution(self):
+        """
+        Returns the internal resolution descriptor, which can be
+        an explicit QSizeF(x,y) or one of following strings: 'average','highest','lowest'
+        """
+        return self.mResolution
+
+
     def setCrs(self, crs):
+        """
+        Sets the output Coordinate Reference System (CRS)
+        :param crs: osr.SpatialReference or QgsCoordinateReferenceSystem
+        :return:
+        """
         if isinstance(crs, osr.SpatialReference):
             auth = '{}:{}'.format(crs.GetAttrValue('AUTHORITY',0), crs.GetAttrValue('AUTHORITY',1))
             crs = QgsCoordinateReferenceSystem(auth)
         if isinstance(crs, QgsCoordinateReferenceSystem):
             if crs != self.mCrs:
+                extent = self.extent()
+                if isinstance(extent, QgsRectangle):
+                    trans = QgsCoordinateTransform(self.mCrs, crs)
+                    extent = trans.transform(extent)
+                    self.setExtent(extent)
                 self.mCrs = crs
                 self.sigCrsChanged.emit(self.mCrs)
 
@@ -309,13 +404,13 @@ class VRTRaster(QObject):
         return self.mSourceRasterBounds
 
     def outputBounds(self):
-        if isinstance(self.mOutputBounds, RasterBounds):
+        if isinstance(self.mExtent, RasterBounds):
             return
             #calculate from source rasters
 
     def setOutputBounds(self, bounds):
         assert isinstance(self, RasterBounds)
-        self.mOutputBounds = bounds
+        self.mExtent = bounds
 
 
     def updateSourceRasterBounds(self):
@@ -372,45 +467,13 @@ class VRTRaster(QObject):
 
 
 
-    def saveVRT(self, pathVRT, resampleAlg=gdal.GRA_NearestNeighbour, **kwds):
-        """
-        :param pathVRT: path to VRT that is created
-        :param options --- can be be an array of strings, a string or let empty and filled from other keywords..
-        :param resolution --- 'highest', 'lowest', 'average', 'user'.
-        :param outputBounds --- output bounds as (minX, minY, maxX, maxY) in target SRS.
-        :param xRes, yRes --- output resolution in target SRS.
-        :param targetAlignedPixels --- whether to force output bounds to be multiple of output resolution.
-        :param bandList --- array of band numbers (index start at 1).
-        :param addAlpha --- whether to add an alpha mask band to the VRT when the source raster have none.
-        :param resampleAlg --- resampling mode.
-        :param outputSRS --- assigned output SRS.
-        :param allowProjectionDifference --- whether to accept input datasets have not the same projection. Note: they will *not* be reprojected.
-        :param srcNodata --- source nodata value(s).
-        :param callback --- callback method.
-        :param callback_data --- user data for callback.
-        :return: gdal.DataSet(pathVRT)
-        """
+    def saveVRT(self, pathVRT):
 
         if len(self.mBands) == 0:
             print('No VRT Inputs defined.')
             return None
 
         assert os.path.splitext(pathVRT)[-1].lower() == '.vrt'
-
-        _kwds = dict()
-        supported = ['options','resolution','outputBounds','xRes','yRes','targetAlignedPixels','addAlpha','resampleAlg',
-        'outputSRS','allowProjectionDifference','srcNodata','VRTNodata','hideNodata','callback', 'callback_data']
-        for k in kwds.keys():
-            if k in supported:
-                _kwds[k] = kwds[k]
-
-        if 'resampleAlg' not in _kwds:
-            _kwds['resampleAlg'] = resampleAlg
-
-        if isinstance(self.mOutputBounds, RasterBounds):
-            bounds = self.mOutputBounds.polygon
-            xmin, ymin,xmax, ymax = bounds
-            _kwds['outputBounds'] = (xmin, ymin,xmax, ymax)
 
         dirVrt = os.path.dirname(pathVRT)
         dirWarpedVRT = os.path.join(dirVrt, 'WarpedVRTs')
@@ -419,6 +482,7 @@ class VRTRaster(QObject):
 
         srcLookup = dict()
         srcNodata = None
+
         for i, pathSrc in enumerate(self.sourceRaster()):
             dsSrc = gdal.Open(pathSrc)
             assert isinstance(dsSrc, gdal.Dataset)
@@ -443,13 +507,30 @@ class VRTRaster(QObject):
                 tmp = None
                 srcLookup[pathSrc] = pathVRT2
 
-
-
-
         srcFiles = [srcLookup[src] for src in self.sourceRaster()]
 
-        vro = gdal.BuildVRTOptions(separate=True, **_kwds)
-        #1. build a temporary VRT that described the spatial shifts of all input sources
+        #1. build a temporary VRT that describes the spatial shifts of all input sources
+
+
+        kwds = {}
+        res = self.resolution()
+
+        if res is None:
+            res = 'average'
+        if isinstance(res, QSizeF):
+            kwds['resolution'] = 'user'
+            kwds['xRes'] = res.width()
+            kwds['yRes'] = res.height()
+        else:
+            assert res in ['highest','lowest','average']
+            kwds['resolution'] = res
+
+        extent = self.extent()
+        if isinstance(extent, QgsRectangle):
+            kwds['outputBounds'] = (extent.xMinimum(), extent.yMinimum(), extent.xMaximum(), extent.yMaximum())
+
+        vro = gdal.BuildVRTOptions(separate=True, **kwds)
+
         gdal.BuildVRT(pathVRT, srcFiles, options=vro)
         dsVRTDst = gdal.Open(pathVRT)
         assert isinstance(dsVRTDst, gdal.Dataset)
@@ -637,49 +718,3 @@ class RasterBounds(object):
     def __repr__(self):
         return self.polygon.ExportToWkt()
 
-
-if __name__ == '__main__':
-    import site, sys
-    #add site-packages to sys.path as done by enmapboxplugin.py
-
-    from vrtbuilder import utils
-    from vrtbuilder.widgets import VRTBuilderWidget
-    qgsApp = utils.initQgisApplication()
-
-    if False:
-        r = VRTRaster()
-        p = r'D:\Repositories\QGIS_Plugins\hub-timeseriesviewer\test\output.vrt'
-        r.loadVRT(p)
-
-        exit(0)
-
-    w = VRTBuilderWidget()
-
-    import sys
-
-    if sys.platform == 'darwin':
-        files = [
-        r'/Users/Shared/Multitemp2017/01_Data/RapidEye/re_2012-07-25.vrt'
-        #p2 = r'/Users/Shared/Multitemp2017/01_Data/Landsat/LC82270652014207LGN00.vrt'
-        ,r'/Users/Shared/Multitemp2017/01_Data/CBERS/CBERS_4_MUX_20150820.vrt'
-        ]
-
-    else:
-        files = [
-        r'S:/temp/temp_ar/4benjamin/05_CBERS/CBERS_4_MUX_20150603_167_107_L4_BAND5_GRID_SURFACE.tif'
-        #,r'D:/Repositories/QGIS_Plugins/hub-timeseriesviewer/example/Images/re_2014-06-25.tif'
-        ,r'D:/Repositories/QGIS_Plugins/hub-timeseriesviewer/example/Images/2014-08-27_LC82270652014239LGN00_BOA.tif'
-        ]
-
-    w.addSourceFiles(files)
-    #w.vrtRaster.addFilesAsStack([p1, p2, p3])
-    p = r'S:/temp/temp_ar/4benjamin/05_CBERS/CBERS_4_MUX_20150603_167_107_L4_BAND5_GRID_SURFACE.tif'
-    bLyr = QgsRasterLayer(p, 'backgroud', 'gdal', True)
-    QgsMapLayerRegistry.instance().addMapLayer(bLyr)
-
-    #w.setBackgroundLayer(bLyr)
-    w.show()
-
-
-    qgsApp.exec_()
-    qgsApp.exitQgis()
