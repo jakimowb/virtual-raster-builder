@@ -1197,7 +1197,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
                                            self.vrtBuilderModel.setDropMode('PURE_STACK')
                                            if isChecked
                                            else self.vrtBuilderModel.setDropMode(('NESTED_STACK')))
-        
+
         self.treeViewVRT.setModel(self.vrtBuilderModel)
 
         self.vrtTreeSelectionModel = VRTSelectionModel(

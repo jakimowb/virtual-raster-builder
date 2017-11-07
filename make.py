@@ -433,9 +433,11 @@ if __name__ == '__main__':
     if True:
         #convert SVG to PNG and link them into the resource file
         svg2png(icondir, overwrite=False)
+
     if True:
         #add png icons to qrc file
         png2qrc(icondir, pathQrc)
+
     if True:
         compile_rc_files(DIR_UI)
 
