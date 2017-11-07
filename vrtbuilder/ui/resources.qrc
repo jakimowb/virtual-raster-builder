@@ -15,6 +15,8 @@
   <file>mActionRemoveVirtualRaster.png</file>
   <file>mIconRaster.png</file>
   <file>mIconVirtualRaster.png</file>
+  <file>mOptionMosaikFiles.png</file>
+  <file>mOptionStackFiles.png</file>
   <file>qgis_icon.png</file>
  </qresource>
 </RCC>

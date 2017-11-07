@@ -895,6 +895,12 @@ class VRTRasterTreeModel(TreeModel):
         self.mVRTRaster = vrtRaster
         self.mColumnNames = ['Virtual Raster']
 
+        self.mDropMode = 'NESTED_STACK'
+
+    def setDropMode(self, mode):
+        assert mode in ['NESTED_STACK', 'PURE_STACK']
+        self.mDropMode = mode
+
     def setData(self, index, value, role):
         node = self.idx2node(index)
         col = index.column()
@@ -1043,33 +1049,48 @@ class VRTRasterTreeModel(TreeModel):
         if len(sourceBands) == 0:
             return False
 
-        # re-order source bands by
-        # 1. source file band index
-        # 2. source file
-        # create a nested list like
-        #  [[file 1 band1, file 2 band1, file 3 band 92] <- source bands for a virtual band,
-        #   [file 1 band2, file 2 band2, file 3 band 93]
-        #  ]
+        if self.mDropMode == 'NESTED_STACK':
 
-        sourceImages = {}
-        for b in sourceBands:
-            assert isinstance(b, VRTRasterInputSourceBand)
-            if not b.mPath in sourceImages.keys():
-                sourceImages[b.mPath] = []
-            sourceImages[b.mPath].append(b)
-        for p in sourceImages.keys():
-            sourceImages[p] = sorted(sourceImages[p], key=lambda b: b.mBandIndex)
+            # re-order source bands by
+            # 1. source file band index
+            # 2. source file
+            # Aim: create a nested list like
+            #  [[file 1 band1, file 2 band1, file 3 band 92] <- source bands for the 1st virtual band,
+            #   [file 1 band2, file 2 band2, file 3 band 93] <- source bands for the 2nd virtual band
+            #  ]
 
-        if len(sourceImages) == 0:
-            return True
+            #step 1: temporary storage by source image path
+            sourceImages = {}
+            for b in sourceBands:
+                assert isinstance(b, VRTRasterInputSourceBand)
+                if not b.mPath in sourceImages.keys():
+                    sourceImages[b.mPath] = []
+                sourceImages[b.mPath].append(b)
+            for p in sourceImages.keys():
+                sourceImages[p] = sorted(sourceImages[p], key=lambda b: b.mBandIndex)
 
-        sourceBands = []
-        while len(sourceImages) > 0:
-            sourceBands.append([])
-            for k in sourceImages.keys():
-                sourceBands[-1].append(sourceImages[k].pop(0))
-                if len(sourceImages[k]) == 0:
-                    del sourceImages[k]
+            if len(sourceImages) == 0:
+                return True
+
+            #step 2: create the nested list
+
+
+
+            sourceBands = []
+            while len(sourceImages) > 0:
+                sourceBands.append([])
+
+                for k in sourceImages.keys():
+                    sourceBands[-1].append(sourceImages[k].pop(0))
+                    if len(sourceImages[k]) == 0:
+                        del sourceImages[k]
+
+        elif self.mDropMode == 'PURE_STACK':
+            #pure stacking: each source band defines its own virtual band
+            sourceBands = [[b] for b in sourceBands]
+        else:
+            raise NotImplementedError('Unknown DropMode: "{}"'.format(self.mDropMode))
+
 
         # ensure that we start with a VRTRasterBandNode
         parentNode = self.idx2node(parentIndex)
@@ -1106,8 +1127,6 @@ class VRTRasterTreeModel(TreeModel):
 
         return True
 
-        s = ""
-        return False
 
     def supportedDragActions(self):
         return Qt.CopyAction | Qt.MoveAction
@@ -1174,6 +1193,11 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         self.vrtRaster.sigBandRemoved.connect(self.updateSummary)
 
         self.vrtBuilderModel = VRTRasterTreeModel(parent=self.treeViewVRT, vrtRaster=self.vrtRaster)
+        self.btnStackFiles.toggled.connect(lambda isChecked:
+                                           self.vrtBuilderModel.setDropMode('PURE_STACK')
+                                           if isChecked
+                                           else self.vrtBuilderModel.setDropMode(('NESTED_STACK')))
+        
         self.treeViewVRT.setModel(self.vrtBuilderModel)
 
         self.vrtTreeSelectionModel = VRTSelectionModel(
