@@ -37,6 +37,22 @@ def px2geo(px, gt):
 
 
 class VRTRasterInputSourceBand(object):
+    @staticmethod
+    def fromGDALDataSet(pathOrDataSet):
+
+        srcBands = []
+
+        if isinstance(pathOrDataSet, str):
+            pathOrDataSet = gdal.Open(pathOrDataSet)
+
+        if isinstance(pathOrDataSet, gdal.Dataset):
+            path = pathOrDataSet.GetFileList()[0]
+            for b in range(pathOrDataSet.RasterCount):
+                srcBands.append(VRTRasterInputSourceBand(path, b))
+        return srcBands
+
+
+
     def __init__(self, path, bandIndex, bandName=''):
         self.mPath = os.path.normpath(path)
         self.mBandIndex = bandIndex
@@ -144,8 +160,6 @@ LUT_ResampleAlgs['lanczos'] = gdal.GRA_Lanczos
 LUT_ResampleAlgs['average'] = gdal.GRA_Average
 LUT_ResampleAlgs['cubic'] = gdal.GRA_Cubic
 LUT_ResampleAlgs['cubic_spline'] = gdal.GRA_CubicSpline
-
-
 
 
 class VRTRaster(QObject):

@@ -184,8 +184,8 @@ class SourceRasterBandNode(TreeNode):
         super(SourceRasterBandNode, self).__init__(parentNode)
         self.setIcon(QIcon(":/vrtbuilder/mIconRaster.png"))
         self.mSrcBand = vrtRasterInputSourceBand
-        self.setName(self.mSrcBand.mBandName)
-        # self.setValues([self.mSrcBand.mPath])
+        self.setName('{}:{}'.format(os.path.basename(self.mSrcBand.mPath), self.mSrcBand.mBandIndex + 1))
+        self.setValues([self.mSrcBand.mBandName])
         self.setToolTip('band {}:{}'.format(self.mSrcBand.mBandIndex + 1, self.mSrcBand.mPath))
 
 
@@ -250,7 +250,7 @@ class VRTRasterInputSourceBandNode(TreeNode):
         super(VRTRasterInputSourceBandNode, self).__init__(parentNode)
         self.setIcon(QIcon(":/vrtbuilder/mIconRaster.png"))
         self.mSrc = vrtRasterInputSourceBand
-        name = '{}:{}'.format(self.mSrc.mBandIndex + 1, os.path.basename(self.mSrc.mPath))
+        name = '{}:{}'.format(os.path.basename(self.mSrc.mPath),self.mSrc.mBandIndex + 1)
         self.setName(name)
         # self.setValues([self.mSrc.mPath, self.mSrc.mBandIndex])
 
@@ -475,7 +475,8 @@ class TreeModel(QAbstractItemModel):
         self.endInsertRows()
         # for i in range(idx1, idxL+1):
         for n in node.childNodes():
-            self.setColumnSpan(node)
+            #self.setColumnSpan(node)
+            pass
 
     def nodeWillRemoveChildren(self, node, idx1, idxL):
         idxNode = self.node2idx(node)
@@ -629,6 +630,36 @@ class TreeModel(QAbstractItemModel):
         node = self.idx2node(index)
         return Qt.ItemIsEnabled | Qt.ItemIsSelectable
 
+class SourceRasterFilterModel(QSortFilterProxyModel):
+    def __init__(self, parent=None):
+        super(SourceRasterFilterModel, self).__init__(parent)
+
+    def filterAcceptsRow(self, sourceRow, sourceParent):
+        node = self.sourceModel().idx2node(sourceParent).childNodes()[sourceRow]
+
+        if type(node) not in [SourceRasterFileNode, SourceRasterBandNode]:
+            return True
+
+        s0 = self.sourceModel().index(sourceRow, 0, sourceParent).data()
+        s1 = self.sourceModel().index(sourceRow, 1, sourceParent).data()
+
+        reg = self.filterRegExp()
+        if reg.isEmpty():
+            return True
+
+        if isinstance(node, SourceRasterFileNode):
+            pattern = reg.pattern().replace(':','')
+            reg.setPattern(pattern)
+
+        return reg.indexIn(s0) >= 0 or reg.indexIn(s1) >= 0
+
+
+    def filterAcceptsColumn(self, sourceColumn, sourceParent):
+        node = self.sourceModel().idx2node(sourceParent)
+        if not isinstance(node, SourceRasterBandNode):
+            return True
+        else:
+            return sourceColumn in [0,1]
 
 class SourceRasterModel(TreeModel):
     def __init__(self, parent=None):
@@ -994,13 +1025,20 @@ class VRTRasterTreeModel(TreeModel):
             dump = mimeData.data(u'hub.vrtbuilder/bandlist')
             sourceBands = pickle.loads(dump)
 
-        if u'hub.vrtbuilder/vrt.indices' in mimeData.formats():
+        elif u'hub.vrtbuilder/vrt.indices' in mimeData.formats():
             dump = mimeData.data(u'hub.vrtbuilder/vrt.indices')
             indices = pickle.loads(dump)
             s = ""
 
             if action == Qt.MoveAction:
                 s = ""
+        #drop files
+        elif mimeData.hasUrls():
+            for url in mimeData.urls():
+                if url.isValid():
+                    path = str(url.path())
+                    if os.path.isfile(path):
+                        sourceBands.extend(VRTRasterInputSourceBand.fromGDALDataSet(str(url.path())))
 
         if len(sourceBands) == 0:
             return False
@@ -1008,10 +1046,11 @@ class VRTRasterTreeModel(TreeModel):
         # re-order source bands by
         # 1. source file band index
         # 2. source file
-        # create a list like [[file 1 band1, file 2 band1, file 3 band 92],
-        #                    [file 1 band2, file 2 band2, file 3 band 93]
-        #                        . . .
-        #                   ]
+        # create a nested list like
+        #  [[file 1 band1, file 2 band1, file 3 band 92] <- source bands for a virtual band,
+        #   [file 1 band2, file 2 band2, file 3 band 93]
+        #  ]
+
         sourceImages = {}
         for b in sourceBands:
             assert isinstance(b, VRTRasterInputSourceBand)
@@ -1023,6 +1062,7 @@ class VRTRasterTreeModel(TreeModel):
 
         if len(sourceImages) == 0:
             return True
+
         sourceBands = []
         while len(sourceImages) > 0:
             sourceBands.append([])
@@ -1049,6 +1089,7 @@ class VRTRasterTreeModel(TreeModel):
         if row < 0:
             row = 0
 
+        #add the source bands to the VRT
         for bands in sourceBands:
             iSrc = row
             for src in bands:
@@ -1056,11 +1097,11 @@ class VRTRasterTreeModel(TreeModel):
                 iSrc += 1
 
             if bands != sourceBands[-1]:
-                # switch add a new virtual band if the recent vBand is the last one
+                # add a new virtual band if the recent vBand is the last one
                 if vBand == self.mVRTRaster.mBands[-1]:
                     self.mVRTRaster.addVirtualBand(VRTRasterBand())
 
-                # switch to next virtual band
+                # go to next virtual band
                 vBand = self.mVRTRaster.mBands[self.mVRTRaster.mBands.index(vBand) + 1]
 
         return True
@@ -1089,8 +1130,12 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         super(VRTBuilderWidget, self).__init__(parent)
         self.setupUi(self)
         self.sourceFileModel = SourceRasterModel(parent=self.treeViewSourceFiles)
-
-        self.treeViewSourceFiles.setModel(self.sourceFileModel)
+        self.sourceFileProxyModel = SourceRasterFilterModel()
+        self.sourceFileProxyModel.setSourceModel(self.sourceFileModel)
+        self.tbSourceFileFilter.textChanged.connect(self.onSourceFileFilterChanged)
+        self.cbSourceFileFilterRegex.clicked.connect(lambda : self.onSourceFileFilterChanged(self.tbSourceFileFilter.text()))
+        #self.treeViewSourceFiles.setModel(self.sourceFileModel)
+        self.treeViewSourceFiles.setModel(self.sourceFileProxyModel)
 
         self.mCrsManuallySet = False
         self.mBoundsManuallySet = False
@@ -1111,6 +1156,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         self.vrtRaster = VRTRaster()
         self.vrtRasterLayer = VRTRasterVectorLayer(self.vrtRaster)
         self.vrtRasterLayer.dataChanged.connect(self.resetMap)
+        self.vrtRaster.sigSourceRasterAdded.connect(self.sourceFileProxyModel.sourceModel().addFiles)
         self.mBackgroundLayer = None
         # self.vrtRasterLayer.editingStopped.connect(self.resetMap)
 
@@ -1212,6 +1258,16 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         self.mQgsProjectionSelectionWidget.crsChanged.connect(self.vrtRaster.setCrs)
 
         self.restoreLastSettings()
+
+    def onSourceFileFilterChanged(self, text):
+
+        useRegex = self.cbSourceFileFilterRegex.isChecked()
+        if useRegex:
+            self.sourceFileProxyModel.setFilterRegExp(text)
+        else:
+            self.sourceFileProxyModel.setFilterWildcard(text)
+
+        pass
 
     def onExtentChanged(self,*args):
 
