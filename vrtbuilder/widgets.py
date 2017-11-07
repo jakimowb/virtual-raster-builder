@@ -1265,6 +1265,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
                                         )
                                         )
 
+        self.btnAbout.setIcon(self.style().standardIcon(QStyle.SP_MessageBoxInformation))
         self.btnAbout.clicked.connect(lambda : AboutWidget(self).exec_())
 
         self.btnAddFromRegistry.clicked.connect(self.loadSrcFromMapLayerRegistry)
