@@ -10,9 +10,9 @@
    version="1.1"
    x="0"
    y="0"
-   width="256"
-   height="256"
-   viewBox="0, 0, 256, 256"
+   width="24"
+   height="24"
+   viewBox="0 0 24 24"
    id="svg25"
    sodipodi:docname="mActionImportFromRegistry.svg"
    inkscape:version="0.92.2 (5c3e80d, 2017-08-06)">
@@ -41,30 +41,24 @@
      inkscape:window-height="962"
      id="namedview27"
      showgrid="false"
-     inkscape:zoom="0.921875"
-     inkscape:cx="-27.340167"
-     inkscape:cy="128"
+     inkscape:zoom="14.75"
+     inkscape:cx="13.327261"
+     inkscape:cy="18.193181"
      inkscape:window-x="-8"
      inkscape:window-y="-8"
      inkscape:window-maximized="1"
-     inkscape:current-layer="svg25" />
+     inkscape:current-layer="Background"
+     showborder="true"
+     inkscape:pagecheckerboard="false" />
   <g
      id="Background"
-     transform="translate(-13.17796,3.0932203)">
-    <rect
-       x="0"
-       y="0"
-       width="256"
-       height="256"
-       id="rect2"
-       style="fill:#ffffff" />
-  </g>
+     transform="matrix(0.08664813,0,0,0.08664813,-0.13843154,0.69262884)" />
   <defs
      id="defs15">
     <linearGradient
        id="Gradient_1"
        gradientUnits="userSpaceOnUse"
-       x1="200.788"
+       x1="200.78799"
        y1="249.007"
        x2="197.17"
        y2="11.232">
@@ -83,7 +77,7 @@
        x1="129.939"
        y1="252.718"
        x2="126.351"
-       y2="16.928">
+       y2="16.927999">
       <stop
          offset="0"
          stop-color="#589632"
@@ -95,11 +89,12 @@
     </linearGradient>
   </defs>
   <g
-     id="g17" />
+     id="g17"
+     transform="translate(0,-232)" />
   <g
      style="display:inline"
      id="g3772"
-     transform="matrix(19.38331,0,0,19.38331,-366.27441,-366.27442)">
+     transform="matrix(1.7368938,0,0,1.7368938,-32.365911,-32.402345)">
     <rect
        ry="2.6149368"
        inkscape:export-ydpi="120"
@@ -120,8 +115,8 @@
        style="display:inline;opacity:0.3;fill:#fcffff;fill-rule:evenodd;stroke:none;enable-background:new" />
   </g>
   <path
-     style="display:inline;fill:#eeeeec;stroke:#eeeeec;stroke-width:20.4814167;stroke-linejoin:round"
+     style="display:inline;fill:#eeeeec;stroke:#eeeeec;stroke-width:1.83529258;stroke-linejoin:round"
      inkscape:connector-curvature="0"
-     d="m 46.074275,49.600917 v 0 c 69.894215,0.72515 63.361415,52.560863 61.444385,102.407013 0,0 -61.444385,0 -61.444385,0 l 81.181935,61.4444 82.66946,-61.4444 c 0,0 -40.96291,0 -61.44437,0 0,-81.925553 0,-102.407013 -102.407025,-102.407013 z"
+     d="m 4.5837066,4.8632874 v 0 c 6.2630594,0.064978 5.6776704,4.7098573 5.5058894,9.1764576 0,0 -5.5058894,0 -5.5058894,0 l 7.2745264,5.505891 7.40782,-5.505891 c 0,0 -3.670592,0 -5.505888,0 0,-7.3411618 0,-9.1764576 -9.1764584,-9.1764576 z"
      id="path6842-8" />
 </svg>

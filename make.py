@@ -93,7 +93,9 @@ def compile_rc_files(ROOT):
         bn = os.path.basename(f)
         bn = os.path.splitext(bn)[0]
         pathPy2 = os.path.join(DIR_UI, bn+'.py' )
+        pathRCC = os.path.join(DIR_UI, bn+'.rcc' )
         subprocess.call(['pyrcc4', '-py2', '-o', pathPy2, pathQrc])
+        s = ""
 
 def fileNeedsUpdate(file1, file2):
     if not os.path.exists(file2):
@@ -418,6 +420,21 @@ def deploy():
     zipdir(dirPlugin, pathZip)
     #os.chdir(dirPlugin)
     #shutil.make_archive(pathZip, 'zip', '..', dirPlugin)
+
+    #6. copy to local QGIS user DIR
+    if True:
+        import shutil
+
+        from os.path import expanduser
+        pathQGIS = os.path.join(expanduser("~"), *['.qgis2','python','plugins'])
+
+        assert os.path.isdir(pathQGIS)
+        pathDst = os.path.join(pathQGIS, os.path.basename(dirPlugin))
+        rm(pathDst)
+        shutil.copytree(dirPlugin, pathDst)
+        s  =""
+
+
     print('Finished')
 
 

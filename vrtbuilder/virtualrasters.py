@@ -221,12 +221,16 @@ class VRTRaster(QObject):
         else:
             self.mResamplingAlg
 
-    def setExtent(self, rectangle):
+    def setExtent(self, rectangle, crs=None):
         last = self.mExtent
         if rectangle is None:
             #use implicit/automatic values
             self.mExtent = None
         else:
+            if isinstance(crs, QgsCoordinateReferenceSystem) and isinstance(self.mCrs, QgsCoordinateReferenceSystem):
+                trans = QgsCoordinateTransform(crs, self.mCrs)
+                rectangle = trans.transform(rectangle)
+
             assert isinstance(rectangle, QgsRectangle)
             assert rectangle.width() > 0
             assert rectangle.height() > 0
@@ -416,15 +420,6 @@ class VRTRaster(QObject):
 
     def sourceRasterBounds(self):
         return self.mSourceRasterBounds
-
-    def outputBounds(self):
-        if isinstance(self.mExtent, RasterBounds):
-            return
-            #calculate from source rasters
-
-    def setOutputBounds(self, bounds):
-        assert isinstance(self, RasterBounds)
-        self.mExtent = bounds
 
 
     def updateSourceRasterBounds(self):
@@ -692,13 +687,6 @@ class RasterBounds(object):
         if path is not None:
             self.fromImage(path)
 
-    def fromRectangle(self, crs, rectangle):
-        assert isinstance(rectangle, QgsRectangle)
-        assert isinstance(crs, QgsCoordinateReferenceSystem)
-        self.crs = crs
-        self.path = ''
-        s = ""
-
 
     def fromImage(self, path):
         self.path = path
@@ -729,6 +717,8 @@ class RasterBounds(object):
 
         self.crs = crs
 
+        return self
+
     def __repr__(self):
-        return self.polygon.ExportToWkt()
+        return self.polygon.asWkt()
 

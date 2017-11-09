@@ -662,10 +662,14 @@ class SourceRasterFilterModel(QSortFilterProxyModel):
             return sourceColumn in [0,1]
 
 class SourceRasterModel(TreeModel):
+    sigFilesAdded = pyqtSignal(list)
+    sigFilesRemoved = pyqtSignal(list)
+
     def __init__(self, parent=None):
         super(SourceRasterModel, self).__init__(parent)
 
         self.mColumnNames = ['File', 'Value']
+        self.mFiles = []
 
     def files(self):
         return [n.mPath for n in self.mRootNode.childNodes() if isinstance(n, SourceRasterFileNode)]
@@ -681,6 +685,8 @@ class SourceRasterModel(TreeModel):
         if len(newFiles) > 0:
             for f in newFiles:
                 SourceRasterFileNode(self.mRootNode, f)
+            self.sigFilesAdded.emit(newFiles)
+
 
     def file2node(self, file):
         for node in self.mRootNode.childNodes():
@@ -693,9 +699,11 @@ class SourceRasterModel(TreeModel):
 
         toRemove = [n for n in self.mRootNode.childNodes() \
                     if isinstance(n, SourceRasterFileNode) and n.mPath in listOfFiles]
+        if len(toRemove) > 0:
+            for n in toRemove:
+                n.parentNode().removeChildNode(n)
+            self.sigFilesRemoved.emit(toRemove)
 
-        for n in toRemove:
-            n.parentNode().removeChildNode(n)
 
     def flags(self, index):
         if not index.isValid():
@@ -1148,7 +1156,12 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
     def __init__(self, parent=None):
         super(VRTBuilderWidget, self).__init__(parent)
         self.setupUi(self)
+        #self.webView.setUrl(QUrl('help.html'))
+        self.textBrowser.setSource(QUrl('help.html'))
         self.sourceFileModel = SourceRasterModel(parent=self.treeViewSourceFiles)
+        self.sourceFileModel.sigFilesRemoved.connect(self.onSourceFilesChanged)
+        self.sourceFileModel.sigFilesAdded.connect(self.onSourceFilesChanged)
+
         self.sourceFileProxyModel = SourceRasterFilterModel()
         self.sourceFileProxyModel.setSourceModel(self.sourceFileModel)
         self.tbSourceFileFilter.textChanged.connect(self.onSourceFileFilterChanged)
@@ -1175,6 +1188,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         self.vrtRaster = VRTRaster()
         self.vrtRasterLayer = VRTRasterVectorLayer(self.vrtRaster)
         self.vrtRasterLayer.dataChanged.connect(self.resetMap)
+        self.vrtRasterLayer.dataChanged.connect(self.validateInputs)
         self.vrtRaster.sigSourceRasterAdded.connect(self.sourceFileProxyModel.sourceModel().addFiles)
         self.mBackgroundLayer = None
         # self.vrtRasterLayer.editingStopped.connect(self.resetMap)
@@ -1220,7 +1234,10 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
             tb.textChanged.connect(self.onExtentChanged)
             tb.setValidator(QDoubleValidator(0.000000000000001, 999999999999999999999, 20))
 
-        #todo. set extent from map or other file
+        self.btnBoundsFromFile.clicked.connect(
+            lambda : self.setBoundsFrom(str(QFileDialog.getOpenFileName(self, "Select raster file",
+                                            directory=''))
+        ))
 
         #resolution settings
         self.cbResolution.currentIndexChanged.connect(self.onResolutionChanged)
@@ -1229,6 +1246,11 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
             tb.setValidator(QDoubleValidator(0.000000000000001, 999999999999999999999, 5))
             tb.textChanged.connect(self.onResolutionChanged)
         self.cbResolution.setCurrentIndex(2) #== average resolution
+
+        self.btnResFromFile.clicked.connect(
+            lambda : self.setResolutionFrom(str(QFileDialog.getOpenFileName(self, "Select raster file",
+                                            directory=''))
+        ))
 
         #todo: self.btnResFromFile.clicked.connect()
 
@@ -1283,6 +1305,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         self.mQgsProjectionSelectionWidget.crsChanged.connect(self.vrtRaster.setCrs)
 
         self.restoreLastSettings()
+        self.validateInputs()
 
     def onSourceFileFilterChanged(self, text):
 
@@ -1294,6 +1317,66 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
 
         pass
 
+
+    def setBoundsFrom(self, file):
+        if os.path.isfile(file) and gdal.Open(file) is gdal.Dataset:
+            bounds = RasterBounds(file)
+            bbox = bounds.polygon.boundingBox()
+            if not isinstance(self.vrtRaster.crs(), QgsCoordinateReferenceSystem):
+                self.vrtRaster.setCrs(bounds.crs)
+
+            if isinstance(bounds.crs, QgsCoordinateReferenceSystem) \
+               and isinstance(self.vrtRaster.crs(), QgsCoordinateReferenceSystem):
+                trans = QgsCoordinateTransform(bounds.crs, self.vrtRaster.crs())
+                bbox = trans.transform(bbox)
+
+            self.tbBoundsXMin.setText('{}'.format(bbox.xMinimum()))
+            self.tbBoundsXMax.setText('{}'.format(bbox.xMaximum()))
+            self.tbBoundsYMin.setText('{}'.format(bbox.yMinimum()))
+            self.tbBoundsYMax.setText('{}'.format(bbox.yMaximum()))
+
+        self.validateInputs()
+        s = ""
+
+    def setResolutionFrom(self, file):
+        if os.path.isfile(file) and gdal.Open(file) is gdal.Dataset:
+            ds = gdal.Open(file)
+            if isinstance(ds, gdal.Dataset):
+                gt = ds.GetGeoTransform()
+                res = QSizeF(abs(gt[1]), abs(gt[5]))
+                # self.vrtRaster.setResolution()
+                self.tbResolutionX.setText('{}'.format(res.width()))
+                self.tbResolutionY.setText('{}'.format(res.height()))
+
+            self.validateInputs()
+
+
+    def onSourceFilesChanged(self, *args):
+
+        files = self.sourceFileModel.files()
+        #refresh menu to select image bounds & image resolutions
+        menuBounds = QMenu()
+        menuResolution = QMenu()
+
+        if False:
+            a = menuBounds.addAction('QGIS MapCanvas')
+            a.setToolTip('Use spatial extent of the QGIS map canvas.')
+
+
+        for file in files:
+            bn = os.path.basename(file)
+            a = menuBounds.addAction(bn)
+            a.setToolTip('Use spatial extent of '.format(file))
+            a.triggered[()].connect(lambda file=file: self.setBoundsFrom(file))
+
+            a = menuResolution.addAction(bn)
+            a.setToolTip('Use resolution from'.format(file))
+            a.triggered[()].connect(lambda file=file: self.setResolutionFrom(file))
+
+        self.btnBoundsFromFile.setMenu(menuBounds)
+        self.btnResFromFile.setMenu(menuResolution)
+
+
     def onExtentChanged(self,*args):
 
         if not self.frameExtent.isEnabled():
@@ -1304,10 +1387,26 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
                 values = [float(v) for v in values]
                 rectangle = QgsRectangle(*values)
                 self.vrtRaster.setExtent(rectangle)
+        self.validateInputs()
 
-    def validateInputs(self):
+    def validateInputs(self, *args):
 
-        isValid = True
+        isValid = len(self.vrtRaster) > 0
+        if self.frameExtent.isEnabled():
+            for tb in [self.tbBoundsXMin, self.tbBoundsXMax, self.tbBoundsYMin, self.tbBoundsYMax]:
+                state,_,_ = tb.validator().validate(tb.text(),0)
+                isValid &= state == QValidator.Acceptable
+            if isValid:
+                isValid &= float(self.tbBoundsXMin.text()) < float(self.tbBoundsXMax.text())
+                isValid &= float(self.tbBoundsYMin.text()) < float(self.tbBoundsYMax.text())
+
+        mode = str(self.cbResolution.currentText())
+        if mode == 'user':
+            for tb in [self.tbResolutionX, self.tbResolutionY]:
+                state, _, _ = tb.validator().validate(tb.text(), 0)
+                isValid &= state == QValidator.Acceptable
+
+
         self.buttonBox.button(QDialogButtonBox.Save).setEnabled(isValid)
 
     def onResolutionChanged(self, *args):
@@ -1315,7 +1414,9 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         mode = str(self.cbResolution.currentText())
         isUserMode = mode == 'user'
         self.frameUserResolution.setEnabled(isUserMode)
-        self.validateInputs()
+        self.btnResFromFile.setEnabled(isUserMode)
+
+
         if isUserMode:
             x = str(self.tbResolutionX.text())
             y = str(self.tbResolutionY.text())
@@ -1325,6 +1426,8 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
                 self.vrtRaster.setResolution(QSizeF(x,y))
         else:
             self.vrtRaster.setResolution(mode)
+
+        self.validateInputs()
 
     def restoreDefaultSettings(self):
         self.cbAddtoMap.setChecked(True)
@@ -1404,8 +1507,13 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         self.resetMap()
 
     def saveFile(self):
+
+
+
         path = str(self.tbOutputPath.text())
         ext = os.path.splitext(path)[-1]
+
+
 
         saveBinary = ext != '.vrt'
         if saveBinary:
