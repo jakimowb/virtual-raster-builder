@@ -32,13 +32,22 @@ DIR_EXAMPLEDATA = os.path.join(DIR_REPO, 'exampledata')
 VERSION = '0.1'
 LICENSE = 'GNU GPL-3'
 TITLE = 'Virtual Raster Builder'
-DESCRIPTION = 'A QGIS Plugin to create GDAL virtual rasters (VRT) by drag and drop.'
+DESCRIPTION = 'A QGIS Plugin to create GDAL Virtual Raster (VRT) files by drag and drop.'
 WEBSITE = 'https://bitbucket.org/jakimowb/vrtbuilder'
 REPOSITORY = 'https://bitbucket.org/jakimowb/vrtbuilder'
 ABOUT = """
-The VRT Raster Builder is developed at Humboldt-Universität zu Berlin. 
-It is developed under contract by the German Research Centre for Geosciences (GFZ) as part of the EnMAP Core Science Team activities (www.enmap.org), funded by DLR and granted by the Federal Ministry of Economic Affairs and Energy (BMWi, grant no. 50EE1529)
+The VRT Builder is a plugin to create GDAL Virtual Raster (VRT) files by drag and drop. 
+It helps to create new images by stacking or mosaicing of source image bands, as well as to 
+describe band- and spatial subsets. 
+
+The VRT Builder is developed at Geographic Institute of Humboldt-Universität zu Berlin within the EnMAP-Box 
+project under contract of the German Research Centre for Geosciences (GFZ). 
+
+The EnMAP-Box project is part of the EnMAP Core Science Team activities (www.enmap.org), funded by the 
+German Aerospace Center (DLR) and granted by the Federal Ministry of 
+Economic Affairs and Energy (BMWi, grant no. 50EE1529).
 """
+
 PATH_ICON = os.path.join(DIR_UI,'mActionNewVirtualLayer.png')
 import vrtbuilder.ui.resources
 vrtbuilder.ui.resources.qInitResources()
