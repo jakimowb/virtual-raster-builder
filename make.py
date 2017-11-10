@@ -282,7 +282,7 @@ def png2qrc(icondir, pathQrc, pngprefix='vrtbuilder'):
 
 def updateMetadataTxt():
     #see http://docs.qgis.org/testing/en/docs/pyqgis_developer_cookbook/plugins.html#plugin-metadata
-    #for required metatags
+    #for required & optional meta tags
     pathDst = jp(DIR_REPO, 'metadata.txt')
     assert os.path.exists(pathDst)
 
@@ -480,7 +480,7 @@ if __name__ == '__main__':
     if True:
         updateMetadataTxt()
         updateHelpHTML()
-        exit()
+        #exit()
     if True:
         #convert SVG to PNG and link them into the resource file
         svg2png(icondir, overwrite=False)

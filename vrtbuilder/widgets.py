@@ -1149,19 +1149,19 @@ class MapToolSpatialExtent(QgsMapToolEmitPoint):
     sigSpatialExtentSelected = pyqtSignal(QgsRectangle, QgsCoordinateReferenceSystem)
 
     def __init__(self, canvas):
-        self.canvas = canvas
-        QgsMapToolEmitPoint.__init__(self, self.canvas)
-        self.rubberBand = QgsRubberBand(self.canvas, QGis.Polygon)
-        self.rubberBand.setColor(Qt.red)
-        self.rubberBand.setFillColor(Qt.transparent)
-        self.rubberBand.setWidth(1)
+        self.mCanvas = canvas
+        QgsMapToolEmitPoint.__init__(self, self.mCanvas)
+        self.mRubberBand = QgsRubberBand(self.mCanvas, QGis.Polygon)
+        self.mRubberBand.setColor(Qt.red)
+        self.mRubberBand.setFillColor(Qt.transparent)
+        self.mRubberBand.setWidth(1)
 
         self.reset()
 
     def reset(self):
         self.startPoint = self.endPoint = None
         self.isEmittingPoint = False
-        self.rubberBand.reset(QGis.Polygon)
+        self.mRubberBand.reset(QGis.Polygon)
 
     def canvasPressEvent(self, e):
         self.startPoint = self.toMapCoordinates(e.pos())
@@ -1172,7 +1172,7 @@ class MapToolSpatialExtent(QgsMapToolEmitPoint):
     def canvasReleaseEvent(self, e):
         self.isEmittingPoint = False
 
-        crs = self.canvas.mapSettings().destinationCrs()
+        crs = self.mCanvas.mapSettings().destinationCrs()
         rect = self.rectangle()
 
         self.reset()
@@ -1189,7 +1189,7 @@ class MapToolSpatialExtent(QgsMapToolEmitPoint):
         self.showRect(self.startPoint, self.endPoint)
 
     def showRect(self, startPoint, endPoint):
-        self.rubberBand.reset(QGis.Polygon)
+        self.mRubberBand.reset(QGis.Polygon)
         if startPoint.x() == endPoint.x() or startPoint.y() == endPoint.y():
             return
 
@@ -1198,11 +1198,11 @@ class MapToolSpatialExtent(QgsMapToolEmitPoint):
         point3 = QgsPoint(endPoint.x(), endPoint.y())
         point4 = QgsPoint(endPoint.x(), startPoint.y())
 
-        self.rubberBand.addPoint(point1, False)
-        self.rubberBand.addPoint(point2, False)
-        self.rubberBand.addPoint(point3, False)
-        self.rubberBand.addPoint(point4, True)    # true to update canvas
-        self.rubberBand.show()
+        self.mRubberBand.addPoint(point1, False)
+        self.mRubberBand.addPoint(point2, False)
+        self.mRubberBand.addPoint(point3, False)
+        self.mRubberBand.addPoint(point4, True)    # true to update canvas
+        self.mRubberBand.show()
 
     def rectangle(self):
         if self.startPoint is None or self.endPoint is None:
@@ -1321,7 +1321,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
 
         for tb in [self.tbBoundsXMin, self.tbBoundsXMax, self.tbBoundsYMin, self.tbBoundsYMax]:
             tb.textChanged.connect(self.onExtentChanged)
-            tb.setValidator(QDoubleValidator(0.000000000000001, 999999999999999999999, 20))
+            tb.setValidator(QDoubleValidator(-999999999999999999999.0, 999999999999999999999.0, 20))
 
         self.btnBoundsFromFile.clicked.connect(
             lambda : self.setBoundsFromFile(str(QFileDialog.getOpenFileName(self, "Select raster file",
@@ -1402,6 +1402,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
 
         self.mMapTools = {}
         self.initMapTools(self.previewMap)
+
         self.restoreLastSettings()
         self.validateInputs()
 
@@ -1411,10 +1412,11 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         def addTools(key, tools):
             if not isinstance(tools, list):
                 tools = [tools]
+
             if not key in self.mMapTools.keys():
                 self.mMapTools[key] = []
 
-            self.mMapTools[key].extent(tools)
+            self.mMapTools[key].extend(tools)
             return tools
 
         addTools('ZOOM_IN', QgsMapToolZoom(mapCanvas, False))
@@ -1425,13 +1427,10 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
             t.sigSpatialExtentSelected.connect(self.setBounds)
 
 
-    def registerMapCanvas(self, canvas):
-
     def activateMapTool(self, name):
         if name in self.mMapTools.keys():
             for t in self.mMapTools[name]:
                 t.canvas().setMapTool(t)
-
 
     def onSourceFileFilterChanged(self, text):
 
@@ -1527,7 +1526,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
     def validateInputs(self, *args):
 
         isValid = len(self.vrtRaster) > 0
-        if self.frameExtent.isEnabled():
+        if not self.cbBoundsFromSourceFiles.isEnabled():
             for tb in [self.tbBoundsXMin, self.tbBoundsXMax, self.tbBoundsYMin, self.tbBoundsYMax]:
                 state,_,_ = tb.validator().validate(tb.text(),0)
                 isValid &= state == QValidator.Acceptable
