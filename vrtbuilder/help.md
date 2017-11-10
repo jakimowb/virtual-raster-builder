@@ -1,11 +1,16 @@
 ![VRT Builder Logo](ui/mActionNewVirtualLayer.png)
-# Virtual Raster Builder
 
-The Virtual Raster Builder allows to create [GDAL Virtual Raster](http://www.gdal.org/gdal_vrttut.html)
-(VRT) by simple drag and drop of source bands.
+[TOC]
+
+# General info
+
+The Virtual Raster Builder is a tool to create a [GDAL Virtual Raster](http://www.gdal.org/gdal_vrttut.html)
+(VRT) by drag and drop. It can be used to stack and mosaic rasterbands or to create spatial- or band-subsets.
+
+
+# Workflow
 
 To build a new virtual raster (VRT) follow these steps:
-
 
 1. Add potential source files to the list of source files:
 
@@ -38,7 +43,9 @@ To build a new virtual raster (VRT) follow these steps:
       * set spatial extent
       * set output format
 
-4. Save the new file as VRT. In case you selected another output format, like GeoTiff, the VRt is created first and then translated to it's final format using [gdal.Translate](http://gdal.org/python/osgeo.gdal-module.html#TranslateOptions)
+4. Save the new file as VRT. In case of output formats other than VRT, e.g. GeoTIFF,
+the VRT is created in a temporary location first and the binary file
+afterwards using [gdal.Translate](http://gdal.org/python/osgeo.gdal-module.html#TranslateOptions)
 
 # Licence and Use #
 

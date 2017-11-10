@@ -1,67 +1,98 @@
-<html>
-<head>
-<meta charset="UTF-8">
-<style>
-body {font-family: Arial;}
-
-</style>
-<title>help.md</title>
-</head>
-<body>
-<p><img src="ui/mActionNewVirtualLayer.png" alt="VRT Builder Logo" /></p>
-<h1><a href="#virtual-raster-builder" id="virtual-raster-builder">Virtual Raster Builder</a></h1>
-<p>The Virtual Raster Builder allows to create <a href="http://www.gdal.org/gdal_vrttut.html">GDAL Virtual Raster</a><br />
+<p><img alt="VRT Builder Logo" src="ui/mActionNewVirtualLayer.png"></p>
+<div class="toc">
+<ul>
+<li><a href="#general-info">General info</a></li>
+<li><a href="#workflow">Workflow</a></li>
+<li><a href="#licence-and-use">Licence and Use</a></li>
+</ul>
+</div>
+<h1 id="general-info">General info</h1>
+<p>The Virtual Raster Builder is a tool to create <a href="http://www.gdal.org/gdal_vrttut.html">GDAL Virtual Raster</a>
 (VRT) by simple drag and drop of source bands.</p>
+<h1 id="workflow">Workflow</h1>
 <p>To build a new virtual raster (VRT) follow these steps:</p>
 <ol>
-  <li>
-    <p>Add potential source files to the list of source files:</p>
-    <table>
-      <thead>
-        <tr><th> Button </th><th> Action </th></tr>
-      </thead>
-      <tbody>
-        <tr><td> <img src="ui/mActionAddRasterLayer.png" alt="add source raster" /></td><td> add source raster </td></tr>
-        <tr><td> <img src="ui/mActionRemoveRasterLayer.png" alt="remove source raster" />      </td><td> remove source raster </td></tr>
-        <tr><td> <img src="ui/mActionImportFromRegistry.png" alt="import from QGIS" /> </td><td> load raster known to QGIS </td></tr>
-        <tr><td> <img src="ui/mActionExpandTree.png" alt="expand tree node" /></td><td> expand source file tree node(s) </td></tr>
-        <tr><td> <img src="ui/mActionCollapseTree.png" alt="collapse tree node" /></td><td> collapse source file tree node(s) </td></tr>
-      </tbody>
-    </table>
-  </li>
-  <li>
-    <p>Specify the VRT structure by drag and drop of source bands</p>
-    <table>
-      <thead>
-        <tr><th> Button </th><th> Action </th></tr>
-      </thead>
-      <tbody>
-        <tr><td> <img src="ui/mActionAddVirtualRaster.png" alt="add virtual band" /> </td><td> add virtual band</td></tr>
-        <tr><td> <img src="ui/mActionRemoveVirtualRaster.png" alt="remove virtual band" />      </td><td> remove virtual band</td></tr>
-        <tr><td> <img src="ui/mActionImportVirtualRaster.png" alt="import virtual bands from existing VRT file" /> </td><td> import virtual bands from existing VRT file </td></tr>
-        <tr><td> <img src="ui/mActionExpandTree.png" alt="expand tree node" /></td><td> expand VRT tree node(s) </td></tr>
-        <tr><td> <img src="ui/mActionCollapseTree.png" alt="collapse tree node" /></td><td> collapse VRT tree node(s) </td></tr>
-      </tbody>
-    </table>
-    <p>Virtual band names can be changed by mouse double-click.</p>
-  </li>
-  <li>
-    <p>Specify other VRT settings:</p>
-    <ul>
-      <li>set spatial resolution</li>
-      <li>set the resampling method</li>
-      <li>set spatial extent</li>
-      <li>set output format</li>
-    </ul>
-  </li>
-  <li>
-    <p>Save the new file as VRT. In case you selected another output format, like GeoTiff, the VRt is created first and then translated to it's final format using <a href="http://gdal.org/python/osgeo.gdal-module.html#TranslateOptions">gdal.Translate</a></p>
-  </li>
+<li>
+<p>Add potential source files to the list of source files:</p>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><img alt="add source raster" src="ui/mActionAddRasterLayer.png"></td>
+<td>add source raster</td>
+</tr>
+<tr>
+<td><img alt="remove source raster" src="ui/mActionRemoveRasterLayer.png"></td>
+<td>remove source raster</td>
+</tr>
+<tr>
+<td><img alt="import from QGIS" src="ui/mActionImportFromRegistry.png"></td>
+<td>load raster known to QGIS</td>
+</tr>
+<tr>
+<td><img alt="expand tree node" src="ui/mActionExpandTree.png"></td>
+<td>expand source file tree node(s)</td>
+</tr>
+<tr>
+<td><img alt="collapse tree node" src="ui/mActionCollapseTree.png"></td>
+<td>collapse source file tree node(s)</td>
+</tr>
+</tbody>
+</table>
+</li>
+<li>
+<p>Specify the VRT structure by drag and drop of source bands</p>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><img alt="add virtual band" src="ui/mActionAddVirtualRaster.png"></td>
+<td>add virtual band</td>
+</tr>
+<tr>
+<td><img alt="remove virtual band" src="ui/mActionRemoveVirtualRaster.png"></td>
+<td>remove virtual band</td>
+</tr>
+<tr>
+<td><img alt="import virtual bands from existing VRT file" src="ui/mActionImportVirtualRaster.png"></td>
+<td>import virtual bands from existing VRT file</td>
+</tr>
+<tr>
+<td><img alt="expand tree node" src="ui/mActionExpandTree.png"></td>
+<td>expand VRT tree node(s)</td>
+</tr>
+<tr>
+<td><img alt="collapse tree node" src="ui/mActionCollapseTree.png"></td>
+<td>collapse VRT tree node(s)</td>
+</tr>
+</tbody>
+</table>
+<p>Virtual band names can be changed by mouse double-click.</p>
+</li>
+<li>
+<p>Specify other VRT settings:</p>
+<ul>
+<li>set spatial resolution</li>
+<li>set the resampling method</li>
+<li>set spatial extent</li>
+<li>set output format</li>
+</ul>
+</li>
+<li>
+<p>Save the new file as VRT. In case of output formats other than VRT, e.g. GeoTIFF,
+the VRT is created in a temporary location first and the binary file
+afterwards using <a href="http://gdal.org/python/osgeo.gdal-module.html#TranslateOptions">gdal.Translate</a></p>
+</li>
 </ol>
-<h1><a href="#licence-and-use" id="licence-and-use">Licence and Use</a></h1>
+<h1 id="licence-and-use">Licence and Use</h1>
 <p>The Virtual Raster Builder is licenced under the <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3 Licence</a>.</p>
-
-
-
-</body>
-</html>
