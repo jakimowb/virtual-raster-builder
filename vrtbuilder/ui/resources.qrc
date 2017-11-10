@@ -12,9 +12,13 @@
   <file>mActionImportRaster.png</file>
   <file>mActionImportVirtualRaster.png</file>
   <file>mActionNewVirtualLayer.png</file>
+  <file>mActionPan.png</file>
   <file>mActionRemoveRasterLayer.png</file>
   <file>mActionRemoveVirtualRaster.png</file>
   <file>mActionSelect.png</file>
+  <file>mActionZoomFullExtent.png</file>
+  <file>mActionZoomIn.png</file>
+  <file>mActionZoomOut.png</file>
   <file>mIconRaster.png</file>
   <file>mIconVirtualRaster.png</file>
   <file>mOptionMosaikFiles.png</file>

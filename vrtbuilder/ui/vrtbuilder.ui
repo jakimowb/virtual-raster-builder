@@ -298,8 +298,14 @@
              <height>16777215</height>
             </size>
            </property>
+           <property name="toolTip">
+            <string>Total number of source files used in the virtual file</string>
+           </property>
            <property name="readOnly">
             <bool>true</bool>
+           </property>
+           <property name="placeholderText">
+            <string>0</string>
            </property>
           </widget>
          </item>
@@ -336,8 +342,14 @@
              <height>16777215</height>
             </size>
            </property>
+           <property name="toolTip">
+            <string>Total number of virtual bands</string>
+           </property>
            <property name="readOnly">
             <bool>true</bool>
+           </property>
+           <property name="placeholderText">
+            <string>0</string>
            </property>
           </widget>
          </item>
@@ -1239,22 +1251,6 @@
    </hints>
   </connection>
   <connection>
-   <sender>cbBoundsFromSourceFiles</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>btnBoundsFromMap</receiver>
-   <slot>setDisabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>359</x>
-     <y>195</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>384</x>
-     <y>198</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
    <receiver>Frame</receiver>
@@ -1272,49 +1268,17 @@
   </connection>
   <connection>
    <sender>cbBoundsFromSourceFiles</sender>
-   <signal>toggled(bool)</signal>
+   <signal>clicked(bool)</signal>
    <receiver>frameExtent</receiver>
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>359</x>
-     <y>195</y>
+     <x>318</x>
+     <y>184</y>
     </hint>
     <hint type="destinationlabel">
-     <x>540</x>
-     <y>269</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>cbBoundsFromSourceFiles</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>btnBoundsFromFile</receiver>
-   <slot>setDisabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>359</x>
-     <y>195</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>421</x>
-     <y>198</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>cbBoundsFromSourceFiles</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>btnSelectSubset</receiver>
-   <slot>setDisabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>290</x>
-     <y>179</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>198</x>
-     <y>332</y>
+     <x>293</x>
+     <y>215</y>
     </hint>
    </hints>
   </connection>

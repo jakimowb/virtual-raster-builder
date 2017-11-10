@@ -12,7 +12,7 @@
 *                                                                         *
 *   This program is free software; you can redistribute it and/or modify  *
 *   it under the terms of the GNU General Public License as published by  *
-*   the Free Software Foundation; either version 2 of the License, or     *
+*   the Free Software Foundation; either version 3 of the License, or     *
 *   (at your option) any later version.                                   *
 *                                                                         *
 ***************************************************************************
@@ -320,6 +320,39 @@ def updateMetadataTxt():
     s = ""
 
 
+def updateHelpHTML():
+    import markdown, urllib
+    import vrtbuilder
+    from vrtbuilder import DIR_REPO
+    """
+    Keyword arguments:
+
+    * input: a file name or readable object.
+    * output: a file name or writable object.
+    * encoding: Encoding of input and output.
+    * Any arguments accepted by the Markdown class.
+    """
+
+    markdownExtension = [
+        'markdown.extensions.toc',
+        'markdown.extensions.tables',
+        'markdown.extensions.extra'
+    ]
+
+    def readUrlTxt(url):
+        req = urllib.urlopen(url)
+        enc = req.headers['content-type'].split('charset=')[-1]
+        txt = req.read()
+        req.close()
+        if enc == 'text/plain':
+            return unicode(txt)
+        return unicode(txt, enc)
+    pathSrc = os.path.join(DIR_REPO, *['vrtbuilder','help.md'])
+    pathDst = jp(os.path.dirname(vrtbuilder.__file__), 'help.html')
+    markdown.markdownFromFile(input=pathSrc,
+                              extensions=markdownExtension,
+                              output=pathDst, output_format='html5')
+
 
 def make_pb_tool_cfg():
     pathPBToolCgf = r''
@@ -446,7 +479,8 @@ if __name__ == '__main__':
 
     if True:
         updateMetadataTxt()
-
+        updateHelpHTML()
+        exit()
     if True:
         #convert SVG to PNG and link them into the resource file
         svg2png(icondir, overwrite=False)

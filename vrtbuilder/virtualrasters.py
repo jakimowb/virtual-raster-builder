@@ -113,10 +113,11 @@ class VRTRasterBand(QObject):
     def insertSource(self, index, virtualBandInputSource):
         assert isinstance(virtualBandInputSource, VRTRasterInputSourceBand)
         virtualBandInputSource.mVirtualBand = self
-        assert index <= len(self.sources)
-        self.sources.insert(index, virtualBandInputSource)
-        self.sigSourceInserted.emit(index, virtualBandInputSource)
-
+        if index <= len(self.sources):
+            self.sources.insert(index, virtualBandInputSource)
+            self.sigSourceInserted.emit(index, virtualBandInputSource)
+        else:
+            print('DEBUG: index <= len(self.sources)')
     def bandIndex(self):
         if isinstance(self.mVRT, VRTRaster):
             return self.mVRT.mBands.index(self)

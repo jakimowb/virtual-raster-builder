@@ -13,7 +13,7 @@
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
+ *   the Free Software Foundation; either version 3 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
  ***************************************************************************/
@@ -61,16 +61,10 @@ class VRTBuilderPlugin:
     def run(self):
         from vrtbuilder.widgets import VRTBuilderWidget
         self.vrtBuilder = VRTBuilderWidget()
-
-        def addToMapCanvas(path):
-            if self.vrtBuilder.cbAddtoMap.isChecked():
-                self.iface.addRasterLayer(path)
-
-        self.vrtBuilder.sigRasterCreated.connect(addToMapCanvas)
+        if isinstance(self.iface, QgisInterface):
+            self.vrtBuilder.initMapTools(self.iface.mapCanvas())
+            self.vrtBuilder.sigRasterCreated.connect(self.iface.addRasterLayer)
         self.vrtBuilder.show()
-
-
-
 
     def unload(self):
         from vrtbuilder.widgets import VRTBuilderWidget
