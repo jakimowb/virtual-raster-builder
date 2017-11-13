@@ -37,7 +37,7 @@ from osgeo import gdal
 import weakref
 import numpy as np
 
-from vrtbuilder import DIR_REPO, DIR_UI
+from vrtbuilder import DIR_ROOT, DIR_UI
 jp = os.path.join
 dn = os.path.dirname
 
@@ -57,7 +57,7 @@ def initQgisApplication(pythonPlugins=None, PATH_QGIS=None, qgisDebug=False):
     assert isinstance(pythonPlugins, list)
 
     #pythonPlugins.append(os.path.dirname(DIR_REPO))
-    PLUGIN_DIR = os.path.dirname(DIR_REPO)
+    PLUGIN_DIR = os.path.dirname(DIR_ROOT)
 
     if os.path.isdir(PLUGIN_DIR):
         for subDir in os.listdir(PLUGIN_DIR):

@@ -25,9 +25,9 @@ from qgis.core import *
 from qgis.gui import *
 
 DIR = os.path.dirname(__file__)
-DIR_REPO = os.path.dirname(DIR)
+DIR_ROOT = os.path.dirname(DIR)
 DIR_UI = os.path.join(DIR,'ui')
-DIR_EXAMPLEDATA = os.path.join(DIR_REPO, 'exampledata')
+DIR_EXAMPLEDATA = os.path.join(DIR_ROOT, 'exampledata')
 
 VERSION = '0.1'
 LICENSE = 'GNU GPL-3'

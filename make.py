@@ -38,12 +38,12 @@ from PyQt4.uic.Compiler.qtproxies import QtGui
 import gdal
 
 import vrtbuilder
-from vrtbuilder import DIR_UI, DIR_REPO
+from vrtbuilder import DIR_UI, DIR_ROOT
 from vrtbuilder.utils import file_search
 jp = os.path.join
 
-DIR_BUILD = jp(DIR_REPO, 'build')
-DIR_DEPLOY = jp(DIR_REPO, 'deploy')
+DIR_BUILD = jp(DIR_ROOT, 'build')
+DIR_DEPLOY = jp(DIR_ROOT, 'deploy')
 
 
 def getDOMAttributes(elem):
@@ -283,7 +283,7 @@ def png2qrc(icondir, pathQrc, pngprefix='vrtbuilder'):
 def updateMetadataTxt():
     #see http://docs.qgis.org/testing/en/docs/pyqgis_developer_cookbook/plugins.html#plugin-metadata
     #for required & optional meta tags
-    pathDst = jp(DIR_REPO, 'metadata.txt')
+    pathDst = jp(DIR_ROOT, 'metadata.txt')
     assert os.path.exists(pathDst)
 
     import collections
@@ -323,7 +323,7 @@ def updateMetadataTxt():
 def updateHelpHTML():
     import markdown, urllib
     import vrtbuilder
-    from vrtbuilder import DIR_REPO
+    from vrtbuilder import DIR_ROOT
     """
     Keyword arguments:
 
@@ -347,7 +347,7 @@ def updateHelpHTML():
         if enc == 'text/plain':
             return unicode(txt)
         return unicode(txt, enc)
-    pathSrc = os.path.join(DIR_REPO, *['vrtbuilder','help.md'])
+    pathSrc = os.path.join(DIR_ROOT, *['vrtbuilder', 'help.md'])
     pathDst = jp(os.path.dirname(vrtbuilder.__file__), 'help.html')
     markdown.markdownFromFile(input=pathSrc,
                               extensions=markdownExtension,
@@ -400,11 +400,11 @@ def deploy():
     dirBuildPlugin = jp(DIR_BUILD, 'vrtbuilderplugin')
 
     #the directory to build the "enmapboxplugin" folder
-    DIR_DEPLOY = jp(DIR_REPO, 'deploy')
+    DIR_DEPLOY = jp(DIR_ROOT, 'deploy')
     #DIR_DEPLOY = r'E:\_EnMAP\temp\temp_bj\enmapbox_deploys\most_recent_version'
 
     #local pb_tool configuration file.
-    pathCfg = jp(DIR_REPO, 'pb_tool.cfg')
+    pathCfg = jp(DIR_ROOT, 'pb_tool.cfg')
 
     mkDir(DIR_DEPLOY)
 
@@ -424,9 +424,9 @@ def deploy():
             import make
 
 
-            os.chdir(DIR_REPO)
+            os.chdir(DIR_ROOT)
             subprocess.call(['pb_tool', 'compile'])
-            make.compile_rc_files(DIR_REPO)
+            make.compile_rc_files(DIR_ROOT)
 
         else:
             cfgParser = pb_tool.get_config(config=pathCfg)

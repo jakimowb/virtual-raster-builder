@@ -406,6 +406,9 @@
                <iconset resource="resources.qrc">
                 <normaloff>:/vrtbuilder/mActionZoomIn.png</normaloff>:/vrtbuilder/mActionZoomIn.png</iconset>
               </property>
+              <property name="autoRaise">
+               <bool>true</bool>
+              </property>
              </widget>
             </item>
             <item>
@@ -416,6 +419,9 @@
               <property name="icon">
                <iconset resource="resources.qrc">
                 <normaloff>:/vrtbuilder/mActionZoomOut.png</normaloff>:/vrtbuilder/mActionZoomOut.png</iconset>
+              </property>
+              <property name="autoRaise">
+               <bool>true</bool>
               </property>
              </widget>
             </item>
@@ -428,6 +434,9 @@
                <iconset resource="resources.qrc">
                 <normaloff>:/vrtbuilder/mActionZoomFullExtent.png</normaloff>:/vrtbuilder/mActionZoomFullExtent.png</iconset>
               </property>
+              <property name="autoRaise">
+               <bool>true</bool>
+              </property>
              </widget>
             </item>
             <item>
@@ -438,6 +447,9 @@
               <property name="icon">
                <iconset resource="resources.qrc">
                 <normaloff>:/vrtbuilder/mActionPan.png</normaloff>:/vrtbuilder/mActionPan.png</iconset>
+              </property>
+              <property name="autoRaise">
+               <bool>true</bool>
               </property>
              </widget>
             </item>
@@ -465,6 +477,9 @@
               <property name="icon">
                <iconset resource="resources.qrc">
                 <normaloff>:/vrtbuilder/mActionSelect.png</normaloff>:/vrtbuilder/mActionSelect.png</iconset>
+              </property>
+              <property name="autoRaise">
+               <bool>true</bool>
               </property>
              </widget>
             </item>
