@@ -1,7 +1,7 @@
 # README #
 
-The Virtual Raster Builder is a [http://www.qgis.org](QGIS) plugin to create [http://gdal.org](GDAL) Virtual Raster (VRT).
-[here](vrtbuilder/help.html).
+The Virtual Raster Builder is a [QGIS](http://www.qgis.org) plugin to create [GDAL](http://gdal.org) Virtual Raster (VRT).
+[here](vrtbuilder/help.md).
 
 # How to use
 To build a new virtual raster (VRT) do the following:
