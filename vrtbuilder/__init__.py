@@ -33,8 +33,8 @@ VERSION = '0.1'
 LICENSE = 'GNU GPL-3'
 TITLE = 'Virtual Raster Builder'
 DESCRIPTION = 'A QGIS Plugin to create GDAL Virtual Raster (VRT) files by drag and drop.'
-WEBSITE = 'https://bitbucket.org/jakimowb/vrtbuilder'
-REPOSITORY = 'https://bitbucket.org/jakimowb/vrtbuilder'
+WEBSITE = 'https://bitbucket.org/jakimowb/virtual-raster-builder'
+REPOSITORY = 'https://bitbucket.org/jakimowb/virtual-raster-builder'
 ABOUT = """
 The VRT Builder is a plugin to create GDAL Virtual Raster (VRT) files by drag and drop. 
 It helps to create new images by stacking or mosaicing of source image bands, as well as to 

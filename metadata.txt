@@ -15,11 +15,11 @@ email=benjamin.jakimow@geo.hu-berlin.de
 
 icon=vrtbuilder/ui/mActionNewVirtualLayer.png
 
-homepage=https://bitbucket.org/jakimowb/vrtbuilder
+homepage=https://bitbucket.org/jakimowb/virtual-raster-builder
 
-tracker=https://bitbucket.org/jakimowb/vrtbuilder/issues
+tracker=https://bitbucket.org/jakimowb/virtual-raster-builder/issues
 
-repository=https://bitbucket.org/jakimowb/vrtbuilder
+repository=https://bitbucket.org/jakimowb/virtual-raster-builder
 
 experimental=True
 
