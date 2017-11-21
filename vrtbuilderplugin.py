@@ -62,8 +62,11 @@ class VRTBuilderPlugin:
         from vrtbuilder.widgets import VRTBuilderWidget
         self.vrtBuilder = VRTBuilderWidget()
         if isinstance(self.iface, QgisInterface):
-            self.vrtBuilder.initMapTools(self.iface.mapCanvas())
+            mapCanvas = self.iface
+            if isinstance(mapCanvas, QgsMapCanvas):
+                self.vrtBuilder.initMapTools(mapCanvas)
             self.vrtBuilder.sigRasterCreated.connect(self.iface.addRasterLayer)
+
         self.vrtBuilder.show()
 
     def unload(self):

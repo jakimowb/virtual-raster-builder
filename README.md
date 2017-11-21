@@ -16,7 +16,7 @@ all at the same time (which yet is not possible using [gdalbuildvrt](http://www.
 QGIS core "Build Virtual Raster" Tool that is based on.)
 
 
-![workflow](help/workflow.png)
+![workflow](workflow.png)
 
 
 Other features:

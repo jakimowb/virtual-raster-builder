@@ -184,29 +184,26 @@ for i in range(gdal.GetDriverCount()):
     drv = gdal.GetDriver(i)
     assert isinstance(drv, gdal.Driver)
 
-    ext = drv.GetMetadataItem('DMD_EXTENSION')
+    extensions = drv.GetMetadataItem('DMD_EXTENSIONS')
+    if extensions is None:
+        extensions = ''
+
+    extensions = extensions.split(' ')
+    extensions =  [e for e in extensions if e not in [None, '']]
     shortName = drv.ShortName
 
     if not (drv.GetMetadataItem('DCAP_CREATE') == 'YES' or
             drv.GetMetadataItem('DCAP_CREATECOPY') == 'YES'):
         continue
 
-    if ext is None:
-        continue
-
-    if ext != '':
-        extensions = ['.' + ext]
-
-    else:
-        # handle driver specific extensions
-        if shortName == 'ENVI':
-            extensions = ['.bsq', '.bil', '.bip']
-        elif shortName == 'Terragen':
-            extensions = ['.ter']
-        else:
-            continue
+    # handle driver specific extensions
+    if shortName == 'ENVI':
+        extensions.extend(['bsq', 'bil', 'bip'])
+    elif shortName == 'Terragen':
+        extensions.extend(['.ter'])
 
     for e in extensions:
+        e = '.'+e
         if e not in LUT_FILEXTENSIONS.keys():
             LUT_FILEXTENSIONS[e] = shortName
         else:
