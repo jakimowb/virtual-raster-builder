@@ -1690,10 +1690,12 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
             self.vrtRaster.saveVRT(pathVrt)
 
             ext = ext.lower()
-            assert ext in LUT_FILEXTENSIONS.keys()
-            drv = LUT_FILEXTENSIONS[ext]
+            if ext in LUT_FILEXTENSIONS.keys():
+                drv = LUT_FILEXTENSIONS[ext]
+            else:
+                drv = gdal.GetDriverByName('VRT')
+            
             co = []
-
             if drv == 'ENVI':
                 if ext in ['.bsq','.bip','.bil']:
                     co.append('INTERLEAVE={}'.format(ext[1:].upper()))
