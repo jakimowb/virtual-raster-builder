@@ -178,6 +178,41 @@ class TreeNode(QObject):
         return results
 
 
+LUT_FILEXTENSIONS = {}
+
+for i in range(gdal.GetDriverCount()):
+    drv = gdal.GetDriver(i)
+    assert isinstance(drv, gdal.Driver)
+
+    ext = drv.GetMetadataItem('DMD_EXTENSION')
+    shortName = drv.ShortName
+
+    if not (drv.GetMetadataItem('DCAP_CREATE') == 'YES' or
+            drv.GetMetadataItem('DCAP_CREATECOPY') == 'YES'):
+        continue
+
+    if ext is None:
+        continue
+
+    if ext != '':
+        extensions = ['.' + ext]
+
+    else:
+        # handle driver specific extensions
+        if shortName == 'ENVI':
+            extensions = ['.bsq', '.bil', '.bip']
+        elif shortName == 'Terragen':
+            extensions = ['.ter']
+        else:
+            continue
+
+    for e in extensions:
+        if e not in LUT_FILEXTENSIONS.keys():
+            LUT_FILEXTENSIONS[e] = shortName
+        else:
+            s = ""
+
+
 class SourceRasterBandNode(TreeNode):
     def __init__(self, parentNode, vrtRasterInputSourceBand):
         assert isinstance(vrtRasterInputSourceBand, VRTRasterInputSourceBand)
@@ -1640,9 +1675,14 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         self.mBackgroundLayer = mapLayer
         self.resetMap()
 
+    def _saveFileCallback(self, percent, x, path):
+        self.progressBar.setValue(int(percent*100))
+        if x != '':
+            self.tbProgress == x
+
     def saveFile(self):
 
-
+        dsDst = None
 
         path = str(self.tbOutputPath.text())
         ext = os.path.splitext(path)[-1]
@@ -1651,10 +1691,34 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         if saveBinary:
             pathVrt = path + '.vrt'
             self.vrtRaster.saveVRT(pathVrt)
+
+            ext = ext.lower()
+            assert ext in LUT_FILEXTENSIONS.keys()
+            drv = LUT_FILEXTENSIONS[ext]
+            co = []
+
+            if drv == 'ENVI':
+                if ext in ['.bsq','.bip','.bil']:
+                    co.append('INTERLEAVE={}'.format(ext[1:].upper()))
+
+            options = gdal.TranslateOptions(format=drv, creationOptions=co,
+                                            callback = self._saveFileCallback, callback_data = path)
+
+            self.tbProgress.setText('Save {}...'.format(path))
+            dsDst = gdal.Translate(path, pathVrt, options=options)
+
         else:
             pathVrt = path
-            self.vrtRaster.saveVRT(pathVrt)
+            self.tbProgress.setText('Save {}...'.format(pathVrt))
+            dsDst = self.vrtRaster.saveVRT(pathVrt)
+            self.tbProgress.setText('{} saved'.format(pathVrt))
 
+        if isinstance(dsDst, gdal.Dataset):
+            self.tbProgress.setText('{} saved'.format(path))
+        else:
+            self.tbProgress.setText('Failed to save {}!'.format(path))
+
+        dsDst = None
         if self.cbAddToMap.isChecked():
             self.sigRasterCreated.emit(path)
 
