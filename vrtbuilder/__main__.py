@@ -31,9 +31,11 @@ class run():
     W = VRTBuilderWidget(None)
     W.show()
 
-    if True and os.path.isdir(DIR_EXAMPLEDATA):
+    if False and os.path.isdir(DIR_EXAMPLEDATA):
         files = file_search(DIR_EXAMPLEDATA, '*.tif')
         W.addSourceFiles(files)
+    W.loadVRT(u'D:\Temp\landsat22ü.bsq.vrt')
+
 
     #close QGIS
     qgsApp.exec_()

@@ -246,6 +246,9 @@
           </item>
           <item>
            <widget class="QTreeView" name="treeViewVRT">
+            <property name="acceptDrops">
+             <bool>true</bool>
+            </property>
             <property name="frameShape">
              <enum>QFrame::NoFrame</enum>
             </property>
@@ -257,6 +260,9 @@
             </property>
             <property name="defaultDropAction">
              <enum>Qt::MoveAction</enum>
+            </property>
+            <property name="alternatingRowColors">
+             <bool>true</bool>
             </property>
             <property name="selectionMode">
              <enum>QAbstractItemView::ExtendedSelection</enum>
@@ -514,7 +520,7 @@
        <item>
         <widget class="QTabWidget" name="tabWidgetSettings">
          <property name="currentIndex">
-          <number>1</number>
+          <number>0</number>
          </property>
          <widget class="QWidget" name="tabSrcFiles">
           <attribute name="title">
@@ -641,6 +647,9 @@
            </item>
            <item>
             <widget class="QTreeView" name="treeViewSourceFiles">
+             <property name="acceptDrops">
+              <bool>true</bool>
+             </property>
              <property name="frameShape">
               <enum>QFrame::NoFrame</enum>
              </property>
@@ -649,6 +658,12 @@
              </property>
              <property name="dragDropMode">
               <enum>QAbstractItemView::DragDrop</enum>
+             </property>
+             <property name="defaultDropAction">
+              <enum>Qt::CopyAction</enum>
+             </property>
+             <property name="alternatingRowColors">
+              <bool>true</bool>
              </property>
              <property name="selectionMode">
               <enum>QAbstractItemView::ExtendedSelection</enum>
@@ -1273,6 +1288,15 @@
    </property>
    <property name="toolTip">
     <string>Seelct the spatial extent from a map canvas</string>
+   </property>
+  </action>
+  <action name="actionLoadVRT">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/vrtbuilder/mActionImportVirtualRaster.png</normaloff>:/vrtbuilder/mActionImportVirtualRaster.png</iconset>
+   </property>
+   <property name="text">
+    <string>LoadVRT</string>
    </property>
   </action>
  </widget>

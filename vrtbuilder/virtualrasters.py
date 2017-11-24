@@ -19,15 +19,22 @@
  *                                                                         *
  ***************************************************************************/
 """
-from __future__ import absolute_import
-import os, sys, re, pickle, tempfile
+from __future__ import absolute_import, unicode_literals
+import os, sys, re, pickle, tempfile, unicodedata
 from collections import OrderedDict
 import tempfile
-from osgeo import gdal, osr, ogr
+from osgeo import gdal, osr, ogr, gdalconst as gc
 from qgis.core import *
 from qgis.gui import *
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
+
+def u2s(s):
+    if isinstance(s, unicode):
+        #s = s.encode(s, 'utf-8')
+        s = unicodedata.normalize('NFKD', s).encode('ascii', 'ignore')
+        #s = s.encode('utf-8', 'ignore')
+    return str(s)
 
 def px2geo(px, gt):
     #see http://www.gdal.org/gdal_datamodel.html
@@ -91,11 +98,18 @@ class VRTRasterBand(QObject):
     def __init__(self, name='', parent=None):
         super(VRTRasterBand, self).__init__(parent)
         self.sources = []
-        self.mName = name
+        self.mName = ''
+        self.setName(name)
         self.mVRT = None
 
 
     def setName(self, name):
+
+        #if isinstance(name, unicode):
+       #     name = name.encode('utf-8')
+        #name = u2s(name)
+        if isinstance(name, str):
+            name = unicode(name)
         oldName = self.mName
         self.mName = name
         if oldName != self.mName:
@@ -463,8 +477,8 @@ class VRTRaster(QObject):
         from xml.etree import ElementTree
         for b in range(ds.RasterCount):
             srcBand = ds.GetRasterBand(b+1)
-            vrtBand = VRTRasterBand(name=srcBand.GetDescription())
-            for key, xml in srcBand.GetMetadata('vrt_sources').items():
+            vrtBand = VRTRasterBand(name=srcBand.GetDescription().decode('utf-8'))
+            for key, xml in srcBand.GetMetadata(str('vrt_sources')).items():
 
                 tree = ElementTree.fromstring(xml)
                 srcPath = os.path.normpath(tree.find('SourceFilename').text)
@@ -551,7 +565,7 @@ class VRTRaster(QObject):
         eType = dsVRTDst.GetRasterBand(1).DataType
         SOURCE_TEMPLATES = dict()
         for i, srcFile in enumerate(srcFiles):
-            vrt_sources = dsVRTDst.GetRasterBand(i+1).GetMetadata('vrt_sources')
+            vrt_sources = dsVRTDst.GetRasterBand(i+1).GetMetadata(str('vrt_sources'))
             assert len(vrt_sources) == 1
             srcXML = vrt_sources.values()[0]
             assert os.path.basename(srcFile)+'</SourceFilename>' in srcXML
@@ -562,7 +576,7 @@ class VRTRaster(QObject):
         os.remove(pathVRT)
 
         #2. build final VRT from scratch
-        drvVRT = gdal.GetDriverByName('VRT')
+        drvVRT = gdal.GetDriverByName(str('VRT'))
         assert isinstance(drvVRT, gdal.Driver)
         dsVRTDst = drvVRT.Create(pathVRT, ns, nl,0, eType=eType)
         #2.1. set general properties
@@ -576,7 +590,7 @@ class VRTRaster(QObject):
             assert dsVRTDst.AddBand(eType, options=['subClass=VRTSourcedRasterBand']) == 0
             vrtBandDst = dsVRTDst.GetRasterBand(i+1)
             assert isinstance(vrtBandDst, gdal.Band)
-            vrtBandDst.SetDescription(str(vBand.name()))
+            vrtBandDst.SetDescription(vBand.name().encode('utf-8'))
             md = {}
             #add all input sources for this virtual band
             for iSrc, sourceInfo in enumerate(vBand.sources):
@@ -585,7 +599,7 @@ class VRTRaster(QObject):
                 xml = SOURCE_TEMPLATES[srcLookup[sourceInfo.mPath]]
                 xml = re.sub('<SourceBand>1</SourceBand>','<SourceBand>{}</SourceBand>'.format(bandIndex+1), xml)
                 md['source_{}'.format(iSrc)] = xml
-            vrtBandDst.SetMetadata(md,'vrt_sources')
+            vrtBandDst.SetMetadata(md,str('vrt_sources'))
             if False:
                 vrtBandDst.ComputeBandStats(1)
 
