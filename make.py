@@ -26,18 +26,21 @@ import numpy as np
 from qgis import *
 from qgis.core import *
 from qgis.gui import *
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
-
-from PyQt4.QtSvg import *
-from PyQt4.QtXml import *
-from PyQt4.QtXmlPatterns import *
-
-from PyQt4.uic.Compiler.qtproxies import QtGui
+import six
+if six.PY3:
+    from PyQt5.QtGui import *
+    from PyQt5.QtCore import *
+    from PyQt5.QtSvg import *
+    from PyQt5.QtXml import *
+else:
+    from PyQt4.QtGui import *
+    from PyQt4.QtCore import *
+    from PyQt4.QtSvg import *
+    from PyQt4.QtXml import *
 
 import gdal
 
-import vrtbuilder
+#import vrtbuilder
 from vrtbuilder import DIR_UI, DIR_ROOT
 from vrtbuilder.utils import file_search
 jp = os.path.join
@@ -92,9 +95,20 @@ def compile_rc_files(ROOT):
         assert os.path.exists(pathQrc), pathQrc
         bn = os.path.basename(f)
         bn = os.path.splitext(bn)[0]
-        pathPy2 = os.path.join(DIR_UI, bn+'.py' )
+        pathPy = os.path.join(DIR_UI, bn+'.py' )
         pathRCC = os.path.join(DIR_UI, bn+'.rcc' )
-        subprocess.call(['pyrcc4', '-py2', '-o', pathPy2, pathQrc])
+        if six.PY3:
+            #subprocess.call(['pyrcc5', '-o', pathPy, pathQrc])
+            subprocess.call(['pyrcc4', '-py"', '-o', pathPy, pathQrc])
+            lines = open(pathPy, 'r').readlines()
+            lines = [l.replace('PyQt4', 'PyQt5') for l in lines]
+            open(pathPy, 'w').writelines(lines)
+            s =  ""
+        else:
+            subprocess.call(['pyrcc4', '-py"', '-o', pathPy, pathQrc])
+            lines = open(pathPy, 'r').readlines()
+            lines = [l.replace('PyQt4','PyQt5') for l in lines]
+            open(pathPy, 'w').writelines(lines)
         s = ""
 
 def fileNeedsUpdate(file1, file2):
@@ -108,7 +122,7 @@ def fileNeedsUpdate(file1, file2):
 
 def svg2png(pathDir, overwrite=False, mode='INKSCAPE'):
     assert mode in ['INKSCAPE', 'WEBKIT', 'SVG']
-    from PyQt4.QtWebKit import QWebPage
+    from PyQt5.QtWebKit import QWebPage
 
     svgs = file_search(pathDir, '*.svg')
     app = QApplication([], True)
@@ -477,22 +491,22 @@ if __name__ == '__main__':
     pathQrc = jp(DIR_UI,'resources.qrc')
 
 
-    if True:
+    if False:
         updateMetadataTxt()
         updateHelpHTML()
         #exit()
-    if True:
+    if False:
         #convert SVG to PNG and link them into the resource file
         svg2png(icondir, overwrite=False)
 
-    if True:
+    if False:
         #add png icons to qrc file
         png2qrc(icondir, pathQrc)
 
     if True:
         compile_rc_files(DIR_UI)
 
-    if True:
+    if False:
         deploy()
     print('Done')
 

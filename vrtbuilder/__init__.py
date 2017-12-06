@@ -49,5 +49,6 @@ Economic Affairs and Energy (BMWi, grant no. 50EE1529).
 """
 
 PATH_ICON = os.path.join(DIR_UI,'mActionNewVirtualLayer.png')
-import vrtbuilder.ui.resources
-vrtbuilder.ui.resources.qInitResources()
+
+#import vrtbuilder.ui.resources
+#vrtbuilder.ui.resources.qInitResources()

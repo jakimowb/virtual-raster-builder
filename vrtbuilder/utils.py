@@ -20,7 +20,8 @@
 """
 # noinspection PyPep8Naming
 from __future__ import absolute_import
-import os, sys, math, StringIO, re, fnmatch
+
+import os, sys, math, re, fnmatch
 
 import logging
 logger = logging.getLogger(__name__)
@@ -28,10 +29,21 @@ logger = logging.getLogger(__name__)
 from collections import defaultdict
 from qgis.core import *
 from qgis.gui import *
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-from PyQt4.QtXml import QDomDocument
-from PyQt4 import uic
+
+import six
+if six.PY3:
+    from PyQt5.QtCore import *
+    from PyQt5.QtGui import *
+    from PyQt5.QtXml import QDomDocument
+    from PyQt5 import uic
+    from io import StringIO
+else:
+    from PyQt4.QtCore import *
+    from PyQt4.QtGui import *
+    from PyQt4.QtXml import QDomDocument
+    from PyQt4 import uic
+    from StringIO import StringIO
+
 from osgeo import gdal
 
 import weakref
@@ -101,7 +113,7 @@ def initQgisApplication(pythonPlugins=None, PATH_QGIS=None, qgisDebug=False):
 
         assert os.path.exists(PATH_QGIS)
 
-        QgsApplication.setGraphicsSystem("raster")
+        #QgsApplication.setGraphicsSystem("raster")
         qgsApp = QgsApplication([], True)
         qgsApp.setPrefixPath(PATH_QGIS, True)
         qgsApp.initQgis()
@@ -151,7 +163,7 @@ def loadUIFormClass(pathUi, from_imports=False, resourceSuffix=''):
     RC_SUFFIX =  resourceSuffix
     assert os.path.exists(pathUi), '*.ui file does not exist: {}'.format(pathUi)
 
-    buffer = StringIO.StringIO() #buffer to store modified XML
+    buffer = StringIO() #buffer to store modified XML
     if pathUi not in FORM_CLASSES.keys():
         #parse *.ui xml and replace *.h by qgis.gui
         doc = QDomDocument()

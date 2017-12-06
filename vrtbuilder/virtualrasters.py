@@ -26,8 +26,8 @@ import tempfile
 from osgeo import gdal, osr, ogr, gdalconst as gc
 from qgis.core import *
 from qgis.gui import *
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 
 def u2s(s):
     if isinstance(s, unicode):

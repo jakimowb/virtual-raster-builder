@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>565</width>
-    <height>593</height>
+    <width>836</width>
+    <height>386</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -702,8 +702,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>342</width>
-                <height>541</height>
+                <width>494</width>
+                <height>362</height>
                </rect>
               </property>
               <layout class="QGridLayout" name="gridLayout_2">

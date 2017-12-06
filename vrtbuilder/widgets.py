@@ -24,8 +24,18 @@ from collections import OrderedDict
 
 from qgis.core import *
 from qgis.gui import *
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+import six
+if six.PY3:
+    from PyQt5.QtCore import *
+    from PyQt5.QtGui import *
+    from PyQt5.QtWidgets import *
+    from io import StringIO
+else:
+    from PyQt4.QtCore import *
+    from PyQt4.QtGui import *
+    from StringIO import StringIO
+
+
 
 from osgeo import gdal, osr, gdalconst as gc
 

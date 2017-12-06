@@ -18,14 +18,12 @@
 """
 import os
 from vrtbuilder import DIR_EXAMPLEDATA
-from vrtbuilder.utils import file_search
+from vrtbuilder.utils import file_search, initQgisApplication
 
 
 class run():
 
     # add site-packages to sys.path as done by enmapboxplugin.py
-
-    from utils import initQgisApplication
     qgsApp = initQgisApplication()
     from vrtbuilder.widgets import VRTBuilderWidget
     W = VRTBuilderWidget(None)
