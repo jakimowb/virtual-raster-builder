@@ -713,11 +713,24 @@ class SourceRasterModel(TreeModel):
     def addFile(self, file):
         self.addFiles([file])
 
-    def addFiles(self, newFiles):
-        assert isinstance(newFiles, list)
+    def addFiles(self, files):
+        assert isinstance(files, list)
         existingFiles = self.files()
-        newFiles = [os.path.normpath(f) for f in newFiles]
+        newFiles = []
+
+        for path in [os.path.normpath(f) for f in files]:
+            ds = gdal.Open(path)
+            if isinstance(ds, gdal.Dataset):
+                nb = ds.RasterCount
+                subs = [tup[0] for tup in ds.GetSubDatasets()]
+
+                if nb > 0:
+                    newFiles.append(path)
+                if subs > 0:
+                    newFiles.extend(subs)
+
         newFiles = [f for f in newFiles if f not in existingFiles and isinstance(gdal.Open(f), gdal.Dataset)]
+
         if len(newFiles) > 0:
             for f in newFiles:
                 SourceRasterFileNode(self.mRootNode, f)
@@ -1774,6 +1787,10 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
 
         self.btnRemoveSrcFiles.setEnabled(len(self.selectedSourceFileNodes()) > 0)
         s = ""
+
+    def addSourceFile(self, file):
+
+        self.addSourceFiles([file])
 
     def addSourceFiles(self, files):
         """

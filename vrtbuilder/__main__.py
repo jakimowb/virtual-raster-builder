@@ -25,17 +25,11 @@ class run():
 
     # add site-packages to sys.path as done by enmapboxplugin.py
 
-    from utils import initQgisApplication
+    from vrtbuilder.utils import initQgisApplication
     qgsApp = initQgisApplication()
     from vrtbuilder.widgets import VRTBuilderWidget
     W = VRTBuilderWidget(None)
     W.show()
-
-    if False and os.path.isdir(DIR_EXAMPLEDATA):
-        files = file_search(DIR_EXAMPLEDATA, '*.tif')
-        W.addSourceFiles(files)
-    W.loadVRT(u'D:\Temp\landsat22ü.bsq.vrt')
-
 
     #close QGIS
     qgsApp.exec_()
