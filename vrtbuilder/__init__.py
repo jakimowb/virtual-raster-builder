@@ -29,7 +29,7 @@ DIR_ROOT = os.path.dirname(DIR)
 DIR_UI = os.path.join(DIR,'ui')
 DIR_EXAMPLEDATA = os.path.join(DIR_ROOT, 'exampledata')
 
-VERSION = '0.1'
+VERSION = '0.2'
 LICENSE = 'GNU GPL-3'
 TITLE = 'Virtual Raster Builder'
 DESCRIPTION = 'A QGIS Plugin to create GDAL Virtual Raster (VRT) files by drag and drop.'

@@ -3,7 +3,7 @@ name=Virtual Raster Builder
 
 description=A QGIS Plugin to create GDAL Virtual Raster (VRT) files by drag and drop.
 
-version=0.1
+version=0.2
 
 qgisMinimumVersion=2.18
 

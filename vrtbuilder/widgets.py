@@ -1308,6 +1308,13 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         super(VRTBuilderWidget, self).__init__(parent)
         self.setupUi(self)
         # self.webView.setUrl(QUrl('help.html'))
+        title = self.windowTitle()
+        from vrtbuilder import VERSION
+        if VERSION not in title:
+            title = '{} {}'.format(title, VERSION)
+            self.setWindowTitle(title)
+
+
         pathHTML = os.path.join(os.path.dirname(__file__), 'help.html')
         import urllib
         pathHTML = urllib.pathname2url(pathHTML)
