@@ -304,7 +304,7 @@ def updateMetadataTxt():
     md['author'] = "Benjamin Jakimow, Geomatics Lab, Humboldt-Universität zu Berlin"
     md['email'] = "benjamin.jakimow@geo.hu-berlin.de"
     #md['changelog'] =
-    md['experimental'] = "True"
+    md['experimental'] = "False"
     md['deprecated'] = "False"
     md['tags'] = "remote sensing, raster"
     md['homepage'] = vrtbuilder.WEBSITE

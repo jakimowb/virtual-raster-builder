@@ -21,7 +21,7 @@ tracker=https://bitbucket.org/jakimowb/virtual-raster-builder/issues
 
 repository=https://bitbucket.org/jakimowb/virtual-raster-builder
 
-experimental=True
+experimental=False
 
 deprecated=False
 
