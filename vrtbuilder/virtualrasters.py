@@ -29,6 +29,31 @@ from qgis.gui import *
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
+#lookup GDAL Data Type and its size in bytes
+LUT_GDT_SIZE = {gdal.GDT_Byte:1,
+                gdal.GDT_UInt16:2,
+                gdal.GDT_Int16:2,
+                gdal.GDT_UInt32:4,
+                gdal.GDT_Int32:4,
+                gdal.GDT_Float32:4,
+                gdal.GDT_Float64:8,
+                gdal.GDT_CInt16:2,
+                gdal.GDT_CInt32:4,
+                gdal.GDT_CFloat32:4,
+                gdal.GDT_CFloat64:8}
+
+LUT_GDT_NAME = {gdal.GDT_Byte:'Byte',
+                gdal.GDT_UInt16:'UInt16',
+                gdal.GDT_Int16:'Int16',
+                gdal.GDT_UInt32:'UInt32',
+                gdal.GDT_Int32:'Int32',
+                gdal.GDT_Float32:'Float32',
+                gdal.GDT_Float64:'Float64',
+                gdal.GDT_CInt16:'Int16',
+                gdal.GDT_CInt32:'Int32',
+                gdal.GDT_CFloat32:'Float32',
+                gdal.GDT_CFloat64:'Float64'}
+
 def u2s(s):
     if isinstance(s, unicode):
         #s = s.encode(s, 'utf-8')
@@ -41,6 +66,78 @@ def px2geo(px, gt):
     gx = gt[0] + px.x()*gt[1]+px.y()*gt[2]
     gy = gt[3] + px.x()*gt[4]+px.y()*gt[5]
     return QgsPoint(gx,gy)
+
+
+def describeRawFile(pathRaw, pathVrt, xsize, ysize,
+                    bands=1,
+                    eType = gdal.GDT_Byte,
+                    interleave='bsq',
+                    byteOrder='LSB',
+                    headerOffset=0):
+    """
+    Creates a VRT to describe a raw binary file
+    :param pathRaw: path of raw image
+    :param pathVrt: path of destination VRT
+    :param xsize: number of image samples / columns
+    :param ysize: number of image lines
+    :param bands: number of image bands
+    :param eType: the GDAL data type
+    :param interleave: can be 'bsq' (default),'bil' or 'bip'
+    :param byteOrder: 'LSB' (default) or 'MSB'
+    :param headerOffset: header offset in bytes, default = 0
+    :return: gdal.Dataset of created VRT
+    """
+    assert xsize > 0
+    assert ysize > 0
+    assert bands > 0
+    assert eType > 0
+
+    assert eType in LUT_GDT_SIZE.keys(), 'dataType "{}" is not a valid gdal datatype'.format(eType)
+    interleave = interleave.lower()
+
+    assert interleave in ['bsq','bil','bip']
+    assert byteOrder in ['LSB', 'MSB']
+    vrt = ['<VRTDataset rasterXSize="{xsize}" rasterYSize="{ysize}">'.format(xsize=xsize,ysize=ysize)]
+
+    vrtDir = os.path.dirname(pathVrt)
+    if pathRaw.startswith(vrtDir):
+        relativeToVRT = 1
+        srcFilename = os.path.relpath(pathRaw, vrtDir)
+    else:
+        relativeToVRT = 0
+        srcFilename = pathRaw
+
+    for b in range(bands):
+        vrt.append('  <VRTRasterBand dataType="{dataType}" band="{band}" subClass="VRTRawRasterBand">'.format(
+            dataType=LUT_GDT_NAME[eType], band=b+1))
+        if interleave == 'bsq':
+            imageOffset = headerOffset
+            pixelOffset = LUT_GDT_SIZE[eType]
+            lineOffset = pixelOffset * xsize
+        elif interleave == 'bip':
+            imageOffset = headerOffset + b * LUT_GDT_SIZE[eType]
+            pixelOffset = bands * LUT_GDT_SIZE[eType]
+            lineOffset = xsize * bands
+        else:
+            raise Exception('Interleave {} is not supported'.format(interleave))
+        vrt.append("""    <SourceFilename relativetoVRT="{relativeToVRT}">{srcFilename}</SourceFilename>
+    <ImageOffset>{imageOffset}</ImageOffset>
+    <PixelOffset>{pixelOffset}</PixelOffset>
+    <LineOffset>{lineOffset}</LineOffset>
+    <ByteOrder>{byteOrder}</ByteOrder>""".format(relativeToVRT=relativeToVRT,
+                   srcFilename=srcFilename,
+                   imageOffset=imageOffset,
+                   pixelOffset=pixelOffset,
+                   lineOffset=lineOffset,
+                   byteOrder=byteOrder))
+
+        vrt.append('  </VRTRasterBand>')
+    vrt.append('</VRTDataset>')
+    vrt = '\n'.join(vrt)
+    open(pathVrt, 'w').write(vrt)
+
+    ds = gdal.Open(pathVrt)
+    return ds
 
 
 class VRTRasterInputSourceBand(object):
