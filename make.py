@@ -19,23 +19,19 @@
 """
 import os, sys, six, subprocess, re, shutil
 
-import pb_tool
+from pb_tool import pb_tool
 import datetime
 import numpy as np
 
 from qgis import *
 from qgis.core import *
 from qgis.gui import *
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 
-from PyQt4.QtSvg import *
-from PyQt4.QtXml import *
-from PyQt4.QtXmlPatterns import *
+from PyQt5.QtSvg import *
+from PyQt5.QtXml import *
 
-from PyQt4.uic.Compiler.qtproxies import QtGui
-
-import gdal
 
 import vrtbuilder
 from vrtbuilder import DIR_UI, DIR_ROOT
@@ -94,7 +90,7 @@ def compile_rc_files(ROOT):
         bn = os.path.splitext(bn)[0]
         pathPy2 = os.path.join(DIR_UI, bn+'.py' )
         pathRCC = os.path.join(DIR_UI, bn+'.rcc' )
-        subprocess.call(['pyrcc4', '-py2', '-o', pathPy2, pathQrc])
+        subprocess.call(['pyrcc5', '-py3', '-o', pathPy2, pathQrc])
         s = ""
 
 def fileNeedsUpdate(file1, file2):
@@ -106,178 +102,6 @@ def fileNeedsUpdate(file1, file2):
         else:
             return os.path.getmtime(file1) > os.path.getmtime(file2)
 
-def svg2png(pathDir, overwrite=False, mode='INKSCAPE'):
-    assert mode in ['INKSCAPE', 'WEBKIT', 'SVG']
-    from PyQt4.QtWebKit import QWebPage
-
-    svgs = file_search(pathDir, '*.svg')
-    app = QApplication([], True)
-    buggySvg = []
-
-
-    for pathSvg in svgs:
-        dn = os.path.dirname(pathSvg)
-        bn, _ = os.path.splitext(os.path.basename(pathSvg))
-        pathPng = jp(dn, bn+'.png')
-
-        if mode == 'SVG':
-            renderer = QSvgRenderer(pathSvg)
-            doc_size = renderer.defaultSize() # size in px
-            img = QImage(doc_size, QImage.Format_ARGB32)
-            #img.fill(0xaaA08080)
-            painter = QPainter(img)
-            renderer.render(painter)
-            painter.end()
-            if overwrite or not os.path.exists(pathPng):
-                img.save(pathPng, quality=100)
-            del painter, renderer
-        elif mode == 'WEBKIT':
-            page = QWebPage()
-            frame = page.mainFrame()
-            f = QFile(pathSvg)
-            if f.open(QFile.ReadOnly | QFile.Text):
-                textStream = QTextStream(f)
-                svgData = textStream.readAll()
-                f.close()
-
-            qba = QByteArray(str(svgData))
-            frame.setContent(qba,"image/svg+xml")
-            page.setViewportSize(frame.contentsSize())
-
-            palette = page.palette()
-            background_color = QColor(50,0,0,50)
-            palette.setColor(QPalette.Window, background_color)
-            brush = QBrush(background_color)
-            palette.setBrush(QPalette.Window, brush)
-            page.setPalette(palette)
-
-            img = QImage(page.viewportSize(), QImage.Format_ARGB32)
-            img.fill(background_color) #set transparent background
-            painter = QPainter(img)
-            painter.setBackgroundMode(Qt.OpaqueMode)
-            #print(frame.renderTreeDump())
-            frame.render(painter)
-            painter.end()
-
-            if overwrite or not os.path.exists(pathPng):
-                print('Save {}...'.format(pathPng))
-                img.save(pathPng, quality=100)
-            del painter, frame, img, page
-            s  =""
-        elif mode == 'INKSCAPE':
-            if fileNeedsUpdate(pathSvg, pathPng):
-                if sys.platform == 'darwin':
-                    cmd = ['inkscape']
-                else:
-                    dirInkscape = r'C:\Program Files\Inkscape'
-                    assert os.path.isdir(dirInkscape)
-                    cmd = [jp(dirInkscape,'inkscape')]
-                cmd.append('--file={}'.format(pathSvg))
-                cmd.append('--export-png={}'.format(pathPng))
-                from subprocess import PIPE
-                p = subprocess.Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-                output, err = p.communicate()
-                rc = p.returncode
-                print('Saved {}'.format(pathPng))
-                if err != '':
-                    buggySvg.append((pathSvg, err))
-
-    if len(buggySvg) > 0:
-        six._print('SVG Errors')
-        for t in buggySvg:
-            pathSvg, error = t
-            six._print(pathSvg, error, file=sys.stderr)
-    s = ""
-
-
-def png2qrc(icondir, pathQrc, pngprefix='vrtbuilder'):
-    pathQrc = os.path.abspath(pathQrc)
-    dirQrc = os.path.dirname(pathQrc)
-    app = QApplication([])
-    assert os.path.exists(pathQrc)
-    doc = QDomDocument('RCC')
-    doc.setContent(QFile(pathQrc))
-    if str(doc.toString()) == '':
-        doc.appendChild(doc.createElement('RCC'))
-    root = doc.documentElement()
-    pngFiles = set()
-    fileAttributes = {}
-    #add files already included in QRC
-
-    fileNodes = doc.elementsByTagName('file')
-    for i in range(fileNodes.count()):
-        fileNode = fileNodes.item(i).toElement()
-
-        file = str(fileNode.childNodes().item(0).nodeValue())
-        if file.lower().endswith('.png'):
-            pngFiles.add(file)
-            if fileNode.hasAttributes():
-                attributes = {}
-                for i in range(fileNode.attributes().count()):
-                    attr = fileNode.attributes().item(i).toAttr()
-                    attributes[str(attr.name())] = str(attr.value())
-                fileAttributes[file] = attributes
-
-    #add new pngs in icondir
-    for f in  file_search(icondir, '*.png'):
-        file = os.path.relpath(f, dirQrc).replace('\\','/')
-        pngFiles.add(file)
-
-    pngFiles = sorted(list(pngFiles))
-
-    def elementsByTagAndProperties(elementName, attributeProperties, rootNode=None):
-        assert isinstance(elementName, str)
-        assert isinstance(attributeProperties, dict)
-        if rootNode is None:
-            rootNode = doc
-        resourceNodes = rootNode.elementsByTagName(elementName)
-        nodeList = []
-        for i in range(resourceNodes.count()):
-            resourceNode = resourceNodes.item(i).toElement()
-            for aName, aValue in attributeProperties.items():
-                if resourceNode.hasAttribute(aName):
-                    if aValue != None:
-                        assert isinstance(aValue, str)
-                        if str(resourceNode.attribute(aName)) == aValue:
-                            nodeList.append(resourceNode)
-                    else:
-                        nodeList.append(resourceNode)
-        return nodeList
-
-
-    resourceNodes = elementsByTagAndProperties('qresource', {'prefix':pngprefix})
-
-    if len(resourceNodes) == 0:
-        resourceNode = doc.createElement('qresource')
-        root.appendChild(resourceNode)
-        resourceNode.setAttribute('prefix', pngprefix)
-    elif len(resourceNodes) == 1:
-        resourceNode = resourceNodes[0]
-    else:
-        raise NotImplementedError('Multiple resource nodes')
-
-    #remove childs, as we have all stored in list pngFiles
-    childs = resourceNode.childNodes()
-    while not childs.isEmpty():
-        node = childs.item(0)
-        node.parentNode().removeChild(node)
-
-    #insert new childs
-    for pngFile in pngFiles:
-
-        node = doc.createElement('file')
-        attributes = fileAttributes.get(pngFile)
-        if attributes:
-            for k, v in attributes.items():
-                node.setAttribute(k,v)
-            s = 2
-        node.appendChild(doc.createTextNode(pngFile))
-        resourceNode.appendChild(node)
-        print(pngFile)
-
-    f = open(pathQrc, "w")
-    f.write(doc.toString())
-    f.close()
 
 
 def updateMetadataTxt():
@@ -296,7 +120,7 @@ def updateMetadataTxt():
     #update/set new metadata
     import vrtbuilder
     md['name'] = vrtbuilder.TITLE
-    md['qgisMinimumVersion'] = "2.18"
+    md['qgisMinimumVersion'] = "3.0"
     #md['qgisMaximumVersion'] =
     md['description'] = vrtbuilder.DESCRIPTION.strip()
     md['about'] = vrtbuilder.ABOUT.replace('\n',' ').strip()
@@ -400,9 +224,10 @@ def deploy():
     dirBuildPlugin = jp(DIR_BUILD, 'vrtbuilderplugin')
 
     #the directory to build the "enmapboxplugin" folder
+
     DIR_DEPLOY = jp(DIR_ROOT, 'deploy')
     #DIR_DEPLOY = r'E:\_EnMAP\temp\temp_bj\enmapbox_deploys\most_recent_version'
-
+    os.chdir(DIR_ROOT)
     #local pb_tool configuration file.
     pathCfg = jp(DIR_ROOT, 'pb_tool.cfg')
 
@@ -419,21 +244,12 @@ def deploy():
 
         #2. Compile. Basically call pyrcc to create the resources.rc file
         #I don't know how to call this from pure python
-        if True:
-            import subprocess
-            import make
 
-
-            os.chdir(DIR_ROOT)
-            subprocess.call(['pb_tool', 'compile'])
-            make.compile_rc_files(DIR_ROOT)
-
-        else:
-            cfgParser = pb_tool.get_config(config=pathCfg)
-            pb_tool.compile_files(cfgParser)
+        cfgParser = pb_tool.get_config(config=pathCfg)
+        pb_tool.compile_files(cfgParser)
 
         #3. Deploy = write the data to the new enmapboxplugin folder
-        pb_tool.deploy_files(pathCfg, confirm=False)
+        pb_tool.deploy_files(pathCfg, DIR_DEPLOY, confirm=False, quick=True)
 
         #4. As long as we can not specify in the pb_tool.cfg which file types are not to deploy,
         # we need to remove them afterwards.
@@ -477,19 +293,11 @@ if __name__ == '__main__':
     pathQrc = jp(DIR_UI,'resources.qrc')
 
 
-    if True:
+    if False:
         updateMetadataTxt()
         updateHelpHTML()
         #exit()
-    if True:
-        #convert SVG to PNG and link them into the resource file
-        svg2png(icondir, overwrite=False)
-
-    if True:
-        #add png icons to qrc file
-        png2qrc(icondir, pathQrc)
-
-    if True:
+    if False:
         compile_rc_files(DIR_UI)
 
     if True:

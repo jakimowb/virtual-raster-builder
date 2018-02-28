@@ -13,9 +13,11 @@ __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
 import unittest
-from qgis import *
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from qgis.gui import *
+from qgis.core import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
 
 
 class testclassData(unittest.TestCase):
@@ -28,6 +30,12 @@ class testclassData(unittest.TestCase):
         pass
 
     def test_vrtRaster(self):
+
+
+        from vrtbuilder.virtualrasters import VRTRaster, VRTRasterBand, VRTRasterInputSourceBand
+
+
+
         pass
 
     def test_vrtBuilderGUI(self):

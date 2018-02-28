@@ -19,13 +19,13 @@
  ***************************************************************************/
 """
 # noinspection PyPep8Naming
-from __future__ import absolute_import
+
 import os, site, logging
 logger = logging.getLogger(__name__)
 from qgis.gui import *
 from qgis.core import *
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 
 
 

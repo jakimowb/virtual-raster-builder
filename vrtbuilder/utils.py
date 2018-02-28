@@ -19,23 +19,13 @@
  ***************************************************************************/
 """
 # noinspection PyPep8Naming
-from __future__ import absolute_import
-import os, sys, math, StringIO, re, fnmatch
+import os, sys, math, io, re, fnmatch, io
 
-import logging
-logger = logging.getLogger(__name__)
 
-from collections import defaultdict
 from qgis.core import *
-from qgis.gui import *
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-from PyQt4.QtXml import QDomDocument
-from PyQt4 import uic
-from osgeo import gdal
-
-import weakref
-import numpy as np
+from PyQt5.QtCore import *
+from PyQt5.QtXml import QDomDocument
+from PyQt5 import uic
 
 from vrtbuilder import DIR_ROOT, DIR_UI
 jp = os.path.join
@@ -60,9 +50,18 @@ def initQgisApplication(pythonPlugins=None, PATH_QGIS=None, qgisDebug=False):
     PLUGIN_DIR = os.path.dirname(DIR_ROOT)
 
     if os.path.isdir(PLUGIN_DIR):
+        pass
+        """
         for subDir in os.listdir(PLUGIN_DIR):
             if not subDir.startswith('.'):
-                pythonPlugins.append(os.path.join(PLUGIN_DIR, subDir))
+                pathMetadata = jp(  PLUGIN_DIR, *[subDir,'metadata.txt'])
+                if os.path.exists(pathMetadata):
+                    md = open(pathMetadata,'r').readlines()
+                    md = [m.strip() for m in md]
+                    md = [m.split('=') for m in md if m.startswith('qgisMinimumVersion')]
+                    
+                    pythonPlugins.append(os.path.join(PLUGIN_DIR, subDir))
+        """
 
     envVar = os.environ.get('QGIS_PLUGINPATH', None)
     if isinstance(envVar, list):
@@ -75,8 +74,9 @@ def initQgisApplication(pythonPlugins=None, PATH_QGIS=None, qgisDebug=False):
         sys.path.append(p)
 
     if isinstance(QgsApplication.instance(), QgsApplication):
-        #alread started
+
         return QgsApplication.instance()
+
     else:
 
         if PATH_QGIS is None:
@@ -101,11 +101,18 @@ def initQgisApplication(pythonPlugins=None, PATH_QGIS=None, qgisDebug=False):
 
         assert os.path.exists(PATH_QGIS)
 
-        QgsApplication.setGraphicsSystem("raster")
         qgsApp = QgsApplication([], True)
         qgsApp.setPrefixPath(PATH_QGIS, True)
         qgsApp.initQgis()
+
+        def printQgisLog(tb, error, level):
+
+            print(tb)
+        QgsApplication.instance().messageLog().messageReceived.connect(printQgisLog)
+
+
         return qgsApp
+
 
 
 def file_search(rootdir, pattern, recursive=False, ignoreCase=False):
@@ -151,7 +158,7 @@ def loadUIFormClass(pathUi, from_imports=False, resourceSuffix=''):
     RC_SUFFIX =  resourceSuffix
     assert os.path.exists(pathUi), '*.ui file does not exist: {}'.format(pathUi)
 
-    buffer = StringIO.StringIO() #buffer to store modified XML
+    buffer = io.StringIO() #buffer to store modified XML
     if pathUi not in FORM_CLASSES.keys():
         #parse *.ui xml and replace *.h by qgis.gui
         doc = QDomDocument()
@@ -202,7 +209,6 @@ def loadUIFormClass(pathUi, from_imports=False, resourceSuffix=''):
         try:
             FORM_CLASS, _ = uic.loadUiType(buffer, resource_suffix=RC_SUFFIX)
         except SyntaxError as ex:
-            logger.info('{}\n{}:"{}"\ncall instead uic.loadUiType(path,...) directly'.format(pathUi, ex, ex.text))
             FORM_CLASS, _ = uic.loadUiType(pathUi, resource_suffix=RC_SUFFIX)
 
         FORM_CLASSES[pathUi] = FORM_CLASS

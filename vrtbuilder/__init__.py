@@ -17,19 +17,16 @@
 ***************************************************************************
 """
 # noinspection PyPep8Naming
-from __future__ import absolute_import
 
 import os, sys, fnmatch, site, re
 import six, logging
-from qgis.core import *
-from qgis.gui import *
 
 DIR = os.path.dirname(__file__)
 DIR_ROOT = os.path.dirname(DIR)
 DIR_UI = os.path.join(DIR,'ui')
 DIR_EXAMPLEDATA = os.path.join(DIR_ROOT, 'exampledata')
 
-VERSION = '0.2'
+VERSION = '0.3'
 LICENSE = 'GNU GPL-3'
 TITLE = 'Virtual Raster Builder'
 DESCRIPTION = 'A QGIS Plugin to create GDAL Virtual Raster (VRT) files by drag and drop.'
@@ -49,5 +46,6 @@ Economic Affairs and Energy (BMWi, grant no. 50EE1529).
 """
 
 PATH_ICON = os.path.join(DIR_UI,'mActionNewVirtualLayer.png')
-import vrtbuilder.ui.resources
-vrtbuilder.ui.resources.qInitResources()
+#import vrtbuilder.ui.resources
+#vrtbuilder.ui.resources.qInitResources()
+__version__ = VERSION

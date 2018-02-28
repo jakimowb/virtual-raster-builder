@@ -20,7 +20,7 @@
    <string>Virtual Raster Builder</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="resources.qrc">
+   <iconset>
     <normaloff>:/vrtbuilder/mActionNewVirtualLayer.png</normaloff>:/vrtbuilder/mActionNewVirtualLayer.png</iconset>
   </property>
   <property name="frameShape">
@@ -33,7 +33,16 @@
    <property name="spacing">
     <number>2</number>
    </property>
-   <property name="margin">
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
     <number>0</number>
    </property>
    <item>
@@ -58,7 +67,16 @@
        <property name="spacing">
         <number>2</number>
        </property>
-       <property name="margin">
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
         <number>0</number>
        </property>
        <item>
@@ -70,7 +88,16 @@
           <property name="spacing">
            <number>2</number>
           </property>
-          <property name="margin">
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
            <number>0</number>
           </property>
           <item>
@@ -85,7 +112,16 @@
              <property name="spacing">
               <number>2</number>
              </property>
-             <property name="margin">
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <property name="bottomMargin">
               <number>0</number>
              </property>
              <item>
@@ -98,7 +134,7 @@
                </property>
                <property name="icon">
                 <iconset resource="resources.qrc">
-                 <normaloff>:/vrtbuilder/mActionExpandTree.png</normaloff>:/vrtbuilder/mActionExpandTree.png</iconset>
+                 <normaloff>:/vrtbuilder/mActionExpandTree.svg</normaloff>:/vrtbuilder/mActionExpandTree.svg</iconset>
                </property>
                <property name="autoRaise">
                 <bool>true</bool>
@@ -115,7 +151,7 @@
                </property>
                <property name="icon">
                 <iconset resource="resources.qrc">
-                 <normaloff>:/vrtbuilder/mActionCollapseTree.png</normaloff>:/vrtbuilder/mActionCollapseTree.png</iconset>
+                 <normaloff>:/vrtbuilder/mActionCollapseTree.svg</normaloff>:/vrtbuilder/mActionCollapseTree.svg</iconset>
                </property>
                <property name="autoRaise">
                 <bool>true</bool>
@@ -132,7 +168,7 @@
                </property>
                <property name="icon">
                 <iconset resource="resources.qrc">
-                 <normaloff>:/vrtbuilder/mActionImportVirtualRaster.png</normaloff>:/vrtbuilder/mActionImportVirtualRaster.png</iconset>
+                 <normaloff>:/vrtbuilder/mActionImportVirtualRaster.svg</normaloff>:/vrtbuilder/mActionImportVirtualRaster.svg</iconset>
                </property>
                <property name="iconSize">
                 <size>
@@ -155,7 +191,7 @@
                </property>
                <property name="icon">
                 <iconset resource="resources.qrc">
-                 <normaloff>:/vrtbuilder/mActionNewVirtualLayer.png</normaloff>:/vrtbuilder/mActionNewVirtualLayer.png</iconset>
+                 <normaloff>:/vrtbuilder/mActionNewVirtualLayer.svg</normaloff>:/vrtbuilder/mActionNewVirtualLayer.svg</iconset>
                </property>
                <property name="autoRaise">
                 <bool>true</bool>
@@ -175,7 +211,7 @@
                </property>
                <property name="icon">
                 <iconset resource="resources.qrc">
-                 <normaloff>:/vrtbuilder/mActionRemoveVirtualRaster.png</normaloff>:/vrtbuilder/mActionRemoveVirtualRaster.png</iconset>
+                 <normaloff>:/vrtbuilder/mActionRemoveVirtualRaster.svg</normaloff>:/vrtbuilder/mActionRemoveVirtualRaster.svg</iconset>
                </property>
                <property name="autoRaise">
                 <bool>true</bool>
@@ -195,8 +231,8 @@
                </property>
                <property name="icon">
                 <iconset resource="resources.qrc">
-                 <normaloff>:/vrtbuilder/mOptionMosaikFiles.png</normaloff>
-                 <normalon>:/vrtbuilder/mOptionStackFiles.png</normalon>:/vrtbuilder/mOptionMosaikFiles.png</iconset>
+                 <normaloff>:/vrtbuilder/mOptionMosaikFiles.svg</normaloff>
+                 <normalon>:/vrtbuilder/mOptionStackFiles.png</normalon>:/vrtbuilder/mOptionMosaikFiles.svg</iconset>
                </property>
                <property name="checkable">
                 <bool>true</bool>
@@ -419,7 +455,7 @@
               </property>
               <property name="icon">
                <iconset resource="resources.qrc">
-                <normaloff>:/vrtbuilder/mActionZoomIn.png</normaloff>:/vrtbuilder/mActionZoomIn.png</iconset>
+                <normaloff>:/vrtbuilder/mActionZoomIn.svg</normaloff>:/vrtbuilder/mActionZoomIn.svg</iconset>
               </property>
               <property name="autoRaise">
                <bool>true</bool>
@@ -433,7 +469,7 @@
               </property>
               <property name="icon">
                <iconset resource="resources.qrc">
-                <normaloff>:/vrtbuilder/mActionZoomOut.png</normaloff>:/vrtbuilder/mActionZoomOut.png</iconset>
+                <normaloff>:/vrtbuilder/mActionZoomOut.svg</normaloff>:/vrtbuilder/mActionZoomOut.svg</iconset>
               </property>
               <property name="autoRaise">
                <bool>true</bool>
@@ -447,7 +483,7 @@
               </property>
               <property name="icon">
                <iconset resource="resources.qrc">
-                <normaloff>:/vrtbuilder/mActionZoomFullExtent.png</normaloff>:/vrtbuilder/mActionZoomFullExtent.png</iconset>
+                <normaloff>:/vrtbuilder/mActionZoomFullExtent.svg</normaloff>:/vrtbuilder/mActionZoomFullExtent.svg</iconset>
               </property>
               <property name="autoRaise">
                <bool>true</bool>
@@ -461,7 +497,7 @@
               </property>
               <property name="icon">
                <iconset resource="resources.qrc">
-                <normaloff>:/vrtbuilder/mActionPan.png</normaloff>:/vrtbuilder/mActionPan.png</iconset>
+                <normaloff>:/vrtbuilder/mActionPan.svg</normaloff>:/vrtbuilder/mActionPan.svg</iconset>
               </property>
               <property name="autoRaise">
                <bool>true</bool>
@@ -491,7 +527,7 @@
               </property>
               <property name="icon">
                <iconset resource="resources.qrc">
-                <normaloff>:/vrtbuilder/mActionSelect.png</normaloff>:/vrtbuilder/mActionSelect.png</iconset>
+                <normaloff>:/vrtbuilder/mActionSelect.svg</normaloff>:/vrtbuilder/mActionSelect.svg</iconset>
               </property>
               <property name="autoRaise">
                <bool>true</bool>
@@ -528,9 +564,18 @@
           </attribute>
           <layout class="QVBoxLayout" name="verticalLayout_4">
            <property name="spacing">
-            <number>2</number>
+            <number>1</number>
            </property>
-           <property name="margin">
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
             <number>0</number>
            </property>
            <item>
@@ -565,7 +610,7 @@
                </property>
                <property name="icon">
                 <iconset resource="resources.qrc">
-                 <normaloff>:/vrtbuilder/mActionExpandTree.png</normaloff>:/vrtbuilder/mActionExpandTree.png</iconset>
+                 <normaloff>:/vrtbuilder/mActionExpandTree.svg</normaloff>:/vrtbuilder/mActionExpandTree.svg</iconset>
                </property>
                <property name="autoRaise">
                 <bool>true</bool>
@@ -582,7 +627,7 @@
                </property>
                <property name="icon">
                 <iconset resource="resources.qrc">
-                 <normaloff>:/vrtbuilder/mActionCollapseTree.png</normaloff>:/vrtbuilder/mActionCollapseTree.png</iconset>
+                 <normaloff>:/vrtbuilder/mActionCollapseTree.svg</normaloff>:/vrtbuilder/mActionCollapseTree.svg</iconset>
                </property>
                <property name="autoRaise">
                 <bool>true</bool>
@@ -599,7 +644,7 @@
                </property>
                <property name="icon">
                 <iconset resource="resources.qrc">
-                 <normaloff>:/vrtbuilder/mActionImportFromRegistry.png</normaloff>:/vrtbuilder/mActionImportFromRegistry.png</iconset>
+                 <normaloff>:/vrtbuilder/mActionImportFromRegistry.svg</normaloff>:/vrtbuilder/mActionImportFromRegistry.svg</iconset>
                </property>
                <property name="autoRaise">
                 <bool>true</bool>
@@ -616,7 +661,7 @@
                </property>
                <property name="icon">
                 <iconset resource="resources.qrc">
-                 <normaloff>:/vrtbuilder/mActionAddRasterLayer.png</normaloff>:/vrtbuilder/mActionAddRasterLayer.png</iconset>
+                 <normaloff>:/vrtbuilder/mActionAddRasterLayer.svg</normaloff>:/vrtbuilder/mActionAddRasterLayer.svg</iconset>
                </property>
                <property name="autoRaise">
                 <bool>true</bool>
@@ -636,7 +681,7 @@
                </property>
                <property name="icon">
                 <iconset resource="resources.qrc">
-                 <normaloff>:/vrtbuilder/mActionRemoveRasterLayer.png</normaloff>:/vrtbuilder/mActionRemoveRasterLayer.png</iconset>
+                 <normaloff>:/vrtbuilder/mActionRemoveRasterLayer.svg</normaloff>:/vrtbuilder/mActionRemoveRasterLayer.svg</iconset>
                </property>
                <property name="autoRaise">
                 <bool>true</bool>
@@ -681,9 +726,18 @@
           </attribute>
           <layout class="QVBoxLayout" name="verticalLayout_5">
            <property name="spacing">
-            <number>2</number>
+            <number>1</number>
            </property>
-           <property name="margin">
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
             <number>0</number>
            </property>
            <item>
@@ -790,7 +844,7 @@
                    </property>
                    <property name="icon">
                     <iconset resource="resources.qrc">
-                     <normaloff>:/vrtbuilder/mActionSelect.png</normaloff>:/vrtbuilder/mActionSelect.png</iconset>
+                     <normaloff>:/vrtbuilder/mActionSelect.svg</normaloff>:/vrtbuilder/mActionSelect.svg</iconset>
                    </property>
                    <property name="autoRaise">
                     <bool>false</bool>
@@ -810,7 +864,7 @@
                    </property>
                    <property name="icon">
                     <iconset resource="resources.qrc">
-                     <normaloff>:/vrtbuilder/mActionImportRaster.png</normaloff>:/vrtbuilder/mActionImportRaster.png</iconset>
+                     <normaloff>:/vrtbuilder/mActionImportRaster.svg</normaloff>:/vrtbuilder/mActionImportRaster.svg</iconset>
                    </property>
                    <property name="popupMode">
                     <enum>QToolButton::MenuButtonPopup</enum>
@@ -1001,7 +1055,7 @@
                    </property>
                    <property name="icon">
                     <iconset resource="resources.qrc">
-                     <normaloff>:/vrtbuilder/mActionImportRaster.png</normaloff>:/vrtbuilder/mActionImportRaster.png</iconset>
+                     <normaloff>:/vrtbuilder/mActionImportRaster.svg</normaloff>:/vrtbuilder/mActionImportRaster.svg</iconset>
                    </property>
                    <property name="popupMode">
                     <enum>QToolButton::MenuButtonPopup</enum>
@@ -1052,7 +1106,16 @@
                   <property name="spacing">
                    <number>2</number>
                   </property>
-                  <property name="margin">
+                  <property name="leftMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="bottomMargin">
                    <number>0</number>
                   </property>
                   <item>
@@ -1207,10 +1270,19 @@
           </attribute>
           <layout class="QVBoxLayout" name="verticalLayout_6">
            <property name="spacing">
-            <number>2</number>
+            <number>1</number>
            </property>
-           <property name="margin">
-            <number>2</number>
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
+            <number>0</number>
            </property>
            <item>
             <widget class="QTextBrowser" name="textBrowser">
@@ -1251,7 +1323,16 @@
       <enum>QFrame::Raised</enum>
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout_9">
-      <property name="margin">
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
        <number>0</number>
       </property>
       <item>
@@ -1281,7 +1362,7 @@
   <action name="actionSelectSpatialExtent">
    <property name="icon">
     <iconset resource="resources.qrc">
-     <normaloff>:/vrtbuilder/mActionSelect.png</normaloff>:/vrtbuilder/mActionSelect.png</iconset>
+     <normaloff>:/vrtbuilder/mActionSelect.svg</normaloff>:/vrtbuilder/mActionSelect.svg</iconset>
    </property>
    <property name="text">
     <string>Select Spatial Extent</string>
@@ -1292,7 +1373,7 @@
   </action>
   <action name="actionLoadVRT">
    <property name="icon">
-    <iconset resource="resources.qrc">
+    <iconset>
      <normaloff>:/vrtbuilder/mActionImportVirtualRaster.png</normaloff>:/vrtbuilder/mActionImportVirtualRaster.png</iconset>
    </property>
    <property name="text">

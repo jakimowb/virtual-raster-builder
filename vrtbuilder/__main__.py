@@ -29,6 +29,8 @@ class run():
     qgsApp = initQgisApplication()
     from vrtbuilder.widgets import VRTBuilderWidget
     W = VRTBuilderWidget(None)
+    W.addSourceFile(r'D:\Repositories\QGIS_Plugins\enmap-box\enmapboxtestdata\EnMAP_BerlinUrbanGradient.bsq')
+    W.addSourceFile(r'D:\Repositories\QGIS_Plugins\enmap-box\enmapboxtestdata\HighResolution_BerlinUrbanGradient.bsq')
     W.show()
 
     #close QGIS
