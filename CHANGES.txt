@@ -1,0 +1,4 @@
+
+
+2018-02-28:
+    converted code-base to PyQt5 and QGIS 3
