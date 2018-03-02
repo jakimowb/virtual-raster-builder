@@ -139,8 +139,8 @@ def updateMetadataTxt():
 
     lines = ['[general]']
     for k, line in md.items():
-        lines.append('{}={}\n'.format(k, line))
-    open(pathDst, 'w').writelines('\n'.join(lines))
+        lines.append('{}={}'.format(k, line))
+    open(pathDst, 'w', encoding='utf-8').writelines('\n'.join(lines))
     s = ""
 
 
@@ -275,7 +275,18 @@ def deploy():
         import shutil
 
         from os.path import expanduser
-        pathQGIS = os.path.join(expanduser("~"), *['.qgis2','python','plugins'])
+        #QGIS 2 pathQGIS = os.path.join(expanduser("~"), *['.qgis2','python','plugins'])
+
+        from vrtbuilder.utils import initQgisApplication
+        qgsApp = initQgisApplication()
+
+        import qgis.user
+
+        pathQGIS = qgis.user.userpythonhome
+        pathQGIS = pathQGIS.replace('python3', 'QGIS/QGIS3')
+        pathQGIS = os.path.join(pathQGIS, *['plugins'])
+
+
 
         assert os.path.isdir(pathQGIS)
         pathDst = os.path.join(pathQGIS, os.path.basename(dirPlugin))
@@ -293,9 +304,9 @@ if __name__ == '__main__':
     pathQrc = jp(DIR_UI,'resources.qrc')
 
 
-    if False:
+    if True:
         updateMetadataTxt()
-        updateHelpHTML()
+        #updateHelpHTML()
         #exit()
     if False:
         compile_rc_files(DIR_UI)

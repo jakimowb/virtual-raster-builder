@@ -21,12 +21,17 @@
  ***************************************************************************/
 """
 # noinspection PyPep8Naming
+
 def classFactory(iface):  # pylint: disable=invalid-name
     """Load SenseCarbon_TSV class from file sensecarbon_tsv.py.
 
     :param iface: A QGIS interface instance.
     :type iface: QgsInterface
     """
-    #
-    from vrtbuilderplugin import VRTBuilderPlugin
+    import os, sys, site
+    d = os.path.dirname(__file__)
+    if not d in sys.path:
+        sys.path.append(d)
+
+    from vrtbuilder.vrtbuilderplugin import VRTBuilderPlugin
     return VRTBuilderPlugin(iface)

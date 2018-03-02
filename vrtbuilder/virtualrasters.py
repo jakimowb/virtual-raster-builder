@@ -57,8 +57,6 @@ LUT_GDT_NAME = {gdal.GDT_Byte:'Byte',
 
 
 
-
-
 LUT_ResampleAlgs = OptionListModel()
 LUT_ResampleAlgs.addOption(Option(gdal.GRA_NearestNeighbour, 'nearest',
                                   tooltip='nearest neighbour resampling (default, fastest algorithm, worst interpolation quality).'))
@@ -380,9 +378,7 @@ class VRTRaster(QObject):
                 assert xy.width() > 0
                 assert xy.height() > 0
                 self.mResolution = QSizeF(xy)
-            else:
-                assert type(xy) in [str, unicode]
-                xy = str(xy)
+            elif isinstance(xy, str):
                 assert xy in ['average','highest','lowest']
                 self.mResolution = xy
 

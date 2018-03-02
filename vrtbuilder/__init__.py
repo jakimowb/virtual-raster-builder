@@ -45,6 +45,7 @@ German Aerospace Center (DLR) and granted by the Federal Ministry of
 Economic Affairs and Energy (BMWi, grant no. 50EE1529).
 """
 
+
 PATH_ICON = os.path.join(DIR_UI,'mActionNewVirtualLayer.png')
 #import vrtbuilder.ui.resources
 #vrtbuilder.ui.resources.qInitResources()

@@ -85,7 +85,7 @@ def initQgisApplication(pythonPlugins=None, PATH_QGIS=None, qgisDebug=False):
                 #search for the QGIS.app
                 import qgis, re
                 assert '.app' in qgis.__file__, 'Can not locate path of QGIS.app'
-                PATH_QGIS_APP = re.split('\.app[\/]', qgis.__file__)[0]+ '.app'
+                PATH_QGIS_APP = re.split(r'\.app[\/]', qgis.__file__)[0]+ '.app'
                 PATH_QGIS = os.path.join(PATH_QGIS_APP, *['Contents','MacOS'])
 
                 if not 'GDAL_DATA' in os.environ.keys():
@@ -158,14 +158,16 @@ def loadUIFormClass(pathUi, from_imports=False, resourceSuffix=''):
     RC_SUFFIX =  resourceSuffix
     assert os.path.exists(pathUi), '*.ui file does not exist: {}'.format(pathUi)
 
-    buffer = io.StringIO() #buffer to store modified XML
+
     if pathUi not in FORM_CLASSES.keys():
         #parse *.ui xml and replace *.h by qgis.gui
         doc = QDomDocument()
 
         #remove new-lines. this prevents uic.loadUiType(buffer, resource_suffix=RC_SUFFIX)
         #to mess up the *.ui xml
-        txt = ''.join(open(pathUi).readlines())
+        f = open(pathUi, 'r')
+        txt = ''.join(f.readlines())
+        f.close()
         doc.setContent(txt)
 
         # Replace *.h file references in <customwidget> with <class>Qgs...</class>, e.g.
@@ -191,6 +193,7 @@ def loadUIFormClass(pathUi, from_imports=False, resourceSuffix=''):
 
 
         #logger.debug('Load UI file: {}'.format(pathUi))
+        buffer = io.StringIO()  # buffer to store modified XML
         buffer.write(doc.toString())
         buffer.flush()
         buffer.seek(0)
@@ -211,6 +214,7 @@ def loadUIFormClass(pathUi, from_imports=False, resourceSuffix=''):
         except SyntaxError as ex:
             FORM_CLASS, _ = uic.loadUiType(pathUi, resource_suffix=RC_SUFFIX)
 
+        buffer.close()
         FORM_CLASSES[pathUi] = FORM_CLASS
 
         #remove temporary added directories from python path

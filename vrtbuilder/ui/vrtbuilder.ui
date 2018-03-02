@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>565</width>
+    <width>667</width>
     <height>593</height>
    </rect>
   </property>
@@ -555,10 +555,16 @@
       <layout class="QVBoxLayout" name="verticalLayout_2">
        <item>
         <widget class="QTabWidget" name="tabWidgetSettings">
+         <property name="autoFillBackground">
+          <bool>true</bool>
+         </property>
          <property name="currentIndex">
           <number>0</number>
          </property>
          <widget class="QWidget" name="tabSrcFiles">
+          <property name="autoFillBackground">
+           <bool>true</bool>
+          </property>
           <attribute name="title">
            <string>Source Files</string>
           </attribute>
@@ -721,6 +727,9 @@
           </layout>
          </widget>
          <widget class="QWidget" name="tabVRTSettings">
+          <property name="autoFillBackground">
+           <bool>true</bool>
+          </property>
           <attribute name="title">
            <string>Output</string>
           </attribute>
@@ -756,345 +765,12 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>342</width>
+                <width>406</width>
                 <height>541</height>
                </rect>
               </property>
               <layout class="QGridLayout" name="gridLayout_2">
-               <item row="17" column="1">
-                <widget class="QComboBox" name="cbResampling">
-                 <item>
-                  <property name="text">
-                   <string>nearest</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>bilinear</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>cubic</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>cubicspline</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>lanczos</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>average</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>mode</string>
-                  </property>
-                 </item>
-                </widget>
-               </item>
-               <item row="0" column="0">
-                <widget class="QLabel" name="label_2">
-                 <property name="text">
-                  <string>Path</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="7" column="1">
-                <layout class="QHBoxLayout" name="horizontalLayout_4">
-                 <property name="spacing">
-                  <number>2</number>
-                 </property>
-                 <property name="bottomMargin">
-                  <number>0</number>
-                 </property>
-                 <item>
-                  <widget class="QCheckBox" name="cbBoundsFromSourceFiles">
-                   <property name="enabled">
-                    <bool>true</bool>
-                   </property>
-                   <property name="toolTip">
-                    <string>Automatic extent from source fule</string>
-                   </property>
-                   <property name="text">
-                    <string>automatic</string>
-                   </property>
-                   <property name="checked">
-                    <bool>true</bool>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QToolButton" name="btnBoundsFromMap">
-                   <property name="enabled">
-                    <bool>false</bool>
-                   </property>
-                   <property name="toolTip">
-                    <string>Select bounds from map canvas</string>
-                   </property>
-                   <property name="text">
-                    <string>from map</string>
-                   </property>
-                   <property name="icon">
-                    <iconset resource="resources.qrc">
-                     <normaloff>:/vrtbuilder/mActionSelect.svg</normaloff>:/vrtbuilder/mActionSelect.svg</iconset>
-                   </property>
-                   <property name="autoRaise">
-                    <bool>false</bool>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QToolButton" name="btnBoundsFromFile">
-                   <property name="enabled">
-                    <bool>false</bool>
-                   </property>
-                   <property name="toolTip">
-                    <string>Select bounds from spatial file or layer</string>
-                   </property>
-                   <property name="text">
-                    <string>from file</string>
-                   </property>
-                   <property name="icon">
-                    <iconset resource="resources.qrc">
-                     <normaloff>:/vrtbuilder/mActionImportRaster.svg</normaloff>:/vrtbuilder/mActionImportRaster.svg</iconset>
-                   </property>
-                   <property name="popupMode">
-                    <enum>QToolButton::MenuButtonPopup</enum>
-                   </property>
-                   <property name="autoRaise">
-                    <bool>false</bool>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <spacer name="horizontalSpacer_3">
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>40</width>
-                     <height>20</height>
-                    </size>
-                   </property>
-                  </spacer>
-                 </item>
-                </layout>
-               </item>
-               <item row="3" column="0">
-                <widget class="QLabel" name="label_6">
-                 <property name="text">
-                  <string>No data</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="2" column="1">
-                <widget class="QCheckBox" name="cbAddToMap">
-                 <property name="text">
-                  <string>open after creation</string>
-                 </property>
-                 <property name="checked">
-                  <bool>true</bool>
-                 </property>
-                </widget>
-               </item>
-               <item row="17" column="0">
-                <widget class="QLabel" name="label_7">
-                 <property name="text">
-                  <string>Resampling</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="0" column="1">
-                <layout class="QHBoxLayout" name="horizontalLayout_5">
-                 <property name="spacing">
-                  <number>1</number>
-                 </property>
-                 <property name="topMargin">
-                  <number>0</number>
-                 </property>
-                 <item>
-                  <widget class="QLineEdit" name="tbOutputPath">
-                   <property name="text">
-                    <string>output.vrt</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QToolButton" name="btnSelectVRTPath">
-                   <property name="maximumSize">
-                    <size>
-                     <width>23</width>
-                     <height>16777215</height>
-                    </size>
-                   </property>
-                   <property name="text">
-                    <string>...</string>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-               <item row="4" column="0">
-                <widget class="QLabel" name="label_8">
-                 <property name="text">
-                  <string>CRS</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="18" column="0">
-                <spacer name="verticalSpacer">
-                 <property name="orientation">
-                  <enum>Qt::Vertical</enum>
-                 </property>
-                 <property name="sizeHint" stdset="0">
-                  <size>
-                   <width>20</width>
-                   <height>40</height>
-                  </size>
-                 </property>
-                </spacer>
-               </item>
-               <item row="4" column="1">
-                <layout class="QHBoxLayout" name="horizontalLayout_6">
-                 <property name="spacing">
-                  <number>2</number>
-                 </property>
-                 <property name="topMargin">
-                  <number>0</number>
-                 </property>
-                 <item>
-                  <widget class="QCheckBox" name="cbCRSFromInputData">
-                   <property name="toolTip">
-                    <string>Use CRS of first source file.</string>
-                   </property>
-                   <property name="text">
-                    <string>as source files</string>
-                   </property>
-                   <property name="checked">
-                    <bool>true</bool>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <spacer name="horizontalSpacer_4">
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>40</width>
-                     <height>20</height>
-                    </size>
-                   </property>
-                  </spacer>
-                 </item>
-                </layout>
-               </item>
-               <item row="7" column="0">
-                <widget class="QLabel" name="label_17">
-                 <property name="text">
-                  <string>Bounds</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="3" column="1">
-                <widget class="QLineEdit" name="tbNoData">
-                 <property name="readOnly">
-                  <bool>false</bool>
-                 </property>
-                </widget>
-               </item>
-               <item row="9" column="1">
-                <layout class="QHBoxLayout" name="horizontalLayout_3">
-                 <property name="spacing">
-                  <number>2</number>
-                 </property>
-                 <property name="topMargin">
-                  <number>0</number>
-                 </property>
-                 <item>
-                  <widget class="QComboBox" name="cbResolution">
-                   <item>
-                    <property name="text">
-                     <string>highest</string>
-                    </property>
-                   </item>
-                   <item>
-                    <property name="text">
-                     <string>lowest</string>
-                    </property>
-                   </item>
-                   <item>
-                    <property name="text">
-                     <string>average</string>
-                    </property>
-                   </item>
-                   <item>
-                    <property name="text">
-                     <string>user</string>
-                    </property>
-                   </item>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QToolButton" name="btnResFromFile">
-                   <property name="toolTip">
-                    <string>Select resolution from other raster image</string>
-                   </property>
-                   <property name="text">
-                    <string>...</string>
-                   </property>
-                   <property name="icon">
-                    <iconset resource="resources.qrc">
-                     <normaloff>:/vrtbuilder/mActionImportRaster.svg</normaloff>:/vrtbuilder/mActionImportRaster.svg</iconset>
-                   </property>
-                   <property name="popupMode">
-                    <enum>QToolButton::MenuButtonPopup</enum>
-                   </property>
-                   <property name="autoRaise">
-                    <bool>false</bool>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <spacer name="horizontalSpacer_6">
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>40</width>
-                     <height>20</height>
-                    </size>
-                   </property>
-                  </spacer>
-                 </item>
-                </layout>
-               </item>
-               <item row="9" column="0">
-                <widget class="QLabel" name="label_3">
-                 <property name="text">
-                  <string>Resolution</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="6" column="1">
-                <widget class="QgsProjectionSelectionWidget" name="mQgsProjectionSelectionWidget">
-                 <property name="enabled">
-                  <bool>false</bool>
-                 </property>
-                </widget>
-               </item>
-               <item row="16" column="1">
+               <item row="16" column="2">
                 <widget class="QFrame" name="frameUserResolution">
                  <property name="frameShape">
                   <enum>QFrame::NoFrame</enum>
@@ -1186,7 +862,14 @@
                  </layout>
                 </widget>
                </item>
-               <item row="8" column="1">
+               <item row="6" column="2">
+                <widget class="QgsProjectionSelectionWidget" name="mQgsProjectionSelectionWidget">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
+                </widget>
+               </item>
+               <item row="8" column="2">
                 <widget class="QFrame" name="frameExtent">
                  <property name="enabled">
                   <bool>false</bool>
@@ -1251,10 +934,319 @@
                  </layout>
                 </widget>
                </item>
-               <item row="21" column="1">
+               <item row="17" column="2">
+                <widget class="QComboBox" name="cbResampling">
+                 <item>
+                  <property name="text">
+                   <string>nearest</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>bilinear</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>cubic</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>cubicspline</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>lanczos</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>average</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>mode</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_2">
+                 <property name="text">
+                  <string>Path</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="7" column="2">
+                <layout class="QHBoxLayout" name="horizontalLayout_4">
+                 <property name="spacing">
+                  <number>2</number>
+                 </property>
+                 <property name="bottomMargin">
+                  <number>0</number>
+                 </property>
+                 <item>
+                  <widget class="QCheckBox" name="cbBoundsFromSourceFiles">
+                   <property name="enabled">
+                    <bool>true</bool>
+                   </property>
+                   <property name="toolTip">
+                    <string>Automatic extent from source fule</string>
+                   </property>
+                   <property name="text">
+                    <string>automatic</string>
+                   </property>
+                   <property name="checked">
+                    <bool>true</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QToolButton" name="btnBoundsFromMap">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
+                   <property name="toolTip">
+                    <string>Select bounds from map canvas</string>
+                   </property>
+                   <property name="text">
+                    <string>from map</string>
+                   </property>
+                   <property name="icon">
+                    <iconset resource="resources.qrc">
+                     <normaloff>:/vrtbuilder/mActionSelect.svg</normaloff>:/vrtbuilder/mActionSelect.svg</iconset>
+                   </property>
+                   <property name="autoRaise">
+                    <bool>false</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QToolButton" name="btnBoundsFromFile">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
+                   <property name="toolTip">
+                    <string>Select bounds from spatial file or layer</string>
+                   </property>
+                   <property name="text">
+                    <string>from file</string>
+                   </property>
+                   <property name="icon">
+                    <iconset resource="resources.qrc">
+                     <normaloff>:/vrtbuilder/mActionImportRaster.svg</normaloff>:/vrtbuilder/mActionImportRaster.svg</iconset>
+                   </property>
+                   <property name="popupMode">
+                    <enum>QToolButton::MenuButtonPopup</enum>
+                   </property>
+                   <property name="autoRaise">
+                    <bool>false</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer name="horizontalSpacer_3">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                </layout>
+               </item>
+               <item row="3" column="0">
+                <widget class="QLabel" name="label_6">
+                 <property name="text">
+                  <string>No data</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="2">
+                <widget class="QCheckBox" name="cbAddToMap">
+                 <property name="text">
+                  <string>open after creation</string>
+                 </property>
+                 <property name="checked">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item row="21" column="2">
                 <widget class="QDialogButtonBox" name="buttonBox">
                  <property name="standardButtons">
                   <set>QDialogButtonBox::Cancel|QDialogButtonBox::Save</set>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="2">
+                <layout class="QHBoxLayout" name="horizontalLayout_6">
+                 <property name="spacing">
+                  <number>2</number>
+                 </property>
+                 <property name="topMargin">
+                  <number>0</number>
+                 </property>
+                 <item>
+                  <widget class="QCheckBox" name="cbCRSFromInputData">
+                   <property name="toolTip">
+                    <string>Use CRS of first source file.</string>
+                   </property>
+                   <property name="text">
+                    <string>as source files</string>
+                   </property>
+                   <property name="checked">
+                    <bool>true</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer name="horizontalSpacer_4">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                </layout>
+               </item>
+               <item row="18" column="0">
+                <spacer name="verticalSpacer">
+                 <property name="orientation">
+                  <enum>Qt::Vertical</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>20</width>
+                   <height>40</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="9" column="2">
+                <layout class="QHBoxLayout" name="horizontalLayout_3">
+                 <property name="spacing">
+                  <number>2</number>
+                 </property>
+                 <property name="topMargin">
+                  <number>0</number>
+                 </property>
+                 <item>
+                  <widget class="QComboBox" name="cbResolution">
+                   <item>
+                    <property name="text">
+                     <string>highest</string>
+                    </property>
+                   </item>
+                   <item>
+                    <property name="text">
+                     <string>lowest</string>
+                    </property>
+                   </item>
+                   <item>
+                    <property name="text">
+                     <string>average</string>
+                    </property>
+                   </item>
+                   <item>
+                    <property name="text">
+                     <string>user</string>
+                    </property>
+                   </item>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QToolButton" name="btnResFromFile">
+                   <property name="toolTip">
+                    <string>Select resolution from other raster image</string>
+                   </property>
+                   <property name="text">
+                    <string>...</string>
+                   </property>
+                   <property name="icon">
+                    <iconset resource="resources.qrc">
+                     <normaloff>:/vrtbuilder/mActionImportRaster.svg</normaloff>:/vrtbuilder/mActionImportRaster.svg</iconset>
+                   </property>
+                   <property name="popupMode">
+                    <enum>QToolButton::MenuButtonPopup</enum>
+                   </property>
+                   <property name="autoRaise">
+                    <bool>false</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer name="horizontalSpacer_6">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                </layout>
+               </item>
+               <item row="9" column="0">
+                <widget class="QLabel" name="label_3">
+                 <property name="text">
+                  <string>Resolution</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="2">
+                <widget class="QLineEdit" name="tbNoData">
+                 <property name="readOnly">
+                  <bool>false</bool>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="0">
+                <widget class="QLabel" name="label_8">
+                 <property name="text">
+                  <string>CRS</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="7" column="0">
+                <widget class="QLabel" name="label_17">
+                 <property name="text">
+                  <string>Bounds</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="17" column="0">
+                <widget class="QLabel" name="label_7">
+                 <property name="text">
+                  <string>Resampling</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="2">
+                <widget class="QgsFileWidget" name="mQgsFileWidget">
+                 <property name="fileWidgetButtonVisible">
+                  <bool>true</bool>
+                 </property>
+                 <property name="useLink">
+                  <bool>false</bool>
+                 </property>
+                 <property name="defaultRoot">
+                  <string/>
                  </property>
                 </widget>
                </item>
@@ -1265,6 +1257,12 @@
           </layout>
          </widget>
          <widget class="QWidget" name="tabHelp">
+          <property name="enabled">
+           <bool>true</bool>
+          </property>
+          <property name="autoFillBackground">
+           <bool>true</bool>
+          </property>
           <attribute name="title">
            <string>Help</string>
           </attribute>
@@ -1285,17 +1283,14 @@
             <number>0</number>
            </property>
            <item>
-            <widget class="QTextBrowser" name="textBrowser">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-               <horstretch>0</horstretch>
-               <verstretch>2</verstretch>
-              </sizepolicy>
+            <widget class="QWebView" name="webView" native="true">
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>250</height>
+              </size>
              </property>
-             <property name="openExternalLinks">
-              <bool>true</bool>
-             </property>
-             <property name="openLinks">
+             <property name="autoFillBackground">
               <bool>true</bool>
              </property>
             </widget>
@@ -1373,8 +1368,8 @@
   </action>
   <action name="actionLoadVRT">
    <property name="icon">
-    <iconset>
-     <normaloff>:/vrtbuilder/mActionImportVirtualRaster.png</normaloff>:/vrtbuilder/mActionImportVirtualRaster.png</iconset>
+    <iconset resource="resources.qrc">
+     <normaloff>:/vrtbuilder/mActionImportVirtualRaster.svg</normaloff>:/vrtbuilder/mActionImportVirtualRaster.svg</iconset>
    </property>
    <property name="text">
     <string>LoadVRT</string>
@@ -1389,6 +1384,11 @@
    <container>1</container>
   </customwidget>
   <customwidget>
+   <class>QgsFileWidget</class>
+   <extends>QWidget</extends>
+   <header>qgsfilewidget.h</header>
+  </customwidget>
+  <customwidget>
    <class>QgsProjectionSelectionWidget</class>
    <extends>QWidget</extends>
    <header>qgsprojectionselectionwidget.h</header>
@@ -1398,6 +1398,12 @@
    <class>VRTRasterPreviewMapCanvas</class>
    <extends>QGraphicsView</extends>
    <header>vrtbuilder.widgets</header>
+  </customwidget>
+  <customwidget>
+   <class>QWebView</class>
+   <extends>QWidget</extends>
+   <header>qwebview.h</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources>

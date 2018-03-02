@@ -1001,6 +1001,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         jp = os.path.join
         dn = os.path.dirname
 
+        #self.tabWidgetSettings.removeTab(2)
         thisDir = dn(__file__)
         pathHTML = [jp(thisDir, '../doc/build/html/index.html'),
                     jp(thisDir, '../help/index.html')]
@@ -1010,14 +1011,10 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
             self.tabHelp.setVisible(True)
 
             pathHTML = pathHTML[0]
-            pathHTML = os.path.normpath(pathHTML)
-            import urllib.request
-            url = urllib.request.pathname2url(pathHTML)
-            url = QUrl(url)
+            print(pathHTML)
+            self.webView.load(QUrl.fromLocalFile(QFileInfo(pathHTML).absoluteFilePath()))
 
-            self.textBrowser.setSearchPaths([dn(pathHTML)])
-            self.textBrowser.setSource(url)
-            s = ""
+
 
         else:
             self.tabHelp.setVisible(False)
@@ -1045,18 +1042,12 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
 
         self.tbNoData.setValidator(QDoubleValidator())
 
-        self.tbOutputPath.textChanged.connect(self.onOutputPathChanged)
-
         filter = 'GDAL Virtual Raster (*.vrt);;GeoTIFF (*.tiff *.tif);;ENVI (*.bsq *.bil *.bip)'
-        self.btnSelectVRTPath.clicked.connect(lambda:
-                                              self.tbOutputPath.setText(
-                                                  fileDialogResult2Files(
-                                                  QFileDialog.getSaveFileName(self,
-                                                                              directory=self.tbOutputPath.text(),
-                                                                              caption='Select output image',
-                                                                              filter=filter)
-                                                  )
-                                              ))
+
+        self.mQgsFileWidget.setFilter(filter)
+        self.mQgsFileWidget.setStorageMode(QgsFileWidget.SaveFile)
+        self.mQgsFileWidget.fileChanged.connect(self.onOutputPathChanged)
+
         self.buttonBox.button(QDialogButtonBox.Save).clicked.connect(self.saveFile)
         self.vrtRaster = VRTRaster()
         self.vrtRasterLayer = VRTRasterVectorLayer(self.vrtRaster)
@@ -1121,7 +1112,6 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
                                            ))
 
         # resolution settings
-        self.cbResolution.currentIndexChanged.connect(self.onResolutionChanged)
 
         for tb in [self.tbResolutionX, self.tbResolutionY]:
             tb.setValidator(QDoubleValidator(0.000000000000001, 999999999999999999999, 5))
@@ -1138,7 +1128,6 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
 
         self.cbResampling.clear()
         self.cbResampling.setModel(LUT_ResampleAlgs)
-
         self.cbResampling.currentIndexChanged.connect(lambda:
                                                       self.vrtRaster.setResamplingAlg(
                                                           self.cbResampling.currentData().mValue
@@ -1202,7 +1191,8 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
                                         )
                                         )
 
-
+        self.cbResolution.currentIndexChanged.connect(self.onResolutionChanged)
+        self.onResolutionChanged()
 
         self.mMapTools = {}
         self.initMapTools(self.previewMap)
@@ -1357,14 +1347,14 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
 
     def onResolutionChanged(self, *args):
 
-        mode = str(self.cbResolution.currentText())
+        mode = self.cbResolution.currentText()
         isUserMode = mode == 'user'
         self.frameUserResolution.setEnabled(isUserMode)
         self.btnResFromFile.setEnabled(isUserMode)
 
         if isUserMode:
-            x = str(self.tbResolutionX.text())
-            y = str(self.tbResolutionY.text())
+            x = self.tbResolutionX.text()
+            y = self.tbResolutionY.text()
             if len(x) > 0 and len(y) > 0:
                 x = float(x)
                 y = float(y)
@@ -1386,7 +1376,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         from vrtbuilder.utils import settings
         settings = settings()
         assert isinstance(settings, QSettings)
-        settings.setValue('PATH_SAVE', self.tbOutputPath.text())
+        settings.setValue('PATH_SAVE', self.mQgsFileWidget.filePath())
         settings.setValue('CRS_FROM_INPUT_DATA', self.cbCRSFromInputData.isChecked())
         settings.setValue('AUTOMATIC_BOUNDS', self.cbBoundsFromSourceFiles.isChecked())
 
@@ -1395,7 +1385,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         settings = settings()
         assert isinstance(settings, QSettings)
         from os.path import expanduser
-        self.tbOutputPath.setText(settings.value('PATH_SAVE', os.path.join(expanduser('~'), 'output.vrt')))
+        self.mQgsFileWidget.setFilePath(settings.value('PATH_SAVE', os.path.join(expanduser('~'), 'output.vrt')))
         self.cbCRSFromInputData.setChecked(bool(settings.value('CRS_FROM_INPUT_DATA', True)))
         self.cbBoundsFromSourceFiles.setChecked(bool(settings.value('AUTOMATIC_BOUNDS', True)))
         s = ""
@@ -1459,7 +1449,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
 
         dsDst = None
 
-        path = self.tbOutputPath.text()
+        path = self.mQgsFileWidget.filePath()
         ext = os.path.splitext(path)[-1]
 
         saveBinary = ext != '.vrt'

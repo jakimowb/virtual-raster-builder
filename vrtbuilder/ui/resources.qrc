@@ -25,4 +25,5 @@
     <file>logo_gfz.png</file>
     <file>logo_hu-berlin.png</file>
   </qresource>
+  <qresource prefix="newPrefix"/>
 </RCC>

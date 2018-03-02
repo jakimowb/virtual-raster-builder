@@ -20,43 +20,44 @@
 """
 # noinspection PyPep8Naming
 
-import os, site, logging
-logger = logging.getLogger(__name__)
+import os, site
 from qgis.gui import *
 from qgis.core import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 
 
-
-class VRTBuilderPlugin:
+class VRTBuilderPlugin(object):
 
     def __init__(self, iface):
         self.iface = iface
+        assert isinstance(iface, QgisInterface)
         self.vrtBuilder = None
+        """
         import console.console as CONSOLE
         if CONSOLE._console is None:
             CONSOLE._console = CONSOLE.PythonConsole(iface.mainWindow())
             QTimer.singleShot(0, CONSOLE._console.activate)
+        """
 
     def initGui(self):
-        self.toolbarActions = []
 
         DIR_REPO = os.path.dirname(__file__)
         site.addsitedir(DIR_REPO)
 
         # init main UI
         import vrtbuilder
+        from vrtbuilder.ui import resources
+        resources.qInitResources()
+
         from vrtbuilder import TITLE, PATH_ICON
 
-        icon = QIcon(PATH_ICON)
-        action = QAction(icon, TITLE, self.iface)
-        action.triggered.connect(self.run)
-        self.toolbarActions.append(action)
-
-
-        for action in self.toolbarActions:
-            self.iface.addToolBarIcon(action)
+        icon = QIcon(':/vrtbuilder/mActionNewVirtualLayer.svg')
+        self.action = QAction(icon, TITLE, self.iface)
+        self.action.triggered.connect(self.run)
+        self.iface.addToolBarIcon(self.action)
+        #self.iface.addRasterToolBarIcon(self.action)
 
     def run(self):
         from vrtbuilder.widgets import VRTBuilderWidget
@@ -70,16 +71,7 @@ class VRTBuilderPlugin:
         self.vrtBuilder.show()
 
     def unload(self):
-        from vrtbuilder.widgets import VRTBuilderWidget
 
-        #print('Unload plugin')
-        for action in self.toolbarActions:
-            self.iface.removeToolBarIcon(action)
+        self.iface.removeToolBarIcon(self.action)
+        #self.iface.removeRasterToolBarIcon(self.action)
 
-        if isinstance(self.vrtBuilder, VRTBuilderWidget):
-            self.vrtBuilder.close()
-            self.vrtBuilder = None
-
-
-    def tr(self, message):
-        return QCoreApplication.translate('TimeSeriesViewerPlugin', message)
