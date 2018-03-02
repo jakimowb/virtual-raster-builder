@@ -4,9 +4,19 @@ description=A QGIS Plugin to create GDAL Virtual Raster (VRT) files by drag and 
 version=0.3
 qgisMinimumVersion=3.0
 author=Benjamin Jakimow, Geomatics Lab, Humboldt-Universität zu Berlin
-about=The VRT Builder is a plugin to create GDAL Virtual Raster (VRT) files by drag and drop.  It helps to create new images by stacking or mosaicing of source image bands, as well as to  describe band- and spatial subsets.   The VRT Builder is developed at Geographic Institute of Humboldt-Universität zu Berlin within the EnMAP-Box  project under contract of the German Research Centre for Geosciences (GFZ).   The EnMAP-Box project is part of the EnMAP Core Science Team activities (www.enmap.org), funded by the  German Aerospace Center (DLR) and granted by the Federal Ministry of  Economic Affairs and Energy (BMWi, grant no. 50EE1529).
+about=
+	The VRT Builder is a plugin to create GDAL Virtual Raster (VRT) files by drag and drop. 
+	It helps to create new images by stacking or mosaicing of source image bands, as well as to 
+	describe band- and spatial subsets. 
+	
+	The VRT Builder is developed at Geographic Institute of Humboldt-Universität zu Berlin within the EnMAP-Box 
+	project under contract of the German Research Centre for Geosciences (GFZ). 
+	
+	The EnMAP-Box project is part of the EnMAP Core Science Team activities (www.enmap.org), funded by the 
+	German Aerospace Center (DLR) and granted by the Federal Ministry of 
+	Economic Affairs and Energy (BMWi, grant no. 50EE1529).
 email=benjamin.jakimow@geo.hu-berlin.de
-icon=vrtbuilder/ui/mActionNewVirtualLayer.png
+icon=vrtbuilder/icon.png
 homepage=https://bitbucket.org/jakimowb/virtual-raster-builder
 tracker=https://bitbucket.org/jakimowb/virtual-raster-builder/issues
 repository=https://bitbucket.org/jakimowb/virtual-raster-builder
@@ -14,3 +24,7 @@ experimental=False
 deprecated=False
 tags=remote sensing, raster
 category=Raster
+changelog=2018-03-02:
+    * Code-base converted to PyQt5 and QGIS 3
+    * Small fixes of smaller UI response issues
+    * Sphinx - based documentation, documentation is also shown in the "help" tab

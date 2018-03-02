@@ -76,11 +76,11 @@ Workflow
 
 4. Save the new file as VRT. In case of output formats other than VRT, e.g. GeoTIFF,
 the VRT is created in a temporary location first and the binary file
-afterwards using [gdal.Translate](http://gdal.org/python/osgeo.gdal-module.html#TranslateOptions)
+afterwards using `gdal.Translate <http://gdal.org/python/osgeo.gdal-module.html#TranslateOptions>`_.
 
 Licence and Use
 ---------------
 
-The Virtual Raster Builder is licenced under the [GPL-3 Licence](https://www.gnu.org/licenses/gpl-3.0.html).
+The Virtual Raster Builder is licenced under the `GPL-3 Licence <https://www.gnu.org/licenses/gpl-3.0.html>`_.
 
 

@@ -108,6 +108,7 @@ def updateMetadataTxt():
     #see http://docs.qgis.org/testing/en/docs/pyqgis_developer_cookbook/plugins.html#plugin-metadata
     #for required & optional meta tags
     pathDst = jp(DIR_ROOT, 'metadata.txt')
+    pathChanges = jp(DIR_ROOT, 'CHANGES.txt' )
     assert os.path.exists(pathDst)
 
     import collections
@@ -117,24 +118,33 @@ def updateMetadataTxt():
         if len(parts) >= 2:
             md[parts[0]] = '='.join(parts[1:])
 
+
+
+
+
     #update/set new metadata
     import vrtbuilder
     md['name'] = vrtbuilder.TITLE
     md['qgisMinimumVersion'] = "3.0"
     #md['qgisMaximumVersion'] =
     md['description'] = vrtbuilder.DESCRIPTION.strip()
-    md['about'] = vrtbuilder.ABOUT.replace('\n',' ').strip()
+    md['about'] = '\n\t'.join(vrtbuilder.ABOUT.splitlines())
     md['version'] = vrtbuilder.VERSION.strip()
     md['author'] = "Benjamin Jakimow, Geomatics Lab, Humboldt-Universität zu Berlin"
     md['email'] = "benjamin.jakimow@geo.hu-berlin.de"
-    #md['changelog'] =
+
+    f = open(pathChanges)
+    lines = f.readlines()
+    f.close()
+
+    md['changelog'] = ''.join(lines)
     md['experimental'] = "False"
     md['deprecated'] = "False"
     md['tags'] = "remote sensing, raster"
     md['homepage'] = vrtbuilder.WEBSITE
     md['repository'] = vrtbuilder.WEBSITE
     md['tracker'] = vrtbuilder.WEBSITE+'/issues'
-    md['icon'] = 'vrtbuilder/ui/mActionNewVirtualLayer.png'
+    md['icon'] = 'vrtbuilder/icon.png'
     md['category'] = 'Raster'
 
     lines = ['[general]']
@@ -142,41 +152,6 @@ def updateMetadataTxt():
         lines.append('{}={}'.format(k, line))
     open(pathDst, 'w', encoding='utf-8').writelines('\n'.join(lines))
     s = ""
-
-
-def updateHelpHTML():
-    import markdown, urllib
-    import vrtbuilder
-    from vrtbuilder import DIR_ROOT
-    """
-    Keyword arguments:
-
-    * input: a file name or readable object.
-    * output: a file name or writable object.
-    * encoding: Encoding of input and output.
-    * Any arguments accepted by the Markdown class.
-    """
-
-    markdownExtension = [
-        'markdown.extensions.toc',
-        'markdown.extensions.tables',
-        'markdown.extensions.extra'
-    ]
-
-    def readUrlTxt(url):
-        req = urllib.urlopen(url)
-        enc = req.headers['content-type'].split('charset=')[-1]
-        txt = req.read()
-        req.close()
-        if enc == 'text/plain':
-            return unicode(txt)
-        return unicode(txt, enc)
-    pathSrc = os.path.join(DIR_ROOT, *['vrtbuilder', 'help.md'])
-    pathDst = jp(os.path.dirname(vrtbuilder.__file__), 'help.html')
-    markdown.markdownFromFile(input=pathSrc,
-                              extensions=markdownExtension,
-                              output=pathDst, output_format='html5')
-
 
 def make_pb_tool_cfg():
     pathPBToolCgf = r''
