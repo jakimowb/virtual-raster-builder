@@ -57,20 +57,25 @@ LUT_GDT_NAME = {gdal.GDT_Byte:'Byte',
 
 
 
-LUT_ResampleAlgs = OptionListModel()
-LUT_ResampleAlgs.addOption(Option(gdal.GRA_NearestNeighbour, 'nearest',
-                                  tooltip='nearest neighbour resampling (default, fastest algorithm, worst interpolation quality).'))
-LUT_ResampleAlgs.addOption(Option(gdal.GRA_Bilinear, 'bilinear', tooltip='bilinear resampling.'))
-LUT_ResampleAlgs.addOption(Option(gdal.GRA_Lanczos, 'lanczos', tooltip='lanczos windowed sinc resampling.'))
-LUT_ResampleAlgs.addOption(Option(gdal.GRA_Average, 'average', tooltip='average resampling, computes the average of all non-NODATA contributing pixels.'))
-LUT_ResampleAlgs.addOption(Option(gdal.GRA_Cubic, 'cubic', tooltip='cubic resampling.'))
-LUT_ResampleAlgs.addOption(Option(gdal.GRA_CubicSpline, 'cubic_spline', tooltip='cubic spline resampling.'))
-LUT_ResampleAlgs.addOption(Option(gdal.GRA_Max, 'max', tooltip='maximum resampling, selects the maximum value from all non-NODATA contributing pixels'))
-LUT_ResampleAlgs.addOption(Option(gdal.GRA_Min, 'min', tooltip='minimum resampling, selects the minimum value from all non-NODATA contributing pixels.'))
-LUT_ResampleAlgs.addOption(Option(gdal.GRA_Med, 'med', tooltip='median resampling, selects the median value of all non-NODATA contributing pixels.'))
-LUT_ResampleAlgs.addOption(Option(gdal.GRA_Mode, 'mode', tooltip='mode resampling, selects the value which appears most often of all the sampled points'))
-LUT_ResampleAlgs.addOption(Option(gdal.GRA_Q1, 'Q1', tooltip='first quartile resampling, selects the first quartile value of all non-NODATA contributing pixels. '))
-LUT_ResampleAlgs.addOption(Option(gdal.GRA_Q3, 'Q2', tooltip='third quartile resampling, selects the third quartile value of all non-NODATA contributing pixels'))
+RESAMPLE_ALGS = OptionListModel()
+RESAMPLE_ALGS.addOption(Option(gdal.GRA_NearestNeighbour, 'nearest',
+                               tooltip='nearest neighbour resampling (default, fastest algorithm, worst interpolation quality).'))
+RESAMPLE_ALGS.addOption(Option(gdal.GRA_Bilinear, 'bilinear', tooltip='bilinear resampling.'))
+RESAMPLE_ALGS.addOption(Option(gdal.GRA_Lanczos, 'lanczos', tooltip='lanczos windowed sinc resampling.'))
+RESAMPLE_ALGS.addOption(Option(gdal.GRA_Average, 'average', tooltip='average resampling, computes the average of all non-NODATA contributing pixels.'))
+RESAMPLE_ALGS.addOption(Option(gdal.GRA_Cubic, 'cubic', tooltip='cubic resampling.'))
+RESAMPLE_ALGS.addOption(Option(gdal.GRA_CubicSpline, 'cubic_spline', tooltip='cubic spline resampling.'))
+RESAMPLE_ALGS.addOption(Option(gdal.GRA_Mode, 'mode', tooltip='mode resampling, selects the value which appears most often of all the sampled points'))
+
+if int(gdal.VersionInfo()) >= 2020300:
+    #respect that older GDAL version do not have python binding to GRA_Max, GRA_Min, GRA_Med, GRA_Q1 and GRA_Q3
+    #see https://trac.osgeo.org/gdal/wiki/Release/2.2.3-News
+    #https://trac.osgeo.org/gdal/ticket/7153
+    RESAMPLE_ALGS.addOption(Option(gdal.GRA_Max, 'max', tooltip='maximum resampling, selects the maximum value from all non-NODATA contributing pixels'))
+    RESAMPLE_ALGS.addOption(Option(gdal.GRA_Min, 'min', tooltip='minimum resampling, selects the minimum value from all non-NODATA contributing pixels.'))
+    RESAMPLE_ALGS.addOption(Option(gdal.GRA_Med, 'med', tooltip='median resampling, selects the median value of all non-NODATA contributing pixels.'))
+    RESAMPLE_ALGS.addOption(Option(gdal.GRA_Q1, 'Q1', tooltip='first quartile resampling, selects the first quartile value of all non-NODATA contributing pixels. '))
+    RESAMPLE_ALGS.addOption(Option(gdal.GRA_Q3, 'Q2', tooltip='third quartile resampling, selects the third quartile value of all non-NODATA contributing pixels'))
 
 def px2geo(px, gt):
     #see http://www.gdal.org/gdal_datamodel.html
@@ -311,8 +316,8 @@ class VRTRaster(QObject):
         """
         last = self.mResamplingAlg
 
-        possibleNames = LUT_ResampleAlgs.optionNames()
-        possibleValues = LUT_ResampleAlgs.optionValues()
+        possibleNames = RESAMPLE_ALGS.optionNames()
+        possibleValues = RESAMPLE_ALGS.optionValues()
 
         if value is None:
             self.mResamplingAlg = gdal.GRA_NearestNeighbour
@@ -334,9 +339,9 @@ class VRTRaster(QObject):
         :return:  gdal.GRA* constant or descriptive string.
         """
         if asString:
-            i = LUT_ResampleAlgs.optionValues().index(self.mResamplingAlg)
+            i = RESAMPLE_ALGS.optionValues().index(self.mResamplingAlg)
 
-            return LUT_ResampleAlgs.optionNames()[i]
+            return RESAMPLE_ALGS.optionNames()[i]
         else:
             return self.mResamplingAlg
 

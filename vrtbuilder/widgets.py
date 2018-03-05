@@ -29,7 +29,7 @@ from PyQt5.QtGui import *
 from osgeo import gdal, osr, gdalconst as gc
 
 from vrtbuilder.models import TreeModel, TreeNode, TreeView
-from vrtbuilder.virtualrasters import VRTRaster, VRTRasterBand, VRTRasterInputSourceBand, RasterBounds, LUT_ResampleAlgs
+from vrtbuilder.virtualrasters import VRTRaster, VRTRasterBand, VRTRasterInputSourceBand, RasterBounds, RESAMPLE_ALGS
 from vrtbuilder.utils import loadUi
 
 
@@ -1127,14 +1127,14 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         # todo: self.btnResFromFile.clicked.connect()
 
         self.cbResampling.clear()
-        self.cbResampling.setModel(LUT_ResampleAlgs)
+        self.cbResampling.setModel(RESAMPLE_ALGS)
         self.cbResampling.currentIndexChanged.connect(lambda:
                                                       self.vrtRaster.setResamplingAlg(
                                                           self.cbResampling.currentData().mValue
                                                       ))
         self.vrtRaster.sigResamplingAlgChanged[int].connect(lambda alg:
                                                        self.cbResampling.setCurrentIndex(
-                                                           LUT_ResampleAlgs.optionValues().index(alg)))
+                                                           RESAMPLE_ALGS.optionValues().index(alg)))
 
         self.btnExpandAllVRT.clicked.connect(lambda: self.expandSelectedNodes(self.treeViewVRT, True))
         self.btnCollapseAllVRT.clicked.connect(lambda: self.expandSelectedNodes(self.treeViewVRT, False))
