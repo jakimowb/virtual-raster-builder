@@ -19,7 +19,6 @@
 # noinspection PyPep8Naming
 
 import os, sys, fnmatch, site, re
-import six, logging
 
 DIR = os.path.dirname(__file__)
 DIR_ROOT = os.path.dirname(DIR)

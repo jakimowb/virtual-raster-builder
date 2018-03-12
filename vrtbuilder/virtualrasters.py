@@ -150,7 +150,11 @@ def describeRawFile(pathRaw, pathVrt, xsize, ysize,
         vrt.append('  </VRTRasterBand>')
     vrt.append('</VRTDataset>')
     vrt = '\n'.join(vrt)
-    open(pathVrt, 'w').write(vrt)
+
+    file = open(pathVrt, 'w')
+    file.write(vrt)
+    file.flush()
+    file.close()
 
     ds = gdal.Open(pathVrt)
     return ds
