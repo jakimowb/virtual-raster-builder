@@ -26,6 +26,7 @@ from qgis.core import *
 from PyQt5.QtCore import *
 from PyQt5.QtXml import QDomDocument
 from PyQt5 import uic
+from PyQt5.QtWidgets import *
 
 from vrtbuilder import DIR_ROOT, DIR_UI
 jp = os.path.join

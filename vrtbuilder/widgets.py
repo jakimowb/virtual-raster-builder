@@ -1019,7 +1019,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         else:
             self.tabHelp.setVisible(False)
             info = 'Unable to find help index.html'
-            QgsApplication.instance().messageLog(info)
+            QgsApplication.instance().messageLog().logMessage(info)
 
         self.sourceFileModel = SourceRasterModel(parent=self.treeViewSourceFiles)
         self.sourceFileModel.sigFilesRemoved.connect(self.onSourceFilesChanged)
