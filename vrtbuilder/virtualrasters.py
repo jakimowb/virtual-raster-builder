@@ -151,7 +151,7 @@ def describeRawFile(pathRaw, pathVrt, xsize, ysize,
     vrt.append('</VRTDataset>')
     vrt = '\n'.join(vrt)
 
-    file = open(pathVrt, 'w')
+    file = open(pathVrt, 'w', encoding='utf-8')
     file.write(vrt)
     file.flush()
     file.close()
