@@ -150,7 +150,11 @@ def updateMetadataTxt():
     lines = ['[general]']
     for k, line in md.items():
         lines.append('{}={}'.format(k, line))
-    open(pathDst, 'w', encoding='utf-8').writelines('\n'.join(lines))
+    f = open(pathDst, 'w', encoding='utf-8')
+    f.writelines('\n'.join(lines))
+    f.flush()
+    f.close()
+
     s = ""
 
 def make_pb_tool_cfg():
