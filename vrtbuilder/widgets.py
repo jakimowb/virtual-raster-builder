@@ -1087,7 +1087,8 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
 
         self.treeViewSourceFiles.dragEnterEvent = onDragEnter
         selectionModel = self.treeViewSourceFiles.selectionModel()
-
+        self.actionRemoveSourceFiles.setEnabled(False)
+        selectionModel.selectionChanged.connect(lambda selected, deselected : self.actionRemoveSourceFiles.setEnabled(selected.count() > 0))
         #self.treeViewSourceFiles.dropEvent = onDropEvent
         #self.treeViewSourceFiles.supportedDropAction = onSupportedDropActions
 
@@ -1108,11 +1109,26 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
 
         def onRemoveSelectedSourceFiles():
             sm = self.treeViewSourceFiles.selectionModel()
+            m = self.treeViewSourceFiles.model()
+            assert isinstance(m, SourceRasterFilterModel)
 
-            s = ""
+            to_remove = []
+            rows = sm.selectedRows()
+            for rowIdx in rows:
+                node = m.data(rowIdx, Qt.UserRole)
+                if isinstance(node, SourceRasterFileNode):
+                    to_remove.append(node.mPath)
+                elif isinstance(node, TreeNode) and isinstance(node.parentNode(), SourceRasterFileNode):
+                    to_remove.append(node.parentNode().mPath)
+                else:
+                    s  =""
+            if len(to_remove) > 0:
+                self.sourceFileModel.removeFiles(to_remove)
+
+
             #self.sourceFileModel.removeFiles(    [n.mPath for n in self.selectedSourceFileNodes()]
 
-
+        self.actionRemoveSourceFiles.triggered.connect(onRemoveSelectedSourceFiles)
         self.mCrsManuallySet = False
         self.mBoundsManuallySet = False
 
