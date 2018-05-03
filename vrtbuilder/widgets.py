@@ -416,10 +416,10 @@ class SourceRasterModel(TreeModel):
             ds = gdal.Open(path)
             if isinstance(ds, gdal.Dataset):
                 nb = ds.RasterCount
-                subs = [tup[0] for tup in ds.GetSubDatasets()]
+                subs = [os.path.abspath(tup[0]) for tup in ds.GetSubDatasets()]
 
                 if nb > 0:
-                    newFiles.append(path)
+                    newFiles.append(os.path.abspath(path))
                 if len(subs) > 0:
                     newFiles.extend(subs)
 
@@ -1090,6 +1090,29 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
 
         #self.treeViewSourceFiles.dropEvent = onDropEvent
         #self.treeViewSourceFiles.supportedDropAction = onSupportedDropActions
+
+        def fileDialogResult2Files(res):
+            files, filter = res
+            return files
+
+        self.btnAddFromRegistry.clicked.connect(self.loadSrcFromMapLayerRegistry)
+        self.btnAddSrcFiles.clicked.connect(lambda:
+                                            self.sourceFileModel.addFiles(
+                                                fileDialogResult2Files(
+                                                    QFileDialog.getOpenFileNames(self, "Open raster images",
+                                                                                 directory='')
+                                                )
+                                            ))
+
+        self.btnRemoveSrcFiles.setDefaultAction(self.actionRemoveSourceFiles)
+
+        def onRemoveSelectedSourceFiles():
+            sm = self.treeViewSourceFiles.selectionModel()
+
+            s = ""
+            #self.sourceFileModel.removeFiles(    [n.mPath for n in self.selectedSourceFileNodes()]
+
+
         self.mCrsManuallySet = False
         self.mBoundsManuallySet = False
 
@@ -1206,23 +1229,6 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         self.btnAbout.setIcon(self.style().standardIcon(QStyle.SP_MessageBoxInformation))
         self.btnAbout.clicked.connect(lambda: AboutWidget(self).exec_())
 
-
-        def fileDialogResult2Files(res):
-            files, filter = res
-            return files
-
-        self.btnAddFromRegistry.clicked.connect(self.loadSrcFromMapLayerRegistry)
-        self.btnAddSrcFiles.clicked.connect(lambda:
-                                            self.sourceFileModel.addFiles(
-                                                fileDialogResult2Files(
-                                                QFileDialog.getOpenFileNames(self, "Open raster images",
-                                                                             directory='')
-                                                )
-                                            ))
-
-        self.btnRemoveSrcFiles.clicked.connect(lambda: self.sourceFileModel.removeFiles(
-            [n.mPath for n in self.selectedSourceFileNodes()]
-        ))
 
         self.mQgsProjectionSelectionWidget.setMessage('Set VRT CRS')
         self.mQgsProjectionSelectionWidget.crsChanged.connect(self.vrtRaster.setCrs)
