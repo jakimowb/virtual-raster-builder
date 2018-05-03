@@ -15,25 +15,43 @@ __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 import unittest
 from qgis.gui import *
 from qgis.core import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
+from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtWidgets import *
+from qgis.PyQt.QtCore import *
 
+from vrtbuilder.widgets import *
+from vrtbuilder.virtualrasters import *
+from vrtbuilder.utils import initQgisApplication
 
+QGIS_APP = initQgisApplication()
 class testclassData(unittest.TestCase):
 
     def setUp(self):
-
-        pass
+        self.gui = VRTBuilderWidget()
+        self.gui.show()
 
     def tearDown(self):
-        pass
+        self.gui.close()
+
+    def test_gui(self):
+        from exampledata import landsat1
+        reg = QgsProject.instance()
+        lyr = QgsRasterLayer(landsat1)
+        reg.addMapLayer(lyr)
+
+        self.gui.loadSrcFromMapLayerRegistry()
+        self.assertTrue(len(self.gui.sourceFileModel), 1)
+        s = ""
 
     def test_vrtRaster(self):
 
 
         from vrtbuilder.virtualrasters import VRTRaster, VRTRasterBand, VRTRasterInputSourceBand
 
+        #1. create an empty VRT
+        VRT = VRTRaster()
+
+        VRT.setCrs()
 
 
         pass
