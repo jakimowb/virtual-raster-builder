@@ -7,17 +7,18 @@
      (at your option) any later version.
 
 """
-from __future__ import absolute_import
+
 __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
-import unittest
+import unittest, tempfile
 from qgis.gui import *
 from qgis.core import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtXml import *
 
 from vrtbuilder.widgets import *
 from vrtbuilder.virtualrasters import *
@@ -29,7 +30,7 @@ class testclassData(unittest.TestCase):
     def setUp(self):
         self.gui = VRTBuilderWidget()
         self.gui.show()
-
+        self.tmpDir = tempfile.mkdtemp('testVRT')
     def tearDown(self):
         self.gui.close()
 
@@ -41,7 +42,9 @@ class testclassData(unittest.TestCase):
 
         self.gui.loadSrcFromMapLayerRegistry()
         self.assertTrue(len(self.gui.sourceFileModel), 1)
-        s = ""
+        files = self.gui.sourceFileModel.files()
+        self.assertTrue(landsat1 in files)
+
 
     def test_vrtRaster(self):
 
@@ -51,7 +54,26 @@ class testclassData(unittest.TestCase):
         #1. create an empty VRT
         VRT = VRTRaster()
 
-        VRT.setCrs()
+        vb1 = VRTRasterBand()
+        vb2 = VRTRasterBand()
+        VRT.addVirtualBand(vb1)
+        VRT.addVirtualBand(vb2)
+
+        self.assertEqual(len(VRT), 2)
+        self.assertEqual(vb2, VRT[1])
+
+        path = os.path.join(self.tmpDir, 'testEmptyVRT.vrt')
+        VRT.saveVRT(path)
+
+        f = open(path, encoding='utf8')
+        xml = ''.join(f.readlines())
+        f.close()
+
+        ds = gdal.Open(path)
+        self.assertIsInstance(ds, gdal.Dataset)
+        self.assertEqual(ds.RasterCount, 2)
+
+
 
 
         pass
