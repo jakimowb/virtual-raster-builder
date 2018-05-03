@@ -56,22 +56,40 @@ class testclassData(unittest.TestCase):
 
         vb1 = VRTRasterBand()
         vb2 = VRTRasterBand()
+
+
         VRT.addVirtualBand(vb1)
         VRT.addVirtualBand(vb2)
 
         self.assertEqual(len(VRT), 2)
         self.assertEqual(vb2, VRT[1])
 
-        path = os.path.join(self.tmpDir, 'testEmptyVRT.vrt')
-        VRT.saveVRT(path)
+        VRT.removeVirtualBand(vb1)
+        self.assertEqual(len(VRT), 1)
+        self.assertEqual(vb2, VRT[0])
 
-        f = open(path, encoding='utf8')
-        xml = ''.join(f.readlines())
-        f.close()
 
-        ds = gdal.Open(path)
-        self.assertIsInstance(ds, gdal.Dataset)
-        self.assertEqual(ds.RasterCount, 2)
+        for n in [0, 2]:
+            while not len(VRT) == 0:
+                VRT.removeVirtualBand(0)
+
+            for _ in range(n):
+                VRT.addVirtualBand(VRTRasterBand())
+            path = os.path.join(self.tmpDir, 'testEmptyVRT.vrt')
+
+            if n == 0:
+                self.assertRaises(Exception, VRT.saveVRT, path)
+                continue
+
+            self.assertIsInstance(VRT.saveVRT(path), gdal.Dataset)
+
+            f = open(path, encoding='utf8')
+            xml = ''.join(f.readlines())
+            f.close()
+
+            ds = gdal.Open(path)
+            self.assertIsInstance(ds, gdal.Dataset)
+            self.assertEqual(ds.RasterCount, len(VRT))
 
 
 
