@@ -1072,6 +1072,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
             lambda: self.onSourceFileFilterChanged(self.tbSourceFileFilter.text()))
         # self.treeViewSourceFiles.setModel(self.sourceFileModel)
 
+        assert isinstance(self.treeViewSourceFiles, QTreeView)
         self.treeViewSourceFiles.setModel(self.sourceFileProxyModel)
         self.treeViewSourceFiles.setDragEnabled(True)
         self.treeViewSourceFiles.setAcceptDrops(True)
@@ -1084,16 +1085,9 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
                 if f in supported:
                     event.acceptProposedAction()
 
-
-
-
-        def onDropEvent(event):
-            assert isinstance(event, QDropEvent)
-            print('ON DROP')
-
-        def onSupportedDropActions():
-            return Qt.CopyAction | Qt.MoveAction
         self.treeViewSourceFiles.dragEnterEvent = onDragEnter
+        selectionModel = self.treeViewSourceFiles.selectionModel()
+
         #self.treeViewSourceFiles.dropEvent = onDropEvent
         #self.treeViewSourceFiles.supportedDropAction = onSupportedDropActions
         self.mCrsManuallySet = False

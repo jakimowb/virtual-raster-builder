@@ -1378,6 +1378,15 @@
     <string>LoadVRT</string>
    </property>
   </action>
+  <action name="actionRemoveSourceFiles">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/vrtbuilder/mActionRemoveRasterLayer.svg</normaloff>:/vrtbuilder/mActionRemoveRasterLayer.svg</iconset>
+   </property>
+   <property name="text">
+    <string>removeSourceFiles</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
