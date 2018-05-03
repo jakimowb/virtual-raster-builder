@@ -19,7 +19,7 @@
  *                                                                         *
  ***************************************************************************/
 """
-import os, sys, re, pickle, tempfile, unicodedata
+import os, sys, re, pickle, tempfile
 from collections import OrderedDict
 import tempfile
 from osgeo import gdal, osr, ogr, gdalconst as gc
@@ -221,9 +221,7 @@ class VRTRasterBand(QObject):
 
 
     def setName(self, name):
-
-        if isinstance(name, str):
-            name = unicode(name)
+        assert isinstance(name, str)
         oldName = self.mName
         self.mName = name
         if oldName != self.mName:
@@ -415,7 +413,8 @@ class VRTRaster(QObject):
             if crs != self.mCrs:
                 extent = self.extent()
                 if isinstance(extent, QgsRectangle):
-                    trans = QgsCoordinateTransform(self.mCrs, crs)
+                    trans = QgsCoordinateTransform()
+                    trans.setDestinationCrs(self.mCrs, crs)
                     extent = trans.transform(extent)
                     self.setExtent(extent)
                 self.mCrs = crs
@@ -606,9 +605,7 @@ class VRTRaster(QObject):
 
     def saveVRT(self, pathVRT):
 
-        if len(self.mBands) == 0:
-            print('No VRT Inputs defined.')
-            return None
+        assert len(self) >= 1, 'VRT needs to define at least 1 band'
 
         assert os.path.splitext(pathVRT)[-1].lower() == '.vrt'
 
@@ -646,47 +643,76 @@ class VRTRaster(QObject):
 
         srcFiles = [srcLookup[src] for src in self.sourceRaster()]
 
-        #1. build a temporary VRT that describes the spatial shifts of all input sources
 
 
-        kwds = {}
+        #these need to be set
+        ns = nl = gt = crs = eType = None
         res = self.resolution()
-
-        if res is None:
-            res = 'average'
-        if isinstance(res, QSizeF):
-            kwds['resolution'] = 'user'
-            kwds['xRes'] = res.width()
-            kwds['yRes'] = res.height()
-        else:
-            assert res in ['highest','lowest','average']
-            kwds['resolution'] = res
-
         extent = self.extent()
-        if isinstance(extent, QgsRectangle):
-            kwds['outputBounds'] = (extent.xMinimum(), extent.yMinimum(), extent.xMaximum(), extent.yMaximum())
 
-        vro = gdal.BuildVRTOptions(separate=True, **kwds)
+        srs = None
+        if isinstance(self.crs(), QgsCoordinateReferenceSystem):
+            srs = self.crs().toWkt()
 
-        gdal.BuildVRT(pathVRT, srcFiles, options=vro)
-        dsVRTDst = gdal.Open(pathVRT)
-        assert isinstance(dsVRTDst, gdal.Dataset)
-        assert len(srcLookup) == dsVRTDst.RasterCount
-        ns, nl = dsVRTDst.RasterXSize, dsVRTDst.RasterYSize
-        gt = dsVRTDst.GetGeoTransform()
-        crs = dsVRTDst.GetProjectionRef()
-        eType = dsVRTDst.GetRasterBand(1).DataType
-        SOURCE_TEMPLATES = dict()
-        for i, srcFile in enumerate(srcFiles):
-            vrt_sources = dsVRTDst.GetRasterBand(i+1).GetMetadata(str('vrt_sources'))
-            assert len(vrt_sources) == 1
-            srcXML = vrt_sources['source_0']
-            assert os.path.basename(srcFile)+'</SourceFilename>' in srcXML
-            assert '<SourceBand>1</SourceBand>' in srcXML
-            SOURCE_TEMPLATES[srcFile] = srcXML
-        dsVRTDst = None
-        #remove the temporary VRT, we don't need it any more
-        os.remove(pathVRT)
+        if len(srcFiles) > 0:
+            # 1. build a temporary VRT that describes the spatial shifts of all input sources
+            kwds = {}
+            if res is None:
+                res = 'average'
+            if isinstance(res, QSizeF):
+                kwds['resolution'] = 'user'
+                kwds['xRes'] = res.width()
+                kwds['yRes'] = res.height()
+            else:
+                assert res in ['highest','lowest','average']
+                kwds['resolution'] = res
+
+            if isinstance(extent, QgsRectangle):
+                kwds['outputBounds'] = (extent.xMinimum(), extent.yMinimum(), extent.xMaximum(), extent.yMaximum())
+
+            if srs is not None:
+                kwds['outputSRS'] = srs
+
+            vro = gdal.BuildVRTOptions(separate=True, **kwds)
+
+            res = gdal.BuildVRT(pathVRT, srcFiles, options=vro)
+            dsVRTDst = gdal.Open(pathVRT)
+            assert isinstance(dsVRTDst, gdal.Dataset)
+            assert len(srcLookup) == dsVRTDst.RasterCount
+            ns, nl = dsVRTDst.RasterXSize, dsVRTDst.RasterYSize
+            gt = dsVRTDst.GetGeoTransform()
+            crs = dsVRTDst.GetProjectionRef()
+            eType = dsVRTDst.GetRasterBand(1).DataType
+            SOURCE_TEMPLATES = dict()
+            for i, srcFile in enumerate(srcFiles):
+                vrt_sources = dsVRTDst.GetRasterBand(i+1).GetMetadata(str('vrt_sources'))
+                assert len(vrt_sources) == 1
+                srcXML = vrt_sources['source_0']
+                assert os.path.basename(srcFile)+'</SourceFilename>' in srcXML
+                assert '<SourceBand>1</SourceBand>' in srcXML
+                SOURCE_TEMPLATES[srcFile] = srcXML
+            dsVRTDst = None
+            #remove the temporary VRT, we don't need it any more
+            os.remove(pathVRT)
+        else:
+            # special case: no source files defined
+            ns = nl = 1 #this is the minimum size
+            if isinstance(extent, QgsRectangle):
+                x0 = extent.xMinimum()
+                y1 = extent.yMaximum()
+            else:
+                x0 = 0
+                y1 = 0
+
+            if isinstance(res, QSizeF):
+                resx = res.width()
+                resy = res.height()
+            else:
+                resx = 1
+                resy = 1
+
+            gt = (x0, resx, 0, y1, 0, -resy)
+            eType = gdal.GDT_Float32
 
         #2. build final VRT from scratch
         drvVRT = gdal.GetDriverByName(str('VRT'))
@@ -694,7 +720,9 @@ class VRTRaster(QObject):
         dsVRTDst = drvVRT.Create(pathVRT, ns, nl,0, eType=eType)
         #2.1. set general properties
         assert isinstance(dsVRTDst, gdal.Dataset)
-        dsVRTDst.SetProjection(crs)
+
+        if srs is not None:
+            dsVRTDst.SetProjection(srs)
         dsVRTDst.SetGeoTransform(gt)
 
         #2.2. add virtual bands

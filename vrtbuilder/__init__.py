@@ -5,7 +5,6 @@
     __init__.py
     ---------------------
     Date                 : Oktober 2017
-    Copyright            : (C) 2017 by Benjamin Jakimow
     Email                : benjamin.jakimow@geo.hu-berlin.de
 ***************************************************************************
 *                                                                         *
@@ -25,7 +24,7 @@ DIR_ROOT = os.path.dirname(DIR)
 DIR_UI = os.path.join(DIR,'ui')
 DIR_EXAMPLEDATA = os.path.join(DIR_ROOT, 'exampledata')
 
-VERSION = '0.3'
+VERSION = '0.4'
 LICENSE = 'GNU GPL-3'
 TITLE = 'Virtual Raster Builder'
 DESCRIPTION = 'A QGIS Plugin to create GDAL Virtual Raster (VRT) files by drag and drop.'

@@ -1,7 +1,7 @@
 [general]
 name=Virtual Raster Builder
 description=A QGIS Plugin to create GDAL Virtual Raster (VRT) files by drag and drop.
-version=0.3
+version=0.4
 qgisMinimumVersion=3.0
 author=Benjamin Jakimow, Geomatics Lab, Humboldt-Universität zu Berlin
 about=
@@ -24,7 +24,14 @@ experimental=False
 deprecated=False
 tags=remote sensing, raster
 category=Raster
-changelog=2018-03-02:
+changelog=
+0.4 (Mai 2018):
+    * fixed bug #6 drag 'n drop from QGIS 3 layer list
+    * fixed bug #7 import of raster layers known to QGIS MapLayerRegistry
+    * enhancement #7 VRTs can now be written with empty virtual raster bands (but have to define at least one virtual band)
+    * fixed bug #10 removal of selected data sources
+
+0.3 (2018-03-02(:
     * Code-base converted to PyQt5 and QGIS 3
     * Small fixes of smaller UI response issues
     * Sphinx - based documentation, documentation is also shown in the "help" tab
