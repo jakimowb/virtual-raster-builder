@@ -1,4 +1,11 @@
-2018-03-02:
+
+0.4 (Mai 2018):
+    * fixed bug #6 drag 'n drop from QGIS 3 layer list
+    * fixed bug #7 import of raster layers known to QGIS MapLayerRegistry
+    * fixed #7 VRTs can now be written with empty virtual raster bands (but have to define at least one virtual band)
+
+
+0.3 (2018-03-02(:
     * Code-base converted to PyQt5 and QGIS 3
     * Small fixes of smaller UI response issues
     * Sphinx - based documentation, documentation is also shown in the "help" tab
