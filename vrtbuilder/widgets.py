@@ -438,6 +438,7 @@ class SourceRasterModel(TreeModel):
         node = self.idx2node(index)
 
         flags = super(SourceRasterModel, self).flags(index)
+
         # return flags
         if isinstance(node, SourceRasterFileNode) or \
                 isinstance(node, SourceRasterBandNode):
@@ -1412,7 +1413,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
     def loadSrcFromMapLayerRegistry(self):
         #reg = QgsMapLayerRegistry.instance()
 
-        sources = set(lyr.source() for lyr in QgsProject.instance().mapLayers() if isinstance(lyr, QgsRasterLayer))
+        sources = set(lyr.source() for lyr in list(QgsProject.instance().mapLayers().values()) if isinstance(lyr, QgsRasterLayer))
         sources = list(sources)
         sources = sorted(sources, key=lambda s: os.path.basename(s))
         for s in sources:
