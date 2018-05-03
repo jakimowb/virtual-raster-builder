@@ -34,17 +34,6 @@ class testclassData(unittest.TestCase):
     def tearDown(self):
         self.gui.close()
 
-    def test_gui(self):
-        from exampledata import landsat1
-        reg = QgsProject.instance()
-        lyr = QgsRasterLayer(landsat1)
-        reg.addMapLayer(lyr)
-
-        self.gui.loadSrcFromMapLayerRegistry()
-        self.assertTrue(len(self.gui.sourceFileModel), 1)
-        files = self.gui.sourceFileModel.files()
-        self.assertTrue(landsat1 in files)
-
 
     def test_vrtRaster(self):
 
@@ -91,10 +80,20 @@ class testclassData(unittest.TestCase):
             self.assertIsInstance(ds, gdal.Dataset)
             self.assertEqual(ds.RasterCount, len(VRT))
 
-
-
-
         pass
+
+    def test_gui(self):
+        from exampledata import landsat1
+        reg = QgsProject.instance()
+        lyr = QgsRasterLayer(landsat1)
+        reg.addMapLayer(lyr)
+
+        self.gui.loadSrcFromMapLayerRegistry()
+        self.assertTrue(len(self.gui.sourceFileModel), 1)
+        files = self.gui.sourceFileModel.files()
+        self.assertTrue(landsat1 in files)
+
+
 
     def test_vrtBuilderGUI(self):
         pass
