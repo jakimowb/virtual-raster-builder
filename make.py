@@ -243,14 +243,14 @@ def deploy():
     from vrtbuilder.utils import zipdir
 
     pluginname= cfg.get('plugin', 'name')
-    pathZip = jp(DIR_DEPLOY, '{}.{}.zip'.format(pluginname,timestamp))
+    pathZip = jp(DIR_DEPLOY, '{}.{}.zip'.format(pluginname, buildID))
     dirPlugin = jp(DIR_DEPLOY, pluginname)
     zipdir(dirPlugin, pathZip)
     #os.chdir(dirPlugin)
     #shutil.make_archive(pathZip, 'zip', '..', dirPlugin)
 
     #6. copy to local QGIS user DIR
-    if True:
+    if False:
         import shutil
 
         from os.path import expanduser
