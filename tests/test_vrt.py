@@ -20,9 +20,12 @@ from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtXml import *
 
+import numpy as np
+
 from vrtbuilder.widgets import *
 from vrtbuilder.virtualrasters import *
 from vrtbuilder.utils import initQgisApplication
+from exampledata import landsat1, landsat2, landsat2_SAD, rapideye
 
 QGIS_APP = initQgisApplication()
 class testclassData(unittest.TestCase):
@@ -34,11 +37,47 @@ class testclassData(unittest.TestCase):
     def tearDown(self):
         self.gui.close()
 
+    def test_vsi_support(self):
+
+        VRT = VRTRaster()
+        vb1 = VRTRasterBand()
+        vb2 = VRTRasterBand()
+        vb1.addSource(VRTRasterInputSourceBand.fromGDALDataSet(landsat1)[0])
+        vb2.addSource(VRTRasterInputSourceBand.fromGDALDataSet(landsat2_SAD)[0])
+        VRT.addVirtualBand(vb1)
+        VRT.addVirtualBand(vb2)
+
+        self.assertTrue(len(vb1), 1)
+        self.assertTrue(len(vb2), 1)
+        self.assertTrue(len(VRT), 2)
+
+        path = '/vsimem/myinmemory.vrt'
+        ds1 = VRT.saveVRT(path)
+        ds2 = gdal.Open(path)
+
+        self.assertIsInstance(ds1, gdal.Dataset)
+        self.assertIsInstance(ds2, gdal.Dataset)
+        self.assertEqual(len(VRT), ds1.RasterCount)
+        self.assertEqual(len(VRT), ds2.RasterCount)
+        self.assertEqual(VRT.crs().toWkt(), ds1.GetProjection())
+        arr1 = ds1.ReadAsArray()
+        arr2 = ds2.ReadAsArray()
+        self.assertTrue(np.all(arr1 == arr2))
+
+        VRT.setCrs(QgsCoordinateReferenceSystem('EPSG:4281'))
+        ds3 = VRT.saveVRT('/vsimem/ds3.vrt')
+        self.assertIsInstance(ds3, gdal.Dataset)
+        self.assertEqual(len(VRT), ds3.RasterCount)
+        self.assertEqual(len(VRT), ds1.RasterCount)
+        self.assertNotEqual(ds1.GetProjection(), ds3.GetProjection())
+        arr3 = ds3.ReadAsArray()
+        self.assertFalse(np.all(arr1 == arr3))
+        pass
 
     def test_vrtRaster(self):
 
 
-        from vrtbuilder.virtualrasters import VRTRaster, VRTRasterBand, VRTRasterInputSourceBand
+
 
         #1. create an empty VRT
         VRT = VRTRaster()
@@ -93,6 +132,7 @@ class testclassData(unittest.TestCase):
         files = self.gui.sourceFileModel.files()
         self.assertTrue(landsat1 in files)
 
+        QGIS_APP.exec_()
 
 
     def test_vrtBuilderGUI(self):
