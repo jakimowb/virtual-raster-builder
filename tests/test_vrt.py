@@ -164,6 +164,16 @@ class testclassData(unittest.TestCase):
             self.assertTrue('<ByteOrder>LSB' in xml)
 
 
+        #this should look like a spectrum
+        if True:
+
+            yVals = arr[32,:]
+            import pyqtgraph as pg
+            #this should look like a vegetation spectrum
+            pw = pg.plot(yVals, pen='r')  # plot x vs y in red
+            r = QMessageBox.question(None, 'Test', 'Does this look like a vegetation spectrum?')
+            self.assertTrue(r == QMessageBox.Yes, 'Did not look like a vegetation spectrum')
+
         s  =""
 
 
