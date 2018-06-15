@@ -237,13 +237,15 @@ class VRTRasterVectorLayer(QgsVectorLayer):
         self.dataChanged.emit()
 
     def onRasterRemoved(self, files):
-        self.startEditing()
-        self.selectAll()
-        toRemove = []
-        for f in self.selectedFeatures():
+
+        fids =[]
+        for f in self.getFeatures():
+            assert isinstance(f, QgsFeature)
             if f.attribute('path') in files:
-                toRemove.append(f.id())
-        self.setSelectedFeatures(toRemove)
+                fids.append(f.id())
+
+        self.selectByIds(fids)
+        self.startEditing()
         self.deleteSelectedFeatures()
         self.commitChanges()
         self.dataChanged.emit()

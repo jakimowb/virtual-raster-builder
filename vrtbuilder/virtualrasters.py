@@ -221,7 +221,6 @@ class VRTRasterInputSourceBand(object):
         self.mVirtualBand = None
 
 
-
     def isEqual(self, other):
         if isinstance(other, VRTRasterInputSourceBand):
             return self.mPath == other.mPath and self.mBandIndex == other.mBandIndex
