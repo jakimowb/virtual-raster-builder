@@ -2,8 +2,8 @@
 # noinspection PyPep8Naming
 """
 /***************************************************************************
-                              HUB TimeSeriesViewer
-                              -------------------
+                              Virtual Raster Builder
+                              ----------------------
         begin                : 2015-08-20
         git sha              : $Format:%H$
         copyright            : (C) 2017 by HU-Berlin
@@ -144,7 +144,13 @@ def describeRawFile(pathRaw, pathVrt, xsize, ysize,
 
     assert interleave in ['bsq','bil','bip']
     assert byteOrder in ['LSB', 'MSB']
-    vrt = ['<VRTDataset rasterXSize="{xsize}" rasterYSize="{ysize}">'.format(xsize=xsize,ysize=ysize)]
+
+    drvVRT = gdal.GetDriverByName('VRT')
+    assert isinstance(drvVRT, gdal.Driver)
+    dsVRT = drvVRT.Create(pathVrt, xsize, ysize, bands=0, eType=eType)
+    assert isinstance(dsVRT, gdal.Dataset)
+
+    #vrt = ['<VRTDataset rasterXSize="{xsize}" rasterYSize="{ysize}">'.format(xsize=xsize,ysize=ysize)]
 
     vrtDir = os.path.dirname(pathVrt)
     if pathRaw.startswith(vrtDir):
@@ -155,8 +161,6 @@ def describeRawFile(pathRaw, pathVrt, xsize, ysize,
         srcFilename = pathRaw
 
     for b in range(bands):
-        vrt.append('  <VRTRasterBand dataType="{dataType}" band="{band}" subClass="VRTRawRasterBand">'.format(
-            dataType=LUT_GDT_NAME[eType], band=b+1))
         if interleave == 'bsq':
             imageOffset = headerOffset
             pixelOffset = LUT_GDT_SIZE[eType]
@@ -167,28 +171,37 @@ def describeRawFile(pathRaw, pathVrt, xsize, ysize,
             lineOffset = xsize * bands
         else:
             raise Exception('Interleave {} is not supported'.format(interleave))
-        vrt.append("""    <SourceFilename relativetoVRT="{relativeToVRT}">{srcFilename}</SourceFilename>
-    <ImageOffset>{imageOffset}</ImageOffset>
-    <PixelOffset>{pixelOffset}</PixelOffset>
-    <LineOffset>{lineOffset}</LineOffset>
-    <ByteOrder>{byteOrder}</ByteOrder>""".format(relativeToVRT=relativeToVRT,
-                   srcFilename=srcFilename,
-                   imageOffset=imageOffset,
-                   pixelOffset=pixelOffset,
-                   lineOffset=lineOffset,
-                   byteOrder=byteOrder))
 
-        vrt.append('  </VRTRasterBand>')
-    vrt.append('</VRTDataset>')
-    vrt = '\n'.join(vrt)
+        options = ['subClass=VRTRawRasterBand']
+        options.append('SourceFilename={}'.format(srcFilename))
+        options.append('dataType={}'.format(LUT_GDT_NAME[eType]))
+        options.append('ImageOffset={}'.format(imageOffset))
+        options.append('PixelOffset={}'.format(pixelOffset))
+        options.append('LineOffset={}'.format(lineOffset))
+        options.append('ByteOrder={}'.format(byteOrder))
 
-    file = open(pathVrt, 'w', encoding='utf-8')
-    file.write(vrt)
-    file.flush()
-    file.close()
+        xml = """<SourceFilename relativetoVRT="{relativeToVRT}">{srcFilename}</SourceFilename>
+            <ImageOffset>{imageOffset}</ImageOffset>
+            <PixelOffset>{pixelOffset}</PixelOffset>
+            <LineOffset>{lineOffset}</LineOffset>
+            <ByteOrder>{byteOrder}</ByteOrder>""".format(relativeToVRT=relativeToVRT,
+                                                         srcFilename=srcFilename,
+                                                         imageOffset=imageOffset,
+                                                         pixelOffset=pixelOffset,
+                                                         lineOffset=lineOffset,
+                                                         byteOrder=byteOrder)
 
-    ds = gdal.Open(pathVrt)
-    return ds
+        #md = {}
+        #md['source_0'] = xml
+        #vrtBand = dsVRT.GetRasterBand(b + 1)
+        assert dsVRT.AddBand(eType, options=options) == 0
+
+        vrtBand = dsVRT.GetRasterBand(b+1)
+        assert isinstance(vrtBand, gdal.Band)
+        #vrtBand.SetMetadata(md, 'vrt_sources')
+        #vrt.append('  <VRTRasterBand dataType="{dataType}" band="{band}" subClass="VRTRawRasterBand">'.format(dataType=LUT_GDT_NAME[eType], band=b+1))
+    dsVRT.FlushCache()
+    return dsVRT
 
 
 class VRTRasterInputSourceBand(object):
@@ -624,7 +637,7 @@ class VRTRaster(QObject):
         ds = gdal.Open(pathVRT)
         assert isinstance(ds, gdal.Dataset)
         assert ds.GetDriver().GetDescription() == 'VRT'
-        from xml.etree import ElementTree
+
         for b in range(ds.RasterCount):
             srcBand = ds.GetRasterBand(b+1)
             vrtBand = VRTRasterBand(name=srcBand.GetDescription().decode('utf-8'))

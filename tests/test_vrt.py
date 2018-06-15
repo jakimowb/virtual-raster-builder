@@ -121,6 +121,52 @@ class testclassData(unittest.TestCase):
 
         pass
 
+    def test_describeRaw(self):
+        from exampledata import speclib as pathESL
+
+        pathHDR= pathESL.replace('.sli', '.hdr')
+        f = open(pathHDR, 'r', encoding='utf-8')
+        lines = f.read()
+        f.close()
+
+        nl = int(re.search(r'lines[ ]*=[ ]*(?P<n>\d+)', lines).group('n'))
+        ns = int(re.search(r'samples[ ]*=[ ]*(?P<n>\d+)', lines).group('n'))
+        nb = int(re.search(r'bands[ ]*=[ ]*(?P<n>\d+)', lines).group('n'))
+        dt = int(re.search(r'data type[ ]*=[ ]*(?P<n>\d+)', lines).group('n'))
+        bo = int(re.search(r'byte order[ ]*=[ ]*(?P<n>\d+)', lines).group('n'))
+        byteOrder = 'MSB' if bo != 0 else 'LSB'
+
+        assert dt == 5 #float
+        eType = gdal.GDT_Float64
+
+        pathVRT1 = os.path.join(self.tmpDir, 'vrtRawfile.vrt')
+        pathVRT2 = '/vsimem/myrawvrt'
+
+        for pathVRT in [pathVRT1, pathVRT2]:
+            self.assertTrue(os.path.isfile(pathESL))
+            dsVRT = describeRawFile(pathESL, pathVRT, ns, nl, bands=nb, eType=eType, byteOrder=byteOrder)
+
+            self.assertIsInstance(dsVRT, gdal.Dataset)
+            self.assertEqual(nb, dsVRT.RasterCount)
+            self.assertEqual(ns, dsVRT.RasterXSize)
+            self.assertEqual(nl, dsVRT.RasterYSize)
+
+            arr = dsVRT.ReadAsArray()
+            if not pathVRT.startswith('/vsi'):
+                f = open(pathVRT, 'r', encoding='utf-8')
+                xml = f.read()
+                f.close()
+            else:
+                xml = read_vsimem(pathVRT).decode('utf-8')
+            self.assertTrue('<ImageOffset>0' in xml)
+            self.assertTrue('<PixelOffset>8' in xml)
+            self.assertTrue('<LineOffset>1416' in xml)
+            self.assertTrue('<ByteOrder>LSB' in xml)
+
+
+        s  =""
+
+
     def test_gui(self):
         from exampledata import landsat1
         reg = QgsProject.instance()
