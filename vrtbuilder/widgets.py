@@ -320,9 +320,9 @@ class SourceRasterFileNode(TreeNode):
             band = ds.GetRasterBand(b + 1)
 
             inputSource = VRTRasterInputSourceBand(path, b)
-            inputSource.mBandName = band.GetDescription().encode('utf-8')
+            inputSource.mBandName = band.GetDescription()
             if inputSource.mBandName in [None, '']:
-                inputSource.mBandName = '{}'.format(b + 1)
+                inputSource.mBandName = 'Band {}'.format(b + 1)
             inputSource.mNoData = band.GetNoDataValue()
 
             SourceRasterBandNode(self.bandNode, inputSource)

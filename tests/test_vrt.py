@@ -62,7 +62,7 @@ class testclassData(unittest.TestCase):
         self.assertEqual(VRT.crs().toWkt(), ds1.GetProjection())
         arr1 = ds1.ReadAsArray()
         arr2 = ds2.ReadAsArray()
-        self.assertTrue(np.all(arr1 == arr2))
+        self.assertTrue(np.array_equal(arr1, arr2))
 
         VRT.setCrs(QgsCoordinateReferenceSystem('EPSG:4281'))
         ds3 = VRT.saveVRT('/vsimem/ds3.vrt')
@@ -71,7 +71,7 @@ class testclassData(unittest.TestCase):
         self.assertEqual(len(VRT), ds1.RasterCount)
         self.assertNotEqual(ds1.GetProjection(), ds3.GetProjection())
         arr3 = ds3.ReadAsArray()
-        self.assertFalse(np.all(arr1 == arr3))
+        self.assertFalse(np.array_equal(arr1, arr3))
         pass
 
     def test_vrtRaster(self):

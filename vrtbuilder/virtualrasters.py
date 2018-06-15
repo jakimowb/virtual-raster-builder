@@ -57,16 +57,28 @@ LUT_GDT_NAME = {gdal.GDT_Byte:'Byte',
                 gdal.GDT_CFloat64:'Float64'}
 
 
+GRA_tooltips = {'NearestNeighbour':'nearest neighbour resampling (default, fastest algorithm, worst interpolation quality).',
+              'Bilinear':'bilinear resampling.',
+              'Lanczos':'lanczos windowed sinc resampling.',
+              'Average':'average resampling, computes the average of all non-NODATA contributing pixels.',
+              'Cubic':'cubic resampling.',
+              'CubicSpline':'cubic spline resampling.',
+              'Mode':'mode resampling, selects the value which appears most often of all the sampled points',
+              'Max':'maximum resampling, selects the maximum value from all non-NODATA contributing pixels',
+              'Min':'minimum resampling, selects the minimum value from all non-NODATA contributing pixels.',
+              'Med':'median resampling, selects the median value of all non-NODATA contributing pixels.',
+              'Q1':'first quartile resampling, selects the first quartile value of all non-NODATA contributing pixels. ',
+              'Q3':'third quartile resampling, selects the third quartile value of all non-NODATA contributing pixels'
+              }
 
 RESAMPLE_ALGS = OptionListModel()
-RESAMPLE_ALGS.addOption(Option(gdal.GRA_NearestNeighbour, 'nearest',
-                               tooltip='nearest neighbour resampling (default, fastest algorithm, worst interpolation quality).'))
-RESAMPLE_ALGS.addOption(Option(gdal.GRA_Bilinear, 'bilinear', tooltip='bilinear resampling.'))
-RESAMPLE_ALGS.addOption(Option(gdal.GRA_Lanczos, 'lanczos', tooltip='lanczos windowed sinc resampling.'))
-RESAMPLE_ALGS.addOption(Option(gdal.GRA_Average, 'average', tooltip='average resampling, computes the average of all non-NODATA contributing pixels.'))
-RESAMPLE_ALGS.addOption(Option(gdal.GRA_Cubic, 'cubic', tooltip='cubic resampling.'))
-RESAMPLE_ALGS.addOption(Option(gdal.GRA_CubicSpline, 'cubic_spline', tooltip='cubic spline resampling.'))
-RESAMPLE_ALGS.addOption(Option(gdal.GRA_Mode, 'mode', tooltip='mode resampling, selects the value which appears most often of all the sampled points'))
+for GRAkey in [k for k in list(gdal.__dict__.keys()) if k.startswith('GRA_')]:
+
+    GRA = gdal.__dict__[GRAkey]
+    GRA_Name = GRAkey[4:]
+
+    option = Option(GRA, GRA_Name, tooltip=GRA_tooltips.get(GRA_Name))
+    RESAMPLE_ALGS.addOption(option)
 
 
 # thanks to https://gis.stackexchange.com/questions/75533/how-to-apply-band-settings-using-gdal-python-bindings
@@ -95,16 +107,6 @@ def write_vsimem(fn:str,data:str):
     gdal.VSIFWriteL(data, 1, size, vsifile)
     return gdal.VSIFCloseL(vsifile)
 
-
-if int(gdal.VersionInfo()) >= 2020300:
-    #respect that older GDAL version do not have python binding to GRA_Max, GRA_Min, GRA_Med, GRA_Q1 and GRA_Q3
-    #see https://trac.osgeo.org/gdal/wiki/Release/2.2.3-News
-    #https://trac.osgeo.org/gdal/ticket/7153
-    RESAMPLE_ALGS.addOption(Option(gdal.GRA_Max, 'max', tooltip='maximum resampling, selects the maximum value from all non-NODATA contributing pixels'))
-    RESAMPLE_ALGS.addOption(Option(gdal.GRA_Min, 'min', tooltip='minimum resampling, selects the minimum value from all non-NODATA contributing pixels.'))
-    RESAMPLE_ALGS.addOption(Option(gdal.GRA_Med, 'med', tooltip='median resampling, selects the median value of all non-NODATA contributing pixels.'))
-    RESAMPLE_ALGS.addOption(Option(gdal.GRA_Q1, 'Q1', tooltip='first quartile resampling, selects the first quartile value of all non-NODATA contributing pixels. '))
-    RESAMPLE_ALGS.addOption(Option(gdal.GRA_Q3, 'Q2', tooltip='third quartile resampling, selects the third quartile value of all non-NODATA contributing pixels'))
 
 def px2geo(px, gt):
     #see http://www.gdal.org/gdal_datamodel.html
