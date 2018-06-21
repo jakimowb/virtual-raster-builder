@@ -112,13 +112,13 @@ class VRTRasterBandNode(TreeNode):
         virtualBand.sigNameChanged.connect(self.setName)
         virtualBand.sigSourceInserted.connect(lambda _, src: self.onSourceInserted(src))
         virtualBand.sigSourceRemoved.connect(self.onSourceRemoved)
-        for src in self.mVirtualBand.sources:
+        for src in self.mVirtualBand.mSources:
             self.onSourceInserted(src)
 
     def onSourceInserted(self, inputSource):
         assert isinstance(inputSource, VRTRasterInputSourceBand)
         assert inputSource.virtualBand() == self.mVirtualBand
-        i = self.mVirtualBand.sources.index(inputSource)
+        i = self.mVirtualBand.mSources.index(inputSource)
 
         node = VRTRasterInputSourceBandNode(None, inputSource)
         self.nodeBands.insertChildNodes(i, node)
@@ -237,13 +237,15 @@ class VRTRasterVectorLayer(QgsVectorLayer):
         self.dataChanged.emit()
 
     def onRasterRemoved(self, files):
-        self.startEditing()
-        self.selectAll()
-        toRemove = []
-        for f in self.selectedFeatures():
+
+        fids =[]
+        for f in self.getFeatures():
+            assert isinstance(f, QgsFeature)
             if f.attribute('path') in files:
-                toRemove.append(f.id())
-        self.setSelectedFeatures(toRemove)
+                fids.append(f.id())
+
+        self.selectByIds(fids)
+        self.startEditing()
         self.deleteSelectedFeatures()
         self.commitChanges()
         self.dataChanged.emit()
@@ -320,9 +322,9 @@ class SourceRasterFileNode(TreeNode):
             band = ds.GetRasterBand(b + 1)
 
             inputSource = VRTRasterInputSourceBand(path, b)
-            inputSource.mBandName = band.GetDescription().encode('utf-8')
+            inputSource.mBandName = band.GetDescription()
             if inputSource.mBandName in [None, '']:
-                inputSource.mBandName = '{}'.format(b + 1)
+                inputSource.mBandName = 'Band {}'.format(b + 1)
             inputSource.mNoData = band.GetNoDataValue()
 
             SourceRasterBandNode(self.bandNode, inputSource)
@@ -412,14 +414,16 @@ class SourceRasterModel(TreeModel):
         existingFiles = self.files()
         newFiles = []
 
-        for path in [os.path.normpath(f) for f in files]:
+        for path in files:
+            if not path.startswith('/vsi'):
+                path = os.path.normpath(path)
             ds = gdal.Open(path)
             if isinstance(ds, gdal.Dataset):
                 nb = ds.RasterCount
-                subs = [os.path.abspath(tup[0]) for tup in ds.GetSubDatasets()]
+                subs = [tup[0] for tup in ds.GetSubDatasets()]
 
                 if nb > 0:
-                    newFiles.append(os.path.abspath(path))
+                    newFiles.append(path)
                 if len(subs) > 0:
                     newFiles.extend(subs)
 
@@ -1050,7 +1054,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
             self.tabHelp.setVisible(True)
 
             pathHTML = pathHTML[0]
-            print(pathHTML)
+            #print(pathHTML)
             self.webView.load(QUrl.fromLocalFile(QFileInfo(pathHTML).absoluteFilePath()))
 
 
@@ -1077,6 +1081,11 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         self.treeViewSourceFiles.setDragEnabled(True)
         self.treeViewSourceFiles.setAcceptDrops(True)
         self.treeViewSourceFiles.setDropIndicatorShown(True)
+
+
+
+
+        self.cbInMemoryOutput.clicked.connect(self.onInMemoryOutputTriggered)
 
         def onDragEnter(event):
             assert isinstance(event, QDragEnterEvent)
@@ -1189,6 +1198,10 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         self.cbBoundsFromSourceFiles.clicked.connect(self.frameExtent.setDisabled)
         self.cbBoundsFromSourceFiles.clicked.connect(self.btnBoundsFromFile.setDisabled)
 
+        self.onInMemoryOutputTriggered(False)
+        reg = QRegExp("^\D[^ ]*\.vrt$")
+        self.lineEditInMemory.setValidator(QRegExpValidator(reg))
+
         self.actionSelectSpatialExtent.setEnabled(not self.cbBoundsFromSourceFiles.isChecked())
 
         self.btnSelectSubset.setDefaultAction(self.actionSelectSpatialExtent)
@@ -1274,6 +1287,17 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
 
         self.restoreLastSettings()
         self.validateInputs()
+
+    def onInMemoryOutputTriggered(self, b):
+        if b:
+            self.mQgsFileWidget.setVisible(False)
+            self.frameInMemoryPath.setVisible(True)
+
+        else:
+            self.mQgsFileWidget.setVisible(True)
+            self.frameInMemoryPath.setVisible(False)
+
+        s = ""
 
     def loadVRT(self, path):
         if path is not None and os.path.isfile(path):
@@ -1524,8 +1548,11 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
     def saveFile(self):
 
         dsDst = None
-
-        path = self.mQgsFileWidget.filePath()
+        inMemory = self.cbInMemoryOutput.isChecked()
+        if inMemory:
+            path = '/vsimem/'+self.lineEditInMemory.text()
+        else:
+            path = self.mQgsFileWidget.filePath()
         ext = os.path.splitext(path)[-1]
 
         saveBinary = ext != '.vrt'
@@ -1537,7 +1564,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
             if ext in LUT_FILEXTENSIONS.keys():
                 drv = LUT_FILEXTENSIONS[ext]
             else:
-                drv = gdal.GetDriverByName(str('VRT')).encode('utf-8')
+                drv = gdal.GetDriverByName('VRT')
 
             co = []
             if drv == 'ENVI':
@@ -1549,13 +1576,14 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
 
             self.tbProgress.setText('Save {}...'.format(path))
             dsDst = gdal.Translate(path, pathVrt, options=options)
+            self.fullProgress()
 
         else:
             pathVrt = path
             self.tbProgress.setText('Save {}...'.format(pathVrt))
             dsDst = self.vrtRaster.saveVRT(pathVrt)
             self.tbProgress.setText('{} saved'.format(pathVrt))
-
+            self.fullProgress()
         if isinstance(dsDst, gdal.Dataset):
             self.tbProgress.setText('{} saved'.format(path))
         else:
@@ -1564,8 +1592,17 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         dsDst = None
         if self.cbAddToMap.isChecked():
             self.sigRasterCreated.emit(path)
+            lyr = QgsRasterLayer(path)
+            self.tmpLyr = lyr
+            self.addSourceFile(path)
+            QgsProject.instance().addMapLayer(lyr)
+
 
         self.saveSettings()
+
+    def fullProgress(self):
+        self.progressBar.setValue(100)
+        QTimer.singleShot(1000, lambda : self.progressBar.setValue(0))
 
     def onOutputPathChanged(self, path):
         assert isinstance(self.buttonBox, QDialogButtonBox)

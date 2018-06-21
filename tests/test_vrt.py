@@ -20,9 +20,12 @@ from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtXml import *
 
+import numpy as np
+
 from vrtbuilder.widgets import *
 from vrtbuilder.virtualrasters import *
 from vrtbuilder.utils import initQgisApplication
+from exampledata import landsat1, landsat2, landsat2_SAD, rapideye
 
 QGIS_APP = initQgisApplication()
 class testclassData(unittest.TestCase):
@@ -34,11 +37,47 @@ class testclassData(unittest.TestCase):
     def tearDown(self):
         self.gui.close()
 
+    def test_vsi_support(self):
+
+        VRT = VRTRaster()
+        vb1 = VRTRasterBand()
+        vb2 = VRTRasterBand()
+        vb1.addSource(VRTRasterInputSourceBand.fromGDALDataSet(landsat1)[0])
+        vb2.addSource(VRTRasterInputSourceBand.fromGDALDataSet(landsat2_SAD)[0])
+        VRT.addVirtualBand(vb1)
+        VRT.addVirtualBand(vb2)
+
+        self.assertTrue(len(vb1), 1)
+        self.assertTrue(len(vb2), 1)
+        self.assertTrue(len(VRT), 2)
+
+        path = '/vsimem/myinmemory.vrt'
+        ds1 = VRT.saveVRT(path)
+        ds2 = gdal.Open(path)
+
+        self.assertIsInstance(ds1, gdal.Dataset)
+        self.assertIsInstance(ds2, gdal.Dataset)
+        self.assertEqual(len(VRT), ds1.RasterCount)
+        self.assertEqual(len(VRT), ds2.RasterCount)
+        self.assertEqual(VRT.crs().toWkt(), ds1.GetProjection())
+        arr1 = ds1.ReadAsArray()
+        arr2 = ds2.ReadAsArray()
+        self.assertTrue(np.array_equal(arr1, arr2))
+
+        VRT.setCrs(QgsCoordinateReferenceSystem('EPSG:4281'))
+        ds3 = VRT.saveVRT('/vsimem/ds3.vrt')
+        self.assertIsInstance(ds3, gdal.Dataset)
+        self.assertEqual(len(VRT), ds3.RasterCount)
+        self.assertEqual(len(VRT), ds1.RasterCount)
+        self.assertNotEqual(ds1.GetProjection(), ds3.GetProjection())
+        arr3 = ds3.ReadAsArray()
+        self.assertFalse(np.array_equal(arr1, arr3))
+        pass
 
     def test_vrtRaster(self):
 
 
-        from vrtbuilder.virtualrasters import VRTRaster, VRTRasterBand, VRTRasterInputSourceBand
+
 
         #1. create an empty VRT
         VRT = VRTRaster()
@@ -82,6 +121,62 @@ class testclassData(unittest.TestCase):
 
         pass
 
+    def test_describeRaw(self):
+        from exampledata import speclib as pathESL
+
+        pathHDR= pathESL.replace('.sli', '.hdr')
+        f = open(pathHDR, 'r', encoding='utf-8')
+        lines = f.read()
+        f.close()
+
+        nl = int(re.search(r'lines[ ]*=[ ]*(?P<n>\d+)', lines).group('n'))
+        ns = int(re.search(r'samples[ ]*=[ ]*(?P<n>\d+)', lines).group('n'))
+        nb = int(re.search(r'bands[ ]*=[ ]*(?P<n>\d+)', lines).group('n'))
+        dt = int(re.search(r'data type[ ]*=[ ]*(?P<n>\d+)', lines).group('n'))
+        bo = int(re.search(r'byte order[ ]*=[ ]*(?P<n>\d+)', lines).group('n'))
+        byteOrder = 'MSB' if bo != 0 else 'LSB'
+
+        assert dt == 5 #float
+        eType = gdal.GDT_Float64
+
+        pathVRT1 = os.path.join(self.tmpDir, 'vrtRawfile.vrt')
+        pathVRT2 = '/vsimem/myrawvrt'
+
+        for pathVRT in [pathVRT1, pathVRT2]:
+            self.assertTrue(os.path.isfile(pathESL))
+            dsVRT = describeRawFile(pathESL, pathVRT, ns, nl, bands=nb, eType=eType, byteOrder=byteOrder)
+
+            self.assertIsInstance(dsVRT, gdal.Dataset)
+            self.assertEqual(nb, dsVRT.RasterCount)
+            self.assertEqual(ns, dsVRT.RasterXSize)
+            self.assertEqual(nl, dsVRT.RasterYSize)
+
+            arr = dsVRT.ReadAsArray()
+            if not pathVRT.startswith('/vsi'):
+                f = open(pathVRT, 'r', encoding='utf-8')
+                xml = f.read()
+                f.close()
+            else:
+                xml = read_vsimem(pathVRT).decode('utf-8')
+            self.assertTrue('<ImageOffset>0' in xml)
+            self.assertTrue('<PixelOffset>8' in xml)
+            self.assertTrue('<LineOffset>1416' in xml)
+            self.assertTrue('<ByteOrder>LSB' in xml)
+
+
+        #this should look like a spectrum
+        if True:
+
+            yVals = arr[32,:]
+            import pyqtgraph as pg
+            #this should look like a vegetation spectrum
+            pw = pg.plot(yVals, pen='r')  # plot x vs y in red
+            r = QMessageBox.question(None, 'Test', 'Does this look like a vegetation spectrum?')
+            self.assertTrue(r == QMessageBox.Yes, 'Did not look like a vegetation spectrum')
+
+        s  =""
+
+
     def test_gui(self):
         from exampledata import landsat1
         reg = QgsProject.instance()
@@ -93,6 +188,7 @@ class testclassData(unittest.TestCase):
         files = self.gui.sourceFileModel.files()
         self.assertTrue(landsat1 in files)
 
+        QGIS_APP.exec_()
 
 
     def test_vrtBuilderGUI(self):
