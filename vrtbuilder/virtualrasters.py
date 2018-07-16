@@ -680,6 +680,7 @@ class VRTRaster(QObject):
             dirWarped = os.path.join(os.path.splitext(pathVRT)[0] + '.WarpedImages')
 
         drvVRT = gdal.GetDriverByName('VRT')
+        
         for i, pathSrc in enumerate(self.sourceRaster()):
             dsSrc = gdal.Open(pathSrc)
             assert isinstance(dsSrc, gdal.Dataset)

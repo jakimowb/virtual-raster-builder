@@ -1199,7 +1199,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         self.cbBoundsFromSourceFiles.clicked.connect(self.btnBoundsFromFile.setDisabled)
 
         self.onInMemoryOutputTriggered(False)
-        reg = QRegExp("^\D[^ ]*\.vrt$")
+        reg = QRegExp(r"^\D[^ ]*\.vrt$")
         self.lineEditInMemory.setValidator(QRegExpValidator(reg))
 
         self.actionSelectSpatialExtent.setEnabled(not self.cbBoundsFromSourceFiles.isChecked())
