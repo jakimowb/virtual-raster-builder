@@ -560,12 +560,12 @@ class VRTRaster(QObject):
             assert isinstance(ds, gdal.Dataset)
             nb = ds.RasterCount
             for b in range(nb):
-                if b+1 < len(self):
+                if b+1 > len(self):
                     #add new virtual band
                     self.addVirtualBand(VRTRasterBand())
                 vBand = self[b]
                 assert isinstance(vBand, VRTRasterBand)
-                vBand.addSourceBand(file, b)
+                vBand.addSource(VRTRasterInputSourceBand(file, b))
         return self
 
     def addFilesAsStack(self, files):
@@ -654,7 +654,7 @@ class VRTRaster(QObject):
 
 
 
-    def saveVRT(self, pathVRT, warpedImageFolder = '.warpedimage'):
+    def saveVRT(self, pathVRT, warpedImageFolder = '.warpedimage')->gdal.Dataset:
         """
         Save the VRT to path.
         If source images need to be warped to the final CRS warped VRT image will be created in a folder <directory>/<basename>+<warpedImageFolder>/
