@@ -1453,7 +1453,7 @@
     <string>Select Spatial Extent</string>
    </property>
    <property name="toolTip">
-    <string>Seelct the spatial extent from a map canvas</string>
+    <string>Select the spatial extent from a map canvas</string>
    </property>
   </action>
   <action name="actionLoadVRT">

@@ -19,7 +19,7 @@
  *                                                                         *
  ***************************************************************************/
 """
-import os, sys, re, pickle, tempfile, uuid
+import os, sys, re, pickle, tempfile, uuid, warnings
 from xml.etree import ElementTree
 from collections import OrderedDict
 import tempfile
@@ -911,17 +911,52 @@ def createVirtualBandStack(bandFiles, pathVRT):
 
 
 class RasterBounds(object):
-    def __init__(self, path):
+    def __init__(self, uri):
         self.path = None
         self.polygon = None
         self.curve = None
         self.crs = None
 
-        if path is not None:
-            self.fromImage(path)
+        if isinstance(uri, str):
+            lyr = QgsRasterLayer(uri)
+            if isinstance(lyr, QgsRasterLayer):
+                self.fromLayer(lyr)
+            else:
+                lyr = QgsVectorLayer(uri)
+                if isinstance(lyr, QgsVectorLayer):
+                    self.fromLayer(lyr)
+            #self.fromImage(uri)
 
+    def fromLayer(self, mapLayer:QgsMapLayer):
+
+        if isinstance(mapLayer, QgsMapLayer) and mapLayer.isValid():
+            crs = mapLayer.crs()
+
+            self.path = mapLayer.source()
+
+            ring = ogr.Geometry(ogr.wkbLinearRing)
+            ext = mapLayer.extent()
+            bounds = None
+            for p in bounds:
+                assert isinstance(p, QgsPoint)
+                ring.AddPoint(p.x(), p.y())
+
+            curve = ogr.Geometry(ogr.wkbLinearRing)
+            curve.AddGeometry(ring)
+            self.curve = QgsCircularString()
+            self.curve.fromWkt(curve.ExportToWkt())
+
+            polygon = ogr.Geometry(ogr.wkbPolygon)
+            polygon.AddGeometry(ring)
+            self.polygon = QgsPolygon()
+            self.polygon.fromWkt(polygon.ExportToWkt())
+            self.polygon.exteriorRing().close()
+            assert self.polygon.exteriorRing().isClosed()
+
+            self.crs = crs
 
     def fromImage(self, path):
+        warnings.warn('use .fromLayer() instead', DeprecationWarning)
         self.path = path
         ds = gdal.Open(path)
         assert isinstance(ds, gdal.Dataset)

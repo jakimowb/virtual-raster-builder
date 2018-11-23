@@ -1212,7 +1212,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
             tb.setValidator(QDoubleValidator(-999999999999999999999.0, 999999999999999999999.0, 20))
 
         self.btnBoundsFromFile.clicked.connect(
-            lambda: self.setBoundsFromFile(str(QFileDialog.getOpenFileName(self, "Select raster file",
+            lambda: self.setBoundsFromFile(str(QFileDialog.getOpenFileName(self, "Select raster/vector file",
                                                                            directory=''))
                                            ))
 
@@ -1362,8 +1362,15 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         self.validateInputs()
 
     def setBoundsFromFile(self, file):
-        if os.path.isfile(file) and gdal.Open(file) is gdal.Dataset:
-            bounds = RasterBounds(file)
+        lyr = None
+        try:
+            lyr = QgsRasterLayer(file)
+
+        except Exception as ex:
+            pass
+
+        if isinstance(lyr, QgsMapLayer):
+            bounds = RasterBounds(lyr)
             bbox = bounds.polygon.boundingBox()
             self.setBounds(bbox, bounds.crs)
 
