@@ -680,7 +680,7 @@ class VRTRaster(QObject):
             dirWarped = os.path.join(os.path.splitext(pathVRT)[0] + '.WarpedImages')
 
         drvVRT = gdal.GetDriverByName('VRT')
-        
+
         for i, pathSrc in enumerate(self.sourceRaster()):
             dsSrc = gdal.Open(pathSrc)
             assert isinstance(dsSrc, gdal.Dataset)
@@ -911,12 +911,34 @@ def createVirtualBandStack(bandFiles, pathVRT):
 
 
 class RasterBounds(object):
+    """
+    Stores boundary information
+    """
+    @staticmethod
+    def create(src):
+        """
+        :param self:
+        :param src:
+        :return:
+        """
+        try:
+            return RasterBounds(src)
+        except Exception as ex:
+            return None
+
+    def __init__(self, path):
     def __init__(self, uri):
         self.path = None
         self.polygon = None
         self.curve = None
         self.crs = None
 
+        self.fromSource(path)
+
+    def __eq__(self, other):
+        if not isinstance(other, RasterBounds):
+            return False
+        return self.crs == other.crs and self.polygon.asWkt() == other.polygon.asWkt()
         if isinstance(uri, str):
             lyr = QgsRasterLayer(uri)
             if isinstance(lyr, QgsRasterLayer):
@@ -941,6 +963,14 @@ class RasterBounds(object):
                 assert isinstance(p, QgsPoint)
                 ring.AddPoint(p.x(), p.y())
 
+    def fromSource(self, src)->bool:
+        """
+        tries to open 'src' as QgsMapLayer t
+        :param src: any object
+        :return: bool
+        """
+        from vrtbuilder import toRasterLayer
+        lyr = toRasterLayer(src)
             curve = ogr.Geometry(ogr.wkbLinearRing)
             curve.AddGeometry(ring)
             self.curve = QgsCircularString()
@@ -955,6 +985,8 @@ class RasterBounds(object):
 
             self.crs = crs
 
+        assert isinstance(lyr, QgsMapLayer) and lyr.isValid()
+        return self.fromLayer(lyr)
     def fromImage(self, path):
         warnings.warn('use .fromLayer() instead', DeprecationWarning)
         self.path = path
@@ -971,21 +1003,21 @@ class RasterBounds(object):
             assert isinstance(p, QgsPoint)
             ring.AddPoint(p.x(), p.y())
 
-        curve = ogr.Geometry(ogr.wkbLinearRing)
-        curve.AddGeometry(ring)
-        self.curve = QgsCircularString()
-        self.curve.fromWkt(curve.ExportToWkt())
 
-        polygon = ogr.Geometry(ogr.wkbPolygon)
-        polygon.AddGeometry(ring)
+    def fromLayer(self, mapLayer:QgsMapLayer)->bool:
+
+        if not isinstance(mapLayer, QgsMapLayer):
+            return False
+
+        self.path = mapLayer.source()
         self.polygon = QgsPolygon()
-        self.polygon.fromWkt(polygon.ExportToWkt())
+        assert self.polygon.fromWkt(mapLayer.extent().asWktPolygon())
         self.polygon.exteriorRing().close()
         assert self.polygon.exteriorRing().isClosed()
 
-        self.crs = crs
+        self.crs = mapLayer.crs()
 
-        return self
+        return True
 
     def __repr__(self):
         return self.polygon.asWkt()
