@@ -19,6 +19,10 @@
 
 import os, sys, fnmatch, site, re
 
+
+from qgis.core import *
+from qgis.gui import *
+
 DIR = os.path.dirname(__file__)
 DIR_ROOT = os.path.dirname(DIR)
 DIR_UI = os.path.join(DIR,'ui')
@@ -48,3 +52,37 @@ PATH_ICON = os.path.join(DIR_UI,'mActionNewVirtualLayer.png')
 #import vrtbuilder.ui.resources
 #vrtbuilder.ui.resources.qInitResources()
 __version__ = VERSION
+
+
+MAPLAYER_STORES = [QgsProject.instance()]
+
+def registerLayerStore(store):
+    assert isinstance(store, (QgsProject, QgsMapLayerStore))
+    if store not in MAPLAYER_STORES:
+        MAPLAYER_STORES.append(store)
+
+def layerRegistered()->bool:
+
+    return False
+
+
+def toRasterLayer(src) -> QgsRasterLayer:
+    """
+    Returns a QgsRasterLayer if it can be extracted from src
+    :param src: any type of input
+    :return: QgsRasterLayer or None
+    """
+    lyr = None
+    try:
+        if isinstance(src, str):
+            lyr = QgsRasterLayer(src)
+
+        if isinstance(src, gdal.Dataset):
+            lyr = QgsRasterLayer(src.GetFileList()[0], '', 'gdal')
+        elif isinstance(src, QgsMapLayer) :
+            lyr = src
+
+    except Exception as ex:
+        print(ex)
+
+    return lyr

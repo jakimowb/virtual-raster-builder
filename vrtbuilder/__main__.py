@@ -17,6 +17,7 @@
 ***************************************************************************
 """
 import os
+
 from vrtbuilder import DIR_EXAMPLEDATA
 from vrtbuilder.utils import file_search
 

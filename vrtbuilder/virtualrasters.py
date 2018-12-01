@@ -834,46 +834,61 @@ def createVirtualBandStack(bandFiles, pathVRT):
 
 
 class RasterBounds(object):
+    """
+    Stores boundary information
+    """
+    @staticmethod
+    def create(src):
+        """
+        :param self:
+        :param src:
+        :return:
+        """
+        try:
+            return RasterBounds(src)
+        except Exception as ex:
+            return None
+
     def __init__(self, path):
         self.path = None
         self.polygon = None
         self.curve = None
         self.crs = None
 
-        if path is not None:
-            self.fromImage(path)
+        self.fromSource(path)
+
+    def __eq__(self, other):
+        if not isinstance(other, RasterBounds):
+            return False
+        return self.crs == other.crs and self.polygon.asWkt() == other.polygon.asWkt()
+
+    def fromSource(self, src)->bool:
+        """
+        tries to open 'src' as QgsMapLayer t
+        :param src: any object
+        :return: bool
+        """
+        from vrtbuilder import toRasterLayer
+        lyr = toRasterLayer(src)
+
+        assert isinstance(lyr, QgsMapLayer) and lyr.isValid()
+        return self.fromLayer(lyr)
 
 
-    def fromImage(self, path):
-        self.path = path
-        ds = gdal.Open(path)
-        assert isinstance(ds, gdal.Dataset)
-        gt = ds.GetGeoTransform()
-        bounds = [px2geo(QPoint(0, 0), gt),
-                  px2geo(QPoint(ds.RasterXSize, 0), gt),
-                  px2geo(QPoint(ds.RasterXSize, ds.RasterYSize), gt),
-                  px2geo(QPoint(0, ds.RasterYSize), gt)]
-        crs = QgsCoordinateReferenceSystem(ds.GetProjection())
-        ring = ogr.Geometry(ogr.wkbLinearRing)
-        for p in bounds:
-            assert isinstance(p, QgsPoint)
-            ring.AddPoint(p.x(), p.y())
+    def fromLayer(self, mapLayer:QgsMapLayer)->bool:
 
-        curve = ogr.Geometry(ogr.wkbLinearRing)
-        curve.AddGeometry(ring)
-        self.curve = QgsCircularString()
-        self.curve.fromWkt(curve.ExportToWkt())
+        if not isinstance(mapLayer, QgsMapLayer):
+            return False
 
-        polygon = ogr.Geometry(ogr.wkbPolygon)
-        polygon.AddGeometry(ring)
+        self.path = mapLayer.source()
         self.polygon = QgsPolygon()
-        self.polygon.fromWkt(polygon.ExportToWkt())
+        assert self.polygon.fromWkt(mapLayer.extent().asWktPolygon())
         self.polygon.exteriorRing().close()
         assert self.polygon.exteriorRing().isClosed()
 
-        self.crs = crs
+        self.crs = mapLayer.crs()
 
-        return self
+        return True
 
     def __repr__(self):
         return self.polygon.asWkt()

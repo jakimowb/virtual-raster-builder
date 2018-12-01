@@ -23,6 +23,7 @@ from qgis.PyQt.QtXml import *
 from vrtbuilder.widgets import *
 from vrtbuilder.virtualrasters import *
 from vrtbuilder.utils import initQgisApplication
+import exampledata
 
 QGIS_APP = initQgisApplication()
 class testclassData(unittest.TestCase):
@@ -92,6 +93,20 @@ class testclassData(unittest.TestCase):
         self.assertTrue(len(self.gui.sourceFileModel), 1)
         files = self.gui.sourceFileModel.files()
         self.assertTrue(landsat1 in files)
+        QGIS_APP.exec_()
+
+    def test_bounds(self):
+
+        p = exampledata.landsat1
+
+        b1 = RasterBounds.create(p)
+        self.assertIsInstance(b1, RasterBounds)
+
+        lyr = QgsRasterLayer(p)
+        b2 = RasterBounds.create(lyr)
+
+        self.assertIsInstance(b2, RasterBounds)
+        self.assertEqual(b1, b2)
 
 
 
