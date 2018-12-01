@@ -21,22 +21,18 @@ from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtXml import *
 
 import numpy as np
-
+from tests import *
+QGIS_APP = initQgisApplication()
+SHOW_GUI = True
+from vrtbuilder import toRasterLayer, toVectorLayer
 from vrtbuilder.widgets import *
 from vrtbuilder.virtualrasters import *
-from vrtbuilder.utils import initQgisApplication
+from vrtbuilder.utils import *
 from exampledata import landsat1, landsat2, landsat2_SAD, rapideye
 import exampledata
-
-QGIS_APP = initQgisApplication()
 class testclassData(unittest.TestCase):
 
-    def setUp(self):
-        self.gui = VRTBuilderWidget()
-        self.gui.show()
-        self.tmpDir = tempfile.mkdtemp('testVRT')
-    def tearDown(self):
-        self.gui.close()
+
 
     def test_vsi_support(self):
 
@@ -183,12 +179,14 @@ class testclassData(unittest.TestCase):
         reg = QgsProject.instance()
         lyr = QgsRasterLayer(landsat1)
         reg.addMapLayer(lyr)
-
-        self.gui.loadSrcFromMapLayerRegistry()
-        self.assertTrue(len(self.gui.sourceFileModel), 1)
-        files = self.gui.sourceFileModel.files()
+        GUI = VRTBuilderWidget()
+        GUI.show()
+        GUI.loadSrcFromMapLayerRegistry()
+        self.assertTrue(len(GUI.sourceFileModel), 1)
+        files = GUI.sourceFileModel.rasterSources()
         self.assertTrue(landsat1 in files)
-        QGIS_APP.exec_()
+        if SHOW_GUI:
+            QGIS_APP.exec_()
 
     def test_bounds(self):
 
@@ -208,6 +206,30 @@ class testclassData(unittest.TestCase):
 
     def test_vrtBuilderGUI(self):
         pass
+
+
+    def test_init(self):
+
+        dsMEM = TestObjects.inMemoryImage(100,20,3)
+        self.assertIsInstance(dsMEM, gdal.Dataset)
+
+
+        sources = [landsat1, gdal.Open(landsat1), QgsRasterLayer(landsat1), dsMEM, dsMEM.GetFileList()[0]]
+        for s in sources:
+            self.assertIsInstance(toRasterLayer(s), QgsRasterLayer)
+
+        sources = ['foo', None, 234, 42.1]
+        for s in sources:
+            self.assertEqual(toRasterLayer(s), None)
+
+        pass
+
+
+        dsVEC = TestObjects.inMemoryVector()
+        sources = [dsVEC, dsVEC.GetDescription()]
+        for s in sources:
+            self.assertIsInstance(toVectorLayer(s), QgsVectorLayer)
+
 
 if __name__ == "__main__":
 

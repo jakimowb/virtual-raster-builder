@@ -33,7 +33,7 @@ from vrtbuilder.models import TreeModel, TreeNode, TreeView
 from vrtbuilder.virtualrasters import VRTRaster, VRTRasterBand, VRTRasterInputSourceBand, RasterBounds, RESAMPLE_ALGS
 from vrtbuilder.utils import loadUi
 from vrtbuilder import registerLayerStore, MAPLAYER_STORES
-
+from vrtbuilder import toRasterLayer
 LUT_FILEXTENSIONS = {}
 
 
@@ -120,13 +120,13 @@ class VRTRasterBandNode(TreeNode):
         virtualBand.sigNameChanged.connect(self.setName)
         virtualBand.sigSourceInserted.connect(lambda _, src: self.onSourceInserted(src))
         virtualBand.sigSourceRemoved.connect(self.onSourceRemoved)
-        for src in self.mVirtualBand.sources:
+        for src in self.mVirtualBand:
             self.onSourceInserted(src)
 
     def onSourceInserted(self, inputSource):
         assert isinstance(inputSource, VRTRasterInputSourceBand)
         assert inputSource.virtualBand() == self.mVirtualBand
-        i = self.mVirtualBand.sources.index(inputSource)
+        i = self.mVirtualBand.mSources.index(inputSource)
 
         node = VRTRasterInputSourceBandNode(None, inputSource)
         self.nodeBands.insertChildNodes(i, node)
@@ -306,8 +306,6 @@ class VRTRasterPreviewMapCanvas(QgsMapCanvas):
 
 class SourceRasterFileNode(TreeNode):
 
-
-
     def __init__(self, parentNode, mapLayer:QgsRasterLayer):
         super(SourceRasterFileNode, self).__init__(parentNode)
         assert isinstance(mapLayer, QgsRasterLayer)
@@ -319,30 +317,18 @@ class SourceRasterFileNode(TreeNode):
         srcNode.setValues(self.mPath)
 
         # populate metainfo
-        ds = gdal.Open(self.mPath)
-        assert isinstance(ds, gdal.Dataset)
-
         crsNode = TreeNode(self, name='CRS')
         crsNode.setIcon(QIcon(':/vrtbuilder/CRS.svg'))
-        #crs = osr.SpatialReference()
-        #crs.ImportFromWkt(ds.GetProjection())
-        #QgsCoordinateReferenceSystem(ds.GetProjection())
-        #authInfo = '{}:{}'.format(crs.GetAttrValue(str('AUTHORITY'), 0), crs.GetAttrValue(str('AUTHORITY'), 1))
-        crs = QgsCoordinateReferenceSystem(ds.GetProjection())
+        crs = self.mRasterLayer.crs()
         authInfo = crs.authid()
         #crsNode.setValues([authInfo, crs.ExportToWkt()])
         crsNode.setValues([authInfo, crs.toWkt()])
         self.bandNode = TreeNode(None, name='Bands')
-        for b in range(ds.RasterCount):
-            band = ds.GetRasterBand(b + 1)
-
+        for b in range(self.mRasterLayer.bandCount()):
             inputSource = VRTRasterInputSourceBand(self.mPath, b)
-            inputSource.mBandName = band.GetDescription().encode('utf-8')
-            inputSource = VRTRasterInputSourceBand(path, b)
-            inputSource.mBandName = band.GetDescription()
-            if inputSource.mBandName in [None, '']:
-                inputSource.mBandName = 'Band {}'.format(b + 1)
-            inputSource.mNoData = band.GetNoDataValue()
+            inputSource.mBandName = self.mRasterLayer.bandName(b+1)
+            inputSource = VRTRasterInputSourceBand(self.mRasterLayer.source(), b)
+            inputSource.mNoData = self.mRasterLayer.dataProvider().sourceNoDataValue(b+1)
 
             SourceRasterBandNode(self.bandNode, inputSource)
         self.bandNode.setParentNode(self)
@@ -351,6 +337,8 @@ class SourceRasterFileNode(TreeNode):
     def sourceBands(self):
         return [n.mSrcBand for n in self.bandNode.mChildren if isinstance(n, SourceRasterBandNode)]
 
+    def rasterLayer(self)->QgsRasterLayer:
+        return self.mRasterLayer
 
 
 class SourceRasterFilterModel(QSortFilterProxyModel):
@@ -399,8 +387,8 @@ class SourceRasterFilterModel(QSortFilterProxyModel):
 
 
 class SourceRasterModel(TreeModel):
-    sigFilesAdded = pyqtSignal(list)
-    sigFilesRemoved = pyqtSignal(list)
+    sigSourcesAdded = pyqtSignal(list)
+    sigSourcesRemoved = pyqtSignal(list)
 
     def __init__(self, parent=None):
         super(SourceRasterModel, self).__init__(parent)
@@ -409,24 +397,29 @@ class SourceRasterModel(TreeModel):
 
 
     def __len__(self):
-        return len(self.files())
+        return len(self.rasterSources())
 
 
     def __iter__(self):
-        return iter(self.files())
+        return iter(self.rasterSources())
 
 
     def __contains__(self, file):
-        return file in self.files()
+        return file in self.rasterSources()
 
 
-    def files(self)->list:
+
+
+    def rasterSources(self)->list:
 
         return [l.source() for l in self.rasterLayers()]
 
-
     def rasterLayers(self)->list:
-        return [n.mRasterLayer for n in self.mRootNode.childNodes() if isinstance(n, SourceRasterFileNode)]
+        """
+        Returns a list of raster layers
+        :return:
+        """
+        return [n.rasterLayer() for n in self.mRootNode.childNodes() if isinstance(n, SourceRasterFileNode)]
 
 
     def addSource(self, rasterSource):
@@ -434,33 +427,15 @@ class SourceRasterModel(TreeModel):
 
     def addSources(self, rasterSources):
         assert isinstance(rasterSources, list)
-        existingSources = self.files()
+        existingSources = self.rasterSources()
 
-        newFiles = []
+        newLayers = [toRasterLayer(s) for s in rasterSources]
+        newLayers = [l for l in newLayers if isinstance(l, QgsRasterLayer) and l.source() not in existingSources]
 
-        for file in rasterSources:
-            pass
-
-        for path in [os.path.normpath(f) for f in rasterSources]:
-        for path in files:
-            if not path.startswith('/vsi'):
-                path = os.path.normpath(path)
-            ds = gdal.Open(path)
-            if isinstance(ds, gdal.Dataset):
-                nb = ds.RasterCount
-                subs = [tup[0] for tup in ds.GetSubDatasets()]
-
-                if nb > 0:
-                    newFiles.append(path)
-                if len(subs) > 0:
-                    newFiles.extend(subs)
-
-        newFiles = [f for f in newFiles if f not in existingSources and isinstance(gdal.Open(f), gdal.Dataset)]
-
-        if len(newFiles) > 0:
-            for f in newFiles:
-                SourceRasterFileNode(self.mRootNode, f)
-            self.sigFilesAdded.emit(newFiles)
+        if len(newLayers) > 0:
+            for lyr in newLayers:
+                SourceRasterFileNode(self.mRootNode, lyr)
+            self.sigSourcesAdded.emit(newLayers)
 
     def file2node(self, file):
         for node in self.mRootNode.childNodes():
@@ -476,7 +451,7 @@ class SourceRasterModel(TreeModel):
         if len(toRemove) > 0:
             for n in toRemove:
                 n.parentNode().removeChildNode(n)
-            self.sigFilesRemoved.emit(toRemove)
+            self.sigSourcesRemoved.emit(toRemove)
 
     def supportedDropActions(self):
         return Qt.CopyAction | Qt.MoveAction
@@ -1093,8 +1068,8 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
             QgsApplication.instance().messageLog().logMessage(info)
 
         self.sourceFileModel = SourceRasterModel(parent=self.treeViewSourceFiles)
-        self.sourceFileModel.sigFilesRemoved.connect(self.refreshInfoSources)
-        self.sourceFileModel.sigFilesAdded.connect(self.refreshInfoSources)
+        self.sourceFileModel.sigSourcesRemoved.connect(self.refreshInfoSources)
+        self.sourceFileModel.sigSourcesAdded.connect(self.refreshInfoSources)
 
         self.sourceFileProxyModel = SourceRasterFilterModel()
         self.sourceFileProxyModel.setSourceModel(self.sourceFileModel)
@@ -1143,7 +1118,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         self.vrtRasterLayer = VRTRasterVectorLayer(self.vrtRaster)
         self.vrtRasterLayer.dataChanged.connect(self.resetMap)
         self.vrtRasterLayer.dataChanged.connect(self.validateInputs)
-        self.vrtRaster.sigSourceRasterAdded.connect(self.sourceFileProxyModel.sourceModel().addFiles)
+        self.vrtRaster.sigSourceRasterAdded.connect(self.sourceFileProxyModel.sourceModel().addSources)
         self.mBackgroundLayer = None
         # self.vrtRasterLayer.editingStopped.connect(self.resetMap)
 
@@ -1201,9 +1176,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
             tb.setValidator(QDoubleValidator(-999999999999999999999.0, 999999999999999999999.0, 20))
 
         self.btnBoundsFromFile.clicked.connect(
-            lambda: self.setBoundsFromSource(str(QFileDialog.getOpenFileName(self, "Select raster file",
-                                                                             directory=''))
-                                             ))
+
             lambda: self.setBoundsFromFile(str(QFileDialog.getOpenFileName(self, "Select raster/vector file",
                                                                            directory=''))
                                            ))
@@ -1400,8 +1373,10 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
     def setBoundsFromSource(self, source):
         bounds = RasterBounds.create(source)
         if isinstance(bounds, RasterBounds):
+            self.setBounds(bounds.polygon.boundingBox(), bounds.crs)
+
     def setBoundsFromFile(self, file):
-        lyr = None
+        lyr = toRasterLayer(file)
         try:
             lyr = QgsRasterLayer(file)
 
@@ -1428,7 +1403,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
 
     def refreshInfoSources(self, *args):
 
-        files = self.sourceFileModel.files()
+        files = self.sourceFileModel.rasterSources()
         # refresh menu to select image bounds & image resolutions
         menuBounds = QMenu()
         menuResolution = QMenu()

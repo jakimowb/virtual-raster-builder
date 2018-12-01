@@ -19,7 +19,7 @@
 
 import os, sys, fnmatch, site, re
 
-
+from osgeo import gdal, ogr
 from qgis.core import *
 from qgis.gui import *
 
@@ -65,6 +65,27 @@ def layerRegistered()->bool:
 
     return False
 
+def toVectorLayer(src) -> QgsVectorLayer:
+    """
+    Returns a QgsRasterLayer if it can be extracted from src
+    :param src: any type of input
+    :return: QgsRasterLayer or None
+    """
+    lyr = None
+    try:
+        if isinstance(src, str):
+            lyr = QgsVectorLayer(src)
+        if isinstance(src, ogr.DataSource):
+            path = src.GetDescription()
+            bn = os.path.basename(path)
+            lyr = QgsVectorLayer(path, bn, 'ogr')
+        elif isinstance(src, QgsVectorLayer):
+            lyr = src
+
+    except Exception as ex:
+        print(ex)
+
+    return lyr
 
 def toRasterLayer(src) -> QgsRasterLayer:
     """
@@ -76,13 +97,17 @@ def toRasterLayer(src) -> QgsRasterLayer:
     try:
         if isinstance(src, str):
             lyr = QgsRasterLayer(src)
-
         if isinstance(src, gdal.Dataset):
             lyr = QgsRasterLayer(src.GetFileList()[0], '', 'gdal')
         elif isinstance(src, QgsMapLayer) :
             lyr = src
+        elif isinstance(src, gdal.Band):
+            return toRasterLayer(src.GetDataset())
 
     except Exception as ex:
         print(ex)
 
-    return lyr
+    if isinstance(lyr, QgsRasterLayer) and lyr.isValid():
+        return lyr
+    else:
+        return None

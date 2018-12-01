@@ -234,7 +234,7 @@ class TestObjects():
     Class with static routines to create test objects
     """
     @staticmethod
-    def inMemoryImage(nl=10, ns=20, nb=1, crs='EPSG:32632', eType=gdal.GDT_Byte, nc:int=0, path:str=None):
+    def inMemoryImage(nl=10, ns=20, nb=1, crs='EPSG:32632', eType=gdal.GDT_Byte, nc:int=0, path:str=None)->gdal.Dataset:
 
 
 
@@ -273,6 +273,63 @@ class TestObjects():
 
             band.WriteArray(array)
         ds.FlushCache()
+        return ds
+
+
+
+    @staticmethod
+    def inMemoryVector(geomType:str='POINT', nFeatures:int=10,  crs='EPSG:32632', path: str = None, drvName:str='ESRI Shapefile'):
+        assert geomType in ['POINT','LINE','POLYGON']
+        assert nFeatures >= 0
+
+        if not isinstance(path, str):
+            path = '/vsimem/testVector.{}.shp'.format(str(uuid.uuid4()))
+
+        drv = ogr.GetDriverByName(drvName)
+        assert isinstance(drv, ogr.Driver)
+        ds = drv.CreateDataSource(path)
+        assert isinstance(ds, ogr.DataSource)
+        srs= None
+        crs = None
+        if isinstance(crs, str):
+            crs = QgsCoordinateReferenceSystem(crs)
+            srs = osr.SpatialReference()
+            srs.ImportFromWkt(crs.toWkt())
+        lyr = ds.CreateLayer('layer_1', srs=srs)
+        assert isinstance(lyr, ogr.Layer)
+        lyr.CreateField(ogr.FieldDefn('name', ogr.OFTString))
+        if isinstance(crs, QgsCoordinateReferenceSystem):
+            bounds = crs.bounds()
+            transBounds2CRS = QgsCoordinateTransform()
+            transBounds2CRS.setDestinationCrs(crs)
+            transBounds2CRS.setSourceCrs(QgsCoordinateReferenceSystem('EPSG:4326'))
+
+        else:
+            bounds = QgsRectangle(-1, -1, 1, 1)
+            transBounds2CRS = None
+
+
+        if geomType == 'POINT':
+            points = []
+            for i in range(nFeatures):
+                x = np.random.uniform(bounds.xMinimum(), bounds.xMaximum())
+                y = np.random.uniform(bounds.yMinimum(), bounds.yMaximum())
+                points.append(QgsPointXY(x,y))
+
+            if isinstance(transBounds2CRS, QgsCoordinateReferenceSystem):
+                points = [transBounds2CRS.transform(p) for p in points]
+
+            for i, p in enumerate(points):
+                ogrPoint = ogr.Geometry(ogr.wkbPoint)
+                ogrPoint.AddPoint(p.x(), p.y())
+
+                feature = ogr.Feature(lyr.GetLayerDefn())
+                feature.SetGeometry(ogrPoint)
+                feature.SetField('name', 'feature {}'.format(i+1))
+                lyr.CreateFeature(feature)
+        else:
+            raise NotImplementedError()
+
         return ds
 
     @staticmethod

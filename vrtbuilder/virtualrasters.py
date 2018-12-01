@@ -267,6 +267,9 @@ class VRTRasterBand(QObject):
         self.setName(name)
         self.mVRT = None
 
+    def __iter__(self):
+        return iter(self.mSources)
+
     def __len__(self):
         return len(self.mSources)
 
@@ -926,14 +929,14 @@ class RasterBounds(object):
         except Exception as ex:
             return None
 
-    def __init__(self, path):
+
     def __init__(self, uri):
         self.path = None
         self.polygon = None
         self.curve = None
         self.crs = None
 
-        self.fromSource(path)
+        self.fromSource(uri)
 
     def __eq__(self, other):
         if not isinstance(other, RasterBounds):
@@ -971,22 +974,8 @@ class RasterBounds(object):
         """
         from vrtbuilder import toRasterLayer
         lyr = toRasterLayer(src)
-            curve = ogr.Geometry(ogr.wkbLinearRing)
-            curve.AddGeometry(ring)
-            self.curve = QgsCircularString()
-            self.curve.fromWkt(curve.ExportToWkt())
-
-            polygon = ogr.Geometry(ogr.wkbPolygon)
-            polygon.AddGeometry(ring)
-            self.polygon = QgsPolygon()
-            self.polygon.fromWkt(polygon.ExportToWkt())
-            self.polygon.exteriorRing().close()
-            assert self.polygon.exteriorRing().isClosed()
-
-            self.crs = crs
-
-        assert isinstance(lyr, QgsMapLayer) and lyr.isValid()
         return self.fromLayer(lyr)
+
     def fromImage(self, path):
         warnings.warn('use .fromLayer() instead', DeprecationWarning)
         self.path = path
