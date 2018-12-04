@@ -73,7 +73,7 @@ class testclassData(unittest.TestCase):
 
     def test_vrtRaster(self):
 
-
+        tmpDir = tempfile.mkdtemp()
 
 
         #1. create an empty VRT
@@ -100,7 +100,7 @@ class testclassData(unittest.TestCase):
 
             for _ in range(n):
                 VRT.addVirtualBand(VRTRasterBand())
-            path = os.path.join(self.tmpDir, 'testEmptyVRT.vrt')
+            path =  os.path.join(tmpDir, 'testEmptyVRT.vrt')
 
             if n == 0:
                 self.assertRaises(Exception, VRT.saveVRT, path)
@@ -117,6 +117,20 @@ class testclassData(unittest.TestCase):
             self.assertEqual(ds.RasterCount, len(VRT))
 
         pass
+
+    def test_VRTRasterInputSourceBand(self):
+
+        bands1 = VRTRasterInputSourceBand.fromRasterLayer(landsat1)
+        bands2 = VRTRasterInputSourceBand.fromGDALDataSet(landsat1)
+
+        self.assertIsInstance(bands1, list)
+        self.assertIsInstance(bands2, list)
+        self.assertTrue(len(bands1) == len(bands2))
+
+        for b1, b2 in zip(bands1, bands2):
+            self.assertIsInstance(b1, VRTRasterInputSourceBand)
+            self.assertIsInstance(b2, VRTRasterInputSourceBand)
+            self.assertTrue(b2.name() in b1.name())
 
     def test_describeRaw(self):
         from exampledata import speclib as pathESL
@@ -182,9 +196,32 @@ class testclassData(unittest.TestCase):
         GUI = VRTBuilderWidget()
         GUI.show()
         GUI.loadSrcFromMapLayerRegistry()
-        self.assertTrue(len(GUI.sourceFileModel), 1)
-        files = GUI.sourceFileModel.rasterSources()
+        self.assertTrue(len(GUI.mSourceFileModel), 1)
+        files = GUI.mSourceFileModel.rasterSources()
         self.assertTrue(landsat1 in files)
+
+        self.assertIsInstance(GUI.mSourceFileModel.rootNode(), TreeNode)
+        child1 = GUI.mSourceFileModel.rootNode().childNodes()[0]
+        self.assertIsInstance(child1, SourceRasterFileNode)
+
+        for b in child1.sourceBands():
+            self.assertIsInstance(b, VRTRasterInputSourceBand)
+
+        sourceBandIndices = []
+        for node in child1.childNodes()[-1].childNodes():
+            self.assertIsInstance(node, SourceRasterBandNode)
+            idx = GUI.mSourceFileModel.node2idx(node)
+            self.assertIsInstance(idx, QModelIndex)
+            sourceBandIndices.append(idx)
+
+        # get the first band of first source
+        mimeData = GUI.mSourceFileModel.mimeData(sourceBandIndices[0:1])
+        self.assertIsInstance(mimeData, QMimeData)
+        # drop a source on to the VRTRasterTreeModel
+        GUI.mVRTRasterTreeModel.dropMimeData(mimeData, Qt.CopyAction, 0, 0, QModelIndex())
+        self.assertTrue(len(GUI.mVRTRaster) == 1)
+
+
         if SHOW_GUI:
             QGIS_APP.exec_()
 

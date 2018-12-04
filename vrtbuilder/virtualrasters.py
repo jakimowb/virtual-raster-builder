@@ -205,6 +205,7 @@ def describeRawFile(pathRaw, pathVrt, xsize, ysize,
 
 
 class VRTRasterInputSourceBand(object):
+
     @staticmethod
     def fromGDALDataSet(pathOrDataSet):
         """
@@ -224,6 +225,27 @@ class VRTRasterInputSourceBand(object):
                 srcBands.append(VRTRasterInputSourceBand(path, b))
         return srcBands
 
+    @staticmethod
+    def fromRasterLayer(layer:QgsRasterLayer):
+
+        if isinstance(layer, str):
+            lyr = QgsRasterLayer(layer, '', 'gdal')
+            return VRTRasterInputSourceBand.fromRasterLayer(lyr)
+
+
+
+        if not (isinstance(layer, QgsRasterLayer) and
+                layer.dataProvider().name() == 'gdal' and
+                layer.isValid()):
+            return []
+
+        srcBands = []
+        src = layer.source()
+        for b in range(layer.bandCount()):
+            name = layer.bandName(b+1)
+            srcBands.append(VRTRasterInputSourceBand(src, b, bandName=name))
+
+        return srcBands
 
 
     def __init__(self, path:str, bandIndex:int, bandName:str=''):
@@ -233,6 +255,8 @@ class VRTRasterInputSourceBand(object):
         self.mNoData = None
         self.mVirtualBand = None
 
+    def name(self)->str:
+        return self.mBandName
 
     def isEqual(self, other):
         if isinstance(other, VRTRasterInputSourceBand):
@@ -319,12 +343,16 @@ class VRTRasterBand(QObject):
             self.sigSourceRemoved.emit(i, vrtRasterInputSourceBand)
 
 
-    def sourceFiles(self):
+    def sourceFiles(self)->list:
         """
-        :return: list of file-paths to all source files
+        Returns the files paths of source files
+        :return: [list-of-str]
         """
-        files = set([inputSource.mPath for inputSource in self.mSources])
-        return sorted(list(files))
+        files = []
+        for p in self.mSources:
+            if p not in files:
+                files.append(p)
+        return files
 
     def __repr__(self):
         infos = ['VirtualBand name="{}"'.format(self.mName)]
@@ -353,13 +381,8 @@ class VRTRaster(QObject):
         self.mCrs = None
         self.mResamplingAlg = gdal.GRA_NearestNeighbour
         self.mMetadata = dict()
-        self.mSourceRasterBounds = dict()
         self.mExtent = None
         self.mResolution = None
-        self.sigSourceBandRemoved.connect(self.updateSourceRasterBounds)
-        self.sigSourceBandInserted.connect(self.updateSourceRasterBounds)
-        self.sigBandRemoved.connect(self.updateSourceRasterBounds)
-        self.sigBandInserted.connect(self.updateSourceRasterBounds)
 
 
     def setResamplingAlg(self, value):
@@ -449,7 +472,8 @@ class VRTRaster(QObject):
     def resolution(self):
         """
         Returns the internal resolution descriptor, which can be
-        an explicit QSizeF(x,y) or one of following strings: 'average','highest','lowest'
+        an explicit resolution given as QSizeF(x,y)
+        or one of following strings: 'average','highest','lowest'
         """
         return self.mResolution
 
@@ -478,16 +502,16 @@ class VRTRaster(QObject):
     def crs(self):
         return self.mCrs
 
-    def addVirtualBand(self, virtualBand):
+    def addVirtualBand(self, virtualBand:VRTRasterBand):
         """
         Adds a virtual band
-        :param virtualBand: the VirtualBand to be added
+        :param virtualBand: VRTRasterBand
         :return: VirtualBand
         """
         assert isinstance(virtualBand, VRTRasterBand)
         return self.insertVirtualBand(len(self), virtualBand)
 
-    def insertSourceBand(self, virtualBandIndex, pathSource, sourceBandIndex):
+    def insertSourceBand(self, virtualBandIndex:int, pathSource, sourceBandIndex:int):
         """
         Inserts a source band into the VRT stack
         :param virtualBandIndex: target virtual band index
@@ -503,7 +527,7 @@ class VRTRaster(QObject):
         vBand.addSourceBand(pathSource, sourceBandIndex)
 
 
-    def insertVirtualBand(self, index, virtualBand):
+    def insertVirtualBand(self, index:int, virtualBand:VRTRasterBand):
         """
         Inserts a VirtualBand
         :param index: the insert position
@@ -592,39 +616,34 @@ class VRTRaster(QObject):
 
         return self
 
-    def sourceRaster(self):
-        files = set()
+    def sourceRaster(self)->list:
+        """
+        Returns the list of source raster files.
+        :return: [list-of-str]
+        """
+        files = []
         for vBand in self.mBands:
             assert isinstance(vBand, VRTRasterBand)
-            files.update(set(vBand.sourceFiles()))
-        return sorted(list(files))
+            for file in vBand.sourceFiles():
+                if file not in files:
+                    files.append(file)
+        return files
 
-    def sourceRasterBounds(self):
-        return self.mSourceRasterBounds
+    def sourceRasterBounds(self, crs:QgsCoordinateReferenceSystem=None)->list:
+        """
+        Returns a list of (str, QgsRectangle)
+        :return: [(str, QgsRectangle),...]
+        """
+        bounds = []
+        for src in self.sourceRaster():
 
+            lyr = QgsRasterLayer(src)
+            ext = lyr.extent()
 
-    def updateSourceRasterBounds(self):
+            bounds.append((lyr, ext))
 
-        srcFiles = self.sourceRaster()
-        toRemove = [f for f in self.mSourceRasterBounds.keys() if f not in srcFiles]
-        toAdd = [f for f in srcFiles if f not in self.mSourceRasterBounds.keys()]
+        return bounds
 
-        for f in toRemove:
-            del self.mSourceRasterBounds[f]
-        for f in toAdd:
-            self.mSourceRasterBounds[f] = RasterBounds(f)
-
-        if len(srcFiles) > 0 and self.crs() == None:
-            self.setCrs(self.mSourceRasterBounds[srcFiles[0]].crs)
-
-        elif len(srcFiles) == 0:
-            self.setCrs(None)
-
-
-        if len(toRemove) > 0:
-            self.sigSourceRasterRemoved.emit(toRemove)
-        if len(toAdd) > 0:
-            self.sigSourceRasterAdded.emit(toAdd)
 
     def loadVRT(self, pathVRT, bandIndex = None):
         """

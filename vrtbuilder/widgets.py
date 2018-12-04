@@ -38,8 +38,8 @@ LUT_FILEXTENSIONS = {}
 
 
 
-
-
+MDK_BANDLIST = 'hub.vrtbuilder/bandlist'
+MDK_INDICES = 'hub.vrtbuilder/vrt.indices'
 
 for i in range(gdal.GetDriverCount()):
     drv = gdal.GetDriver(i)
@@ -312,9 +312,13 @@ class SourceRasterFileNode(TreeNode):
         assert mapLayer.dataProvider().name() == 'gdal'
         self.mRasterLayer = mapLayer
         self.mPath = mapLayer.source()
-        self.setName(mapLayer.name())
+
+        name = mapLayer.name()
+        if name == '':
+            name = os.path.basename(mapLayer.source())
+        self.setName(name)
         srcNode = TreeNode(self, name='Path')
-        srcNode.setValues(self.mPath)
+        srcNode.setValues(mapLayer.source())
 
         # populate metainfo
         crsNode = TreeNode(self, name='CRS')
@@ -325,9 +329,9 @@ class SourceRasterFileNode(TreeNode):
         crsNode.setValues([authInfo, crs.toWkt()])
         self.bandNode = TreeNode(None, name='Bands')
         for b in range(self.mRasterLayer.bandCount()):
-            inputSource = VRTRasterInputSourceBand(self.mPath, b)
-            inputSource.mBandName = self.mRasterLayer.bandName(b+1)
-            inputSource = VRTRasterInputSourceBand(self.mRasterLayer.source(), b)
+            bandName = self.mRasterLayer.bandName(b+1)
+            inputSource = VRTRasterInputSourceBand(self.mPath, b, bandName=bandName)
+            inputSource.mBandName = bandName
             inputSource.mNoData = self.mRasterLayer.dataProvider().sourceNoDataValue(b+1)
 
             SourceRasterBandNode(self.bandNode, inputSource)
@@ -416,8 +420,8 @@ class SourceRasterModel(TreeModel):
 
     def rasterLayers(self)->list:
         """
-        Returns a list of raster layers
-        :return:
+        Returns the list of QgsRasterLayers behind all input sources.
+        :return: [list-of-QgsRasterLayers]
         """
         return [n.rasterLayer() for n in self.mRootNode.childNodes() if isinstance(n, SourceRasterFileNode)]
 
@@ -511,7 +515,7 @@ class SourceRasterModel(TreeModel):
         types.append('application/x-vnd.qgis.qgis.uri')
         return types
 
-    def mimeData(self, indexes):
+    def mimeData(self, indexes)->QMimeData:
         indexes = sorted(indexes)
         if len(indexes) == 0:
             return None
@@ -536,7 +540,7 @@ class SourceRasterModel(TreeModel):
         mimeData = QMimeData()
 
         if len(sourceBands) > 0:
-            mimeData.setData('hub.vrtbuilder/bandlist', pickle.dumps(sourceBands))
+            mimeData.setData(MDK_BANDLIST, pickle.dumps(sourceBands))
 
         # set text/uri-list
         if len(uriList) > 0:
@@ -683,14 +687,12 @@ class VRTSelectionModel(QItemSelectionModel):
 
 
 class VRTRasterTreeModel(TreeModel):
-    def __init__(self, parent=None, vrtRaster=None):
-
-        vrtRaster = vrtRaster if isinstance(vrtRaster, VRTRaster) else VRTRaster()
+    def __init__(self, vrtRaster:VRTRaster, parent=None):
+        assert isinstance(vrtRaster, VRTRaster)
         rootNode = VRTRasterNode(None, vrtRaster)
         super(VRTRasterTreeModel, self).__init__(parent, rootNode=rootNode)
         self.mVRTRaster = vrtRaster
         self.mColumnNames = ['Virtual Raster']
-
         self.mDropMode = 'NESTED_STACK'
 
     def setDropMode(self, mode):
@@ -710,7 +712,11 @@ class VRTRasterTreeModel(TreeModel):
 
         return False
 
-    def srcFileIndices(self, srcFile):
+    def srcFileIndices(self, srcFile)->list:
+        """
+        :param srcFile:
+        :return:
+        """
         srcFileNodes = self.mRootNode.findChildNodes(VRTRasterInputSourceBandNode, recursive=True)
         return self.nodes2indexes(srcFileNodes)
 
@@ -760,35 +766,13 @@ class VRTRasterTreeModel(TreeModel):
             flags |= Qt.ItemIsDragEnabled
         return flags
 
-    """
-    def dragEnterEvent(self, event):
-        assert isinstance(event, QDragEnterEvent)
-        if event.mimeData().hasFormat(u'hub.vrtbuilder/bandlist'):
-            event.accept()
-            
-    def dragMoveEvent(self, event):
-        assert isinstance(event, QDragMoveEvent)
-        if event.mimeData().hasFormat(u'hub.vrtbuilder/bandlist'):
-            event.accept()
 
-    def dropEvent(self, event):
-        assert isinstance(event, QDropEvent)
-
-        if event.mimeData().hasFormat(u'hub.vrtbuilder/bandlist'):
-            parent = self.mRootNode
-            p = self.node2idx(parent)
-            self.dropMimeData(event.mimeData(), event.dropAction(), 0, 0, p)
-
-            event.accept()
-
-        s = ""
-    """
 
     def mimeTypes(self):
         # specifies the mime types handled by this model
         types = []
         types.append('text/uri-list')
-        types.append('hub.vrtbuilder/bandlist')
+        types.append(MDK_BANDLIST)
         return types
 
     def mimeData(self, indexes):
@@ -810,7 +794,7 @@ class VRTRasterTreeModel(TreeModel):
         mimeData = QMimeData()
 
         if len(sourceBands) > 0:
-            mimeData.setData('hub.vrtbuilder/bandlist', pickle.dumps(sourceBands))
+            mimeData.setData(MDK_BANDLIST, pickle.dumps(sourceBands))
 
         # set text/uri-list
         if len(uriList) > 0:
@@ -827,12 +811,12 @@ class VRTRasterTreeModel(TreeModel):
         # assert isinstance(action, QDropEvent)
         sourceBands = []
 
-        if u'hub.vrtbuilder/bandlist' in mimeData.formats():
-            dump = mimeData.data(u'hub.vrtbuilder/bandlist')
+        if MDK_BANDLIST in mimeData.formats():
+            dump = mimeData.data(MDK_BANDLIST)
             sourceBands = pickle.loads(dump)
 
-        elif u'hub.vrtbuilder/vrt.indices' in mimeData.formats():
-            dump = mimeData.data(u'hub.vrtbuilder/vrt.indices')
+        elif MDK_INDICES in mimeData.formats():
+            dump = mimeData.data(MDK_INDICES)
             indices = pickle.loads(dump)
             s = ""
 
@@ -843,7 +827,7 @@ class VRTRasterTreeModel(TreeModel):
             for url in mimeData.urls():
                 url = url2path(url)
                 if url is not None:
-                    sourceBands.extend(VRTRasterInputSourceBand.fromGDALDataSet(url))
+                    sourceBands.extend(VRTRasterInputSourceBand.fromRasterLayer(url))
 
         if len(sourceBands) == 0:
             return False
@@ -912,6 +896,9 @@ class VRTRasterTreeModel(TreeModel):
         for bands in sourceBands:
             iSrc = row
             for src in bands:
+                assert isinstance(src, VRTRasterInputSourceBand)
+                if len(vBand) == 0 and re.search(r'Band \d+$', vBand.name(), re.I):
+                    vBand.setName(src.name())
                 vBand.insertSource(iSrc, src)
                 iSrc += 1
 
@@ -1067,12 +1054,12 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
             info = 'Unable to find help index.html'
             QgsApplication.instance().messageLog().logMessage(info)
 
-        self.sourceFileModel = SourceRasterModel(parent=self.treeViewSourceFiles)
-        self.sourceFileModel.sigSourcesRemoved.connect(self.refreshInfoSources)
-        self.sourceFileModel.sigSourcesAdded.connect(self.refreshInfoSources)
+        self.mSourceFileModel = SourceRasterModel(parent=self.treeViewSourceFiles)
+        self.mSourceFileModel.sigSourcesRemoved.connect(self.refreshInfoSources)
+        self.mSourceFileModel.sigSourcesAdded.connect(self.refreshInfoSources)
 
-        self.sourceFileProxyModel = SourceRasterFilterModel()
-        self.sourceFileProxyModel.setSourceModel(self.sourceFileModel)
+        self.mSourceFileProxyModel = SourceRasterFilterModel()
+        self.mSourceFileProxyModel.setSourceModel(self.mSourceFileModel)
 
         self.tbSourceFileFilter.textChanged.connect(self.onSourceFileFilterChanged)
         self.cbSourceFileFilterRegex.clicked.connect(
@@ -1080,7 +1067,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         # self.treeViewSourceFiles.setModel(self.sourceFileModel)
 
         assert isinstance(self.treeViewSourceFiles, QTreeView)
-        self.treeViewSourceFiles.setModel(self.sourceFileProxyModel)
+        self.treeViewSourceFiles.setModel(self.mSourceFileProxyModel)
         self.treeViewSourceFiles.setDragEnabled(True)
         self.treeViewSourceFiles.setAcceptDrops(True)
         self.treeViewSourceFiles.setDropIndicatorShown(True)
@@ -1092,7 +1079,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
 
         def onDragEnter(event):
             assert isinstance(event, QDragEnterEvent)
-            supported = self.sourceFileModel.mimeTypes()
+            supported = self.mSourceFileModel.mimeTypes()
             for f in event.mimeData().formats():
                 if f in supported:
                     event.acceptProposedAction()
@@ -1114,33 +1101,26 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         self.mQgsFileWidget.fileChanged.connect(self.onOutputPathChanged)
 
         self.buttonBox.button(QDialogButtonBox.Save).clicked.connect(self.saveFile)
-        self.vrtRaster = VRTRaster()
-        self.vrtRasterLayer = VRTRasterVectorLayer(self.vrtRaster)
-        self.vrtRasterLayer.dataChanged.connect(self.resetMap)
-        self.vrtRasterLayer.dataChanged.connect(self.validateInputs)
-        self.vrtRaster.sigSourceRasterAdded.connect(self.sourceFileProxyModel.sourceModel().addSources)
-        self.mBackgroundLayer = None
-        # self.vrtRasterLayer.editingStopped.connect(self.resetMap)
-
-
+        self.mVRTRaster = VRTRaster()
+        self.mVRTRaster.sigSourceRasterAdded.connect(self.mSourceFileModel.addSources)
+        #self.vrtRaster.sigSourceBandInserted.connect(self.resetMap)
+        #self.vrtRaster.sigSourceRasterAdded.connect(self.resetMap)
+        self.vrtRasterLayer = VRTRasterVectorLayer(self.mVRTRaster)
         assert isinstance(self.previewMap, QgsMapCanvas)
 
-        self.previewMap.setLayers([self.vrtRasterLayer])
-        self.resetMap()
+        self.mVRTRaster.sigCrsChanged.connect(self.updateSummary)
+        self.mVRTRaster.sigSourceBandInserted.connect(self.updateSummary)
+        self.mVRTRaster.sigSourceBandRemoved.connect(self.updateSummary)
+        self.mVRTRaster.sigBandInserted.connect(self.updateSummary)
+        self.mVRTRaster.sigBandRemoved.connect(self.updateSummary)
 
-        self.vrtRaster.sigCrsChanged.connect(self.updateSummary)
-        self.vrtRaster.sigSourceBandInserted.connect(self.updateSummary)
-        self.vrtRaster.sigSourceBandRemoved.connect(self.updateSummary)
-        self.vrtRaster.sigBandInserted.connect(self.updateSummary)
-        self.vrtRaster.sigBandRemoved.connect(self.updateSummary)
-
-        self.vrtBuilderModel = VRTRasterTreeModel(parent=self.treeViewVRT, vrtRaster=self.vrtRaster)
+        self.mVRTRasterTreeModel = VRTRasterTreeModel(self.mVRTRaster, parent=self.treeViewVRT)
         self.btnStackFiles.toggled.connect(lambda isChecked:
-                                           self.vrtBuilderModel.setDropMode('PURE_STACK')
+                                           self.mVRTRasterTreeModel.setDropMode('PURE_STACK')
                                            if isChecked
-                                           else self.vrtBuilderModel.setDropMode(('NESTED_STACK')))
+                                           else self.mVRTRasterTreeModel.setDropMode(('NESTED_STACK')))
 
-        self.treeViewVRT.setModel(self.vrtBuilderModel)
+        self.treeViewVRT.setModel(self.mVRTRasterTreeModel)
 
         self.vrtTreeSelectionModel = VRTSelectionModel(
             self.treeViewVRT.model(),
@@ -1201,6 +1181,8 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
 
         self.restoreLastSettings()
         self.validateInputs()
+        self.previewMap.setLayers([self.vrtRasterLayer])
+        self.resetMap()
 
     def initActions(self):
 
@@ -1230,7 +1212,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
                 else:
                     s = ""
             if len(to_remove) > 0:
-                self.sourceFileModel.removeFiles(to_remove)
+                self.mSourceFileModel.removeFiles(to_remove)
 
             # self.sourceFileModel.removeFiles(    [n.mPath for n in self.selectedSourceFileNodes()]
 
@@ -1245,10 +1227,10 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
 
 
         self.cbResampling.currentIndexChanged.connect(lambda:
-                                                      self.vrtRaster.setResamplingAlg(
+                                                      self.mVRTRaster.setResamplingAlg(
                                                           self.cbResampling.currentData().mValue
                                                       ))
-        self.vrtRaster.sigResamplingAlgChanged[int].connect(lambda alg:
+        self.mVRTRaster.sigResamplingAlgChanged[int].connect(lambda alg:
                                                             self.cbResampling.setCurrentIndex(
                                                                 RESAMPLE_ALGS.optionValues().index(alg)))
 
@@ -1259,9 +1241,9 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         self.btnCollapseAllSrc.clicked.connect(lambda: self.expandSelectedNodes(self.treeViewSourceFiles, False))
 
         self.btnAddVirtualBand.clicked.connect(
-            lambda: self.vrtRaster.addVirtualBand(VRTRasterBand(name='Band {}'.format(len(self.vrtRaster) + 1))))
-        self.btnRemoveVirtualBands.clicked.connect(lambda: self.vrtBuilderModel.removeNodes(
-            self.vrtBuilderModel.indexes2nodes(self.treeViewVRT.selectedIndexes())
+            lambda: self.mVRTRaster.addVirtualBand(VRTRasterBand(name='Band {}'.format(len(self.mVRTRaster) + 1))))
+        self.btnRemoveVirtualBands.clicked.connect(lambda: self.mVRTRasterTreeModel.removeNodes(
+            self.mVRTRasterTreeModel.indexes2nodes(self.treeViewVRT.selectedIndexes())
         ))
 
         self.btnLoadVRT.setDefaultAction(self.actionLoadVRT)
@@ -1270,7 +1252,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         self.btnAbout.clicked.connect(lambda: AboutWidget(self).exec_())
 
         self.mQgsProjectionSelectionWidget.setMessage('Set VRT CRS')
-        self.mQgsProjectionSelectionWidget.crsChanged.connect(self.vrtRaster.setCrs)
+        self.mQgsProjectionSelectionWidget.crsChanged.connect(self.mVRTRaster.setCrs)
 
         self.btnZoomIn.clicked.connect(lambda: self.activateMapTool('ZOOM_IN'))
         self.btnZoomOut.clicked.connect(lambda: self.activateMapTool('ZOOM_OUT'))
@@ -1305,7 +1287,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
 
     def loadVRT(self, path):
         if path is not None and os.path.isfile(path):
-            self.vrtRaster.loadVRT(path)
+            self.mVRTRaster.loadVRT(path)
 
     def initMapTools(self, mapCanvas):
         assert isinstance(mapCanvas, QgsMapCanvas)
@@ -1336,9 +1318,9 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
 
         useRegex = self.cbSourceFileFilterRegex.isChecked()
         if useRegex:
-            self.sourceFileProxyModel.setFilterRegExp(text)
+            self.mSourceFileProxyModel.setFilterRegExp(text)
         else:
-            self.sourceFileProxyModel.setFilterWildcard(text)
+            self.mSourceFileProxyModel.setFilterWildcard(text)
 
         pass
 
@@ -1351,14 +1333,14 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         assert isinstance(bbox, QgsRectangle)
         assert isinstance(crs, QgsCoordinateReferenceSystem)
 
-        if not isinstance(self.vrtRaster.crs(), QgsCoordinateReferenceSystem):
-            self.vrtRaster.setCrs(crs)
+        if not isinstance(self.mVRTRaster.crs(), QgsCoordinateReferenceSystem):
+            self.mVRTRaster.setCrs(crs)
 
         if isinstance(crs, QgsCoordinateReferenceSystem) \
-                and isinstance(self.vrtRaster.crs(), QgsCoordinateReferenceSystem):
+                and isinstance(self.mVRTRaster.crs(), QgsCoordinateReferenceSystem):
             trans = QgsCoordinateTransform()
             trans.setSourceCrs(crs)
-            trans.setDestinationCrs(self.vrtRaster.crs())
+            trans.setDestinationCrs(self.mVRTRaster.crs())
             bbox = trans.transform(bbox)
 
         self.tbBoundsXMin.setText('{}'.format(bbox.xMinimum()))
@@ -1366,7 +1348,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         self.tbBoundsYMin.setText('{}'.format(bbox.yMinimum()))
         self.tbBoundsYMax.setText('{}'.format(bbox.yMaximum()))
 
-        self.vrtRaster.setExtent(bbox, crs)
+        self.mVRTRaster.setExtent(bbox, crs)
 
         self.validateInputs()
 
@@ -1403,7 +1385,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
 
     def refreshInfoSources(self, *args):
 
-        files = self.sourceFileModel.rasterSources()
+        files = self.mSourceFileModel.rasterSources()
         # refresh menu to select image bounds & image resolutions
         menuBounds = QMenu()
         menuResolution = QMenu()
@@ -1440,19 +1422,19 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
     def onExtentChanged(self, *args):
 
         if not self.frameExtent.isEnabled():
-            self.vrtRaster.setExtent(None)
+            self.mVRTRaster.setExtent(None)
         else:
             values = [tb.text() for tb in [self.tbBoundsXMin, self.tbBoundsYMin, self.tbBoundsXMax, self.tbBoundsYMax]]
             if '' not in values:
                 values = [float(v) for v in values]
                 rectangle = QgsRectangle(*values)
                 if rectangle.width() > 0 and rectangle.height() > 0:
-                    self.vrtRaster.setExtent(rectangle)
+                    self.mVRTRaster.setExtent(rectangle)
         self.validateInputs()
 
     def validateInputs(self, *args):
 
-        isValid = len(self.vrtRaster) > 0
+        isValid = len(self.mVRTRaster) > 0
         if not self.cbBoundsFromSourceFiles.isEnabled():
             for tb in [self.tbBoundsXMin, self.tbBoundsXMax, self.tbBoundsYMin, self.tbBoundsYMax]:
                 state, _, _ = tb.validator().validate(tb.text(), 0)
@@ -1482,9 +1464,9 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
             if len(x) > 0 and len(y) > 0:
                 x = float(x)
                 y = float(y)
-                self.vrtRaster.setResolution(QSizeF(x, y))
+                self.mVRTRaster.setResolution(QSizeF(x, y))
         else:
-            self.vrtRaster.setResolution(mode)
+            self.mVRTRaster.setResolution(mode)
 
         self.validateInputs()
 
@@ -1517,8 +1499,16 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
     def resetMap(self, *args):
 
         lyrs = [self.vrtRasterLayer]
-        if isinstance(self.mBackgroundLayer, QgsMapLayer):
-            lyrs.insert(0, self.mBackgroundLayer)
+
+        LUT = dict()
+        for layer in self.mSourceFileModel.rasterLayers():
+            LUT[layer.source()] = layer
+
+        for file in self.mVRTRaster.sourceRaster():
+            if file in LUT.keys():
+                lyr = LUT[file]
+                if lyr not in lyrs:
+                    lyrs.append(lyr)
 
         if lyrs != self.previewMap.layers():
             self.previewMap.setLayers(lyrs)
@@ -1527,7 +1517,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
     def onVRTSelectionChanged(self, selected, deselected):
         self.btnRemoveVirtualBands.setEnabled(selected.count() > 0)
         # 2. expand the parent nodes
-        model = self.vrtBuilderModel
+        model = self.mVRTRasterTreeModel
         nodes = [model.idx2node(idx) for idx in selected.indexes()]
         selected = set([model.node2idx(n.parentNode()) for n in nodes if isinstance(n, VRTRasterInputSourceBandNode)])
         for idx in selected:
@@ -1540,8 +1530,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         sources = list(sources)
         sources = sorted(sources, key = lambda s : os.path.basename(s))
 
-        for s in sources:
-            self.sourceFileModel.addSource(s)
+        self.mSourceFileModel.addSources(sources)
 
     def expandNodes(self, treeView, nodes, expand):
         assert isinstance(treeView, QTreeView)
@@ -1583,7 +1572,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         saveBinary = ext != '.vrt'
         if saveBinary:
             pathVrt = path + '.vrt'
-            self.vrtRaster.saveVRT(pathVrt)
+            self.mVRTRaster.saveVRT(pathVrt)
 
             ext = ext.lower()
             if ext in LUT_FILEXTENSIONS.keys():
@@ -1606,7 +1595,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         else:
             pathVrt = path
             self.tbProgress.setText('Save {}...'.format(pathVrt))
-            dsDst = self.vrtRaster.saveVRT(pathVrt)
+            dsDst = self.mVRTRaster.saveVRT(pathVrt)
             self.tbProgress.setText('{} saved'.format(pathVrt))
             self.fullProgress()
         if isinstance(dsDst, gdal.Dataset):
@@ -1652,14 +1641,14 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         Adds a list of source files to the source file list.
         :param files: list-of-file-paths
         """
-        self.sourceFileModel.addSources(files)
+        self.mSourceFileModel.addSources(files)
 
     def updateSummary(self):
 
-        self.tbSourceFileCount.setText('{}'.format(len(self.vrtRaster.sourceRaster())))
-        self.tbVRTBandCount.setText('{}'.format(len(self.vrtRaster)))
+        self.tbSourceFileCount.setText('{}'.format(len(self.mVRTRaster.sourceRaster())))
+        self.tbVRTBandCount.setText('{}'.format(len(self.mVRTRaster)))
 
-        crs = self.vrtRaster.crs()
+        crs = self.mVRTRaster.crs()
         if isinstance(crs, QgsCoordinateReferenceSystem):
             self.previewMap.setDestinationCrs(crs)
             if crs != self.mQgsProjectionSelectionWidget.crs():
@@ -1672,11 +1661,11 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         if not idx.isValid():
             pass
 
-        selectedNodes = self.vrtBuilderModel.indexes2nodes(self.treeViewVRT.selectedIndexes())
+        selectedNodes = self.mVRTRasterTreeModel.indexes2nodes(self.treeViewVRT.selectedIndexes())
         menu = QMenu(self.treeViewVRT)
         a = menu.addAction('Remove bands')
         a.setToolTip('Remove selected nodes')
-        a.triggered.connect(lambda: self.vrtBuilderModel.removeNodes(selectedNodes))
+        a.triggered.connect(lambda: self.mVRTRasterTreeModel.removeNodes(selectedNodes))
 
         srcFiles = set()
         for n in selectedNodes:
@@ -1686,7 +1675,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         if len(srcFiles) > 0:
             a = menu.addAction('Remove sources')
             a.setToolTip('Remove all bands from selected source files.')
-            a.triggered.connect(lambda: self.vrtBuilderModel.removeSources(srcFiles))
+            a.triggered.connect(lambda: self.mVRTRasterTreeModel.removeSources(srcFiles))
 
         menu.exec_(self.treeViewVRT.viewport().mapToGlobal(event.pos()))
         """
