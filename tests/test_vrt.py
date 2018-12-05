@@ -79,6 +79,8 @@ class testclassData(unittest.TestCase):
         #1. create an empty VRT
         VRT = VRTRaster()
 
+
+
         vb1 = VRTRasterBand()
         vb2 = VRTRasterBand()
 
@@ -116,7 +118,48 @@ class testclassData(unittest.TestCase):
             self.assertIsInstance(ds, gdal.Dataset)
             self.assertEqual(ds.RasterCount, len(VRT))
 
-        pass
+        ext = VRT.extent()
+        self.assertTrue(ext == None)
+        band1 = VRT[0]
+        self.assertIsInstance(band1, VRTRasterBand)
+        band1.addSource(VRTRasterInputSourceBand(landsat1, 0))
+        ext = VRT.extent()
+        res = VRT.resolution()
+        crs = VRT.crs()
+        self.assertIsInstance(ext, QgsRectangle)
+        self.assertIsInstance(res, QSizeF)
+        self.assertIsInstance(crs, QgsCoordinateReferenceSystem)
+
+
+
+    def test_alignExtent(self):
+
+        pxSize = QSizeF(30,30)
+
+        extent = QgsRectangle(30, 210, 300, 600)
+
+        refPoint1 = QgsPointXY(-300, -300)
+        refPoint2 = QgsPointXY(10, 10)
+        refPoint3 = QgsPointXY(-20, -20)
+        refPoint4 = QgsPointXY(20, 20)
+
+        extent1, px1 = alignGridExtent(pxSize, refPoint1, extent)
+        extent2, px2 = alignGridExtent(pxSize, refPoint2, extent)
+        extent3, px3 = alignGridExtent(pxSize, refPoint3, extent)
+        extent4, px4 = alignGridExtent(pxSize, refPoint4, extent)
+        for e in [extent1, extent2, extent3, extent4]:
+            self.assertIsInstance(e, QgsRectangle)
+
+        for px in [px1, px2, px3, px4]:
+            self.assertIsInstance(px, QSize)
+
+
+        self.assertTrue(extent1 == extent)
+        self.assertTrue(extent2 == QgsRectangle(40, 220, 310, 610))
+        self.assertTrue(extent3 == QgsRectangle(40, 220, 310, 610))
+
+
+
 
     def test_VRTRasterInputSourceBand(self):
 
@@ -221,7 +264,15 @@ class testclassData(unittest.TestCase):
         GUI.mVRTRasterTreeModel.dropMimeData(mimeData, Qt.CopyAction, 0, 0, QModelIndex())
         self.assertTrue(len(GUI.mVRTRaster) == 1)
 
+        #make a mouse cliok on the map canvas to select something
+        size = GUI.previewMap.size()
+        point = QPointF(0.5 * size.width(), 0.5*size.height())
+        event = QMouseEvent(QEvent.MouseButtonPress, point, Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
+        GUI.previewMap.mousePressEvent(event)
 
+        #load more source files
+        GUI.addSourceFiles([landsat1, landsat2, landsat2_SAD])
+        self.assertTrue(len(GUI.mSourceFileModel.rasterSources()) == 3)
         if SHOW_GUI:
             QGIS_APP.exec_()
 

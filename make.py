@@ -90,7 +90,8 @@ def compile_rc_files(ROOT):
         bn = os.path.splitext(bn)[0]
         pathPy2 = os.path.join(DIR_UI, bn+'.py' )
         pathRCC = os.path.join(DIR_UI, bn+'.rcc' )
-        subprocess.call(['pyrcc5', '-py3', '-o', pathPy2, pathQrc])
+        os.system('pyrcc5 -o {} {}'.format(pathPy2, pathQrc))
+
         s = ""
 
 def fileNeedsUpdate(file1, file2):
@@ -281,14 +282,14 @@ def deploy():
 if __name__ == '__main__':
     icondir = jp(DIR_UI)
     pathQrc = jp(DIR_UI,'resources.qrc')
+    if True:
+        compile_rc_files(DIR_UI)
 
 
     if True:
         updateMetadataTxt()
         #updateHelpHTML()
         #exit()
-    if False:
-        compile_rc_files(DIR_UI)
 
     if True:
         deploy()

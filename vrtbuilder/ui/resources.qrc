@@ -1,5 +1,11 @@
 <RCC>
   <qresource prefix="vrtbuilder">
+    <file>mActionAlignGrid.svg</file>
+    <file>mActionImportRasterBoundsAndPixelSize.svg</file>
+    <file>mActionImportPixelSize.svg</file>
+    <file>mActionImportRasterBounds.svg</file>
+    <file>mActionDefaultMapTool.svg</file>
+    <file>mActionIdentify.svg</file>
     <file>mActionSelect.svg</file>
     <file>mActionImportRaster.svg</file>
     <file>mOptionMosaikFiles.svg</file>
