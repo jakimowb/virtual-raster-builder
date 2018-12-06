@@ -514,23 +514,23 @@ class VRTRaster(QObject):
             if not isinstance(self.mExtent, QgsRectangle):
                 self.setExtent(lyr.extent())
 
-    def alignToRasterGrid(self, source, sameExtent:bool=False):
+    def alignToRasterGrid(self, reference, crop:bool=False):
         """
         Aligns the VRT raster grid to that in source
-        :param source: str path | gdal.Dataset | QgsRasterLayer
-        :param sameExtent: bool, optional, set True to crop / enlarge the VRT extent to that of source
+        :param reference: str path | gdal.Dataset | QgsRasterLayer
+        :param crop: bool, optional, set True to crop or enlarge the VRT extent to that of the reference raster.
         """
-        lyr = toRasterLayer(source)
+        lyr = toRasterLayer(reference)
         assert isinstance(lyr, QgsRasterLayer)
         newCRS = lyr.crs()
         oldCRS = self.crs()
         newRes = QSizeF(lyr.rasterUnitsPerPixelY(), lyr.rasterUnitsPerPixelY())
         self.setCrs(newCRS)
         self.setResolution(newRes)
-
-        ulRef = QgsPointXY(lyr.extent().xMinimum(), lyr.extent().yMaximum())
-        if sameExtent:
-            lrRef = QgsPointXY(lyr.extent().xMaximum(), lyr.extent.yMinimum())
+        ext = lyr.extent()
+        ulRef = QgsPointXY(ext.xMinimum(), ext.yMaximum())
+        if crop:
+            lrRef = QgsPointXY(ext.xMaximum(), ext.yMinimum())
             newExtent = QgsRectangle(ulRef, lrRef)
         else:
             newExtent, px = alignRectangleToGrid(newRes, ulRef, self.extent())
@@ -810,20 +810,27 @@ class VRTRaster(QObject):
                     files.append(file)
         return files
 
-    def sourceRasterBounds(self, crs:QgsCoordinateReferenceSystem=None)->list:
+    def fullSourceRasterExtent(self)->QgsRectangle:
         """
         Returns a list of (str, QgsRectangle)
         :return: [(str, QgsRectangle),...]
         """
-        bounds = []
+
+        extent = None
+        crs = self.crs()
         for src in self.sourceRaster():
 
             lyr = QgsRasterLayer(src)
             ext = lyr.extent()
-
-            bounds.append((lyr, ext))
-
-        return bounds
+            trans = QgsCoordinateTransform()
+            trans.setSourceCrs(lyr.crs())
+            trans.setDestinationCrs(self.crs())
+            ext = trans.transform(ext)
+            if not isinstance(extent, QgsRectangle):
+                extent = ext
+            else:
+                extent.combineExtentWith(ext)
+        return extent
 
 
     def loadVRT(self, pathVRT, bandIndex = None):

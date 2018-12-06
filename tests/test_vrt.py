@@ -254,6 +254,7 @@ class testclassData(unittest.TestCase):
         lyr = QgsRasterLayer(landsat1)
         reg.addMapLayer(lyr)
         GUI = VRTBuilderWidget()
+        self.assertIsInstance(GUI, VRTBuilderWidget)
         GUI.show()
         GUI.loadSrcFromMapLayerRegistry()
         self.assertTrue(len(GUI.mSourceFileModel), 1)
@@ -281,7 +282,7 @@ class testclassData(unittest.TestCase):
         GUI.mVRTRasterTreeModel.dropMimeData(mimeData, Qt.CopyAction, 0, 0, QModelIndex())
         self.assertTrue(len(GUI.mVRTRaster) == 1)
 
-        #make a mouse cliok on the map canvas to select something
+        #make a mouse click on the map canvas to select something
         size = GUI.previewMap.size()
         point = QPointF(0.5 * size.width(), 0.5*size.height())
         event = QMouseEvent(QEvent.MouseButtonPress, point, Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
@@ -290,6 +291,46 @@ class testclassData(unittest.TestCase):
         #load more source files
         GUI.addSourceFiles([landsat1, landsat2, landsat2_SAD])
         self.assertTrue(len(GUI.mSourceFileModel.rasterSources()) == 3)
+
+
+        #test map tools
+        for name in ['COPY_EXTENT', 'COPY_GRID', 'ALIGN_GRID', 'COPY_RESOLUTION']:
+            GUI.activateMapTool(name)
+            canvas = GUI.previewMap
+            self.assertIsInstance(canvas, QgsMapCanvas)
+            mapTool = canvas.mapTool()
+            self.assertIsInstance(mapTool, QgsMapTool)
+
+            layer = None
+            extent = None
+            crs = None
+
+            if isinstance(mapTool, MapToolIdentifySource):
+                def onIdentified(lyr):
+                    nonlocal layer
+                    layer = lyr
+                mapTool.sigMapLayerIdentified.connect(onIdentified)
+            elif isinstance(mapTool, MapToolSpatialExtent):
+                def onIdentified(e, c):
+                    nonlocal extent, crs
+                    extent = e
+                    crs = c
+                mapTool.sigSpatialExtentSelected.connect(onIdentified)
+
+            event = QMouseEvent(QEvent.MouseButtonPress, point, Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
+            GUI.previewMap.mousePressEvent(event)
+
+            if isinstance(mapTool, MapToolIdentifySource):
+
+                self.assertIsInstance(layer, QgsMapLayer)
+
+            elif isinstance(mapTool, MapToolSpatialExtent):
+
+                self.assertIsInstance(extent, QgsRectangle)
+                self.assertIsInstance(crs, QgsCoordinateReferenceSystem)
+
+
+
         if SHOW_GUI:
             QGIS_APP.exec_()
 

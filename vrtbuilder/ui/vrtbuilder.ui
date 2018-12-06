@@ -765,73 +765,12 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>414</width>
-                <height>572</height>
+                <width>406</width>
+                <height>574</height>
                </rect>
               </property>
               <layout class="QGridLayout" name="gridLayout_2">
-               <item row="7" column="0">
-                <widget class="QLabel" name="label_7">
-                 <property name="text">
-                  <string>Resampling</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="6" column="2">
-                <widget class="QLineEdit" name="tbNoData">
-                 <property name="readOnly">
-                  <bool>false</bool>
-                 </property>
-                </widget>
-               </item>
-               <item row="6" column="0">
-                <widget class="QLabel" name="label_6">
-                 <property name="text">
-                  <string>No data</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="4" column="2">
-                <layout class="QHBoxLayout" name="horizontalLayout_5">
-                 <property name="spacing">
-                  <number>6</number>
-                 </property>
-                 <property name="bottomMargin">
-                  <number>0</number>
-                 </property>
-                 <item>
-                  <widget class="QCheckBox" name="cbInMemoryOutput">
-                   <property name="text">
-                    <string>In-Memory</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QCheckBox" name="cbAddToMap">
-                   <property name="text">
-                    <string>open after creation</string>
-                   </property>
-                   <property name="checked">
-                    <bool>true</bool>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <spacer name="horizontalSpacer_8">
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>40</width>
-                     <height>20</height>
-                    </size>
-                   </property>
-                  </spacer>
-                 </item>
-                </layout>
-               </item>
-               <item row="19" column="2">
+               <item row="19" column="1">
                 <widget class="QFrame" name="frameUserResolution">
                  <property name="frameShape">
                   <enum>QFrame::NoFrame</enum>
@@ -858,28 +797,34 @@
                  </layout>
                 </widget>
                </item>
-               <item row="10" column="0" colspan="3">
-                <widget class="QGroupBox" name="groupBox_2">
+               <item row="9" column="0" colspan="2">
+                <widget class="QgsCollapsibleGroupBox" name="mGroupBox">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
                  <property name="minimumSize">
                   <size>
                    <width>0</width>
-                   <height>100</height>
+                   <height>10</height>
                   </size>
                  </property>
                  <property name="title">
-                  <string>Grid</string>
+                  <string>Raster Grid</string>
                  </property>
-                 <property name="checkable">
-                  <bool>false</bool>
-                 </property>
-                 <layout class="QFormLayout" name="formLayout">
+                 <layout class="QFormLayout" name="formLayout_2">
+                  <property name="topMargin">
+                   <number>9</number>
+                  </property>
                   <item row="0" column="0" colspan="2">
                    <layout class="QHBoxLayout" name="horizontalLayout_6">
                     <property name="spacing">
                      <number>6</number>
                     </property>
                     <item>
-                     <widget class="QToolButton" name="btnSelectResolution">
+                     <widget class="QToolButton" name="btnCopyResolution">
                       <property name="toolTip">
                        <string>Select resolution from other raster image</string>
                       </property>
@@ -894,12 +839,12 @@
                        <enum>QToolButton::MenuButtonPopup</enum>
                       </property>
                       <property name="autoRaise">
-                       <bool>false</bool>
+                       <bool>true</bool>
                       </property>
                      </widget>
                     </item>
                     <item>
-                     <widget class="QToolButton" name="btnSelectExtent">
+                     <widget class="QToolButton" name="btnCopyExtent">
                       <property name="enabled">
                        <bool>true</bool>
                       </property>
@@ -917,12 +862,38 @@
                        <enum>QToolButton::MenuButtonPopup</enum>
                       </property>
                       <property name="autoRaise">
-                       <bool>false</bool>
+                       <bool>true</bool>
                       </property>
                      </widget>
                     </item>
                     <item>
-                     <widget class="QToolButton" name="btnSelectGrid">
+                     <widget class="QToolButton" name="bntCopyGrid">
+                      <property name="toolTip">
+                       <string>Copy grid, and extent from other raster</string>
+                      </property>
+                      <property name="text">
+                       <string>copy</string>
+                      </property>
+                      <property name="icon">
+                       <iconset resource="resources.qrc">
+                        <normaloff>:/vrtbuilder/mActionImportRasterBoundsAndPixelSize.svg</normaloff>:/vrtbuilder/mActionImportRasterBoundsAndPixelSize.svg</iconset>
+                      </property>
+                      <property name="popupMode">
+                       <enum>QToolButton::MenuButtonPopup</enum>
+                      </property>
+                      <property name="toolButtonStyle">
+                       <enum>Qt::ToolButtonIconOnly</enum>
+                      </property>
+                      <property name="autoRaise">
+                       <bool>true</bool>
+                      </property>
+                      <property name="arrowType">
+                       <enum>Qt::NoArrow</enum>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QToolButton" name="btnAlignGrid">
                       <property name="text">
                        <string>...</string>
                       </property>
@@ -933,12 +904,8 @@
                       <property name="popupMode">
                        <enum>QToolButton::MenuButtonPopup</enum>
                       </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="QToolButton" name="toolButton">
-                      <property name="text">
-                       <string>...</string>
+                      <property name="autoRaise">
+                       <bool>true</bool>
                       </property>
                      </widget>
                     </item>
@@ -965,7 +932,7 @@
                    </widget>
                   </item>
                   <item row="1" column="1">
-                   <widget class="QgsProjectionSelectionWidget" name="mQgsProjectionSelectionWidget" native="true">
+                   <widget class="QgsProjectionSelectionWidget" name="crsSelectionWidget">
                     <property name="enabled">
                      <bool>false</bool>
                     </property>
@@ -981,6 +948,22 @@
                    <widget class="QLabel" name="label_17">
                     <property name="text">
                      <string>Bounds</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="1">
+                   <widget class="QCheckBox" name="cbBoundsFromSourceFiles">
+                    <property name="enabled">
+                     <bool>true</bool>
+                    </property>
+                    <property name="toolTip">
+                     <string>Automatic extent from source fule</string>
+                    </property>
+                    <property name="text">
+                     <string>automatic from inputs</string>
+                    </property>
+                    <property name="checked">
+                     <bool>true</bool>
                     </property>
                    </widget>
                   </item>
@@ -1049,19 +1032,10 @@
                     </layout>
                    </widget>
                   </item>
-                  <item row="2" column="1">
-                   <widget class="QCheckBox" name="cbBoundsFromSourceFiles">
-                    <property name="enabled">
-                     <bool>true</bool>
-                    </property>
-                    <property name="toolTip">
-                     <string>Automatic extent from source fule</string>
-                    </property>
+                  <item row="4" column="0">
+                   <widget class="QLabel" name="label_3">
                     <property name="text">
-                     <string>automatic from inputs</string>
-                    </property>
-                    <property name="checked">
-                     <bool>true</bool>
+                     <string>Pixel Resolution</string>
                     </property>
                    </widget>
                   </item>
@@ -1081,21 +1055,18 @@
                      </widget>
                     </item>
                     <item>
-                     <widget class="QLineEdit" name="tbResolutionX">
+                     <widget class="QDoubleSpinBox" name="sbResolutionX">
                       <property name="maximumSize">
                        <size>
-                        <width>50</width>
+                        <width>100</width>
                         <height>16777215</height>
                        </size>
                       </property>
-                      <property name="layoutDirection">
-                       <enum>Qt::RightToLeft</enum>
+                      <property name="suffix">
+                       <string>m</string>
                       </property>
-                      <property name="alignment">
-                       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                      </property>
-                      <property name="placeholderText">
-                       <string>width</string>
+                      <property name="maximum">
+                       <double>99999999999999.000000000000000</double>
                       </property>
                      </widget>
                     </item>
@@ -1107,21 +1078,24 @@
                      </widget>
                     </item>
                     <item>
-                     <widget class="QLineEdit" name="tbResolutionY">
+                     <widget class="QDoubleSpinBox" name="sbResolutionY">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
                       <property name="maximumSize">
                        <size>
-                        <width>50</width>
+                        <width>100</width>
                         <height>16777215</height>
                        </size>
                       </property>
-                      <property name="layoutDirection">
-                       <enum>Qt::RightToLeft</enum>
+                      <property name="suffix">
+                       <string>m</string>
                       </property>
-                      <property name="alignment">
-                       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                      </property>
-                      <property name="placeholderText">
-                       <string>height</string>
+                      <property name="maximum">
+                       <double>10000000000000000.000000000000000</double>
                       </property>
                      </widget>
                     </item>
@@ -1132,7 +1106,7 @@
                       </property>
                       <property name="sizeHint" stdset="0">
                        <size>
-                        <width>40</width>
+                        <width>0</width>
                         <height>20</height>
                        </size>
                       </property>
@@ -1140,140 +1114,75 @@
                     </item>
                    </layout>
                   </item>
-                  <item row="4" column="0">
-                   <widget class="QLabel" name="label_3">
+                  <item row="5" column="0">
+                   <widget class="QLabel" name="label_18">
                     <property name="text">
-                     <string>Resolution</string>
+                     <string>Raster Size</string>
                     </property>
                    </widget>
+                  </item>
+                  <item row="5" column="1">
+                   <layout class="QHBoxLayout" name="horizontalLayout_4">
+                    <item>
+                     <widget class="QLabel" name="label_19">
+                      <property name="text">
+                       <string>columns</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QSpinBox" name="spinBox">
+                      <property name="minimumSize">
+                       <size>
+                        <width>75</width>
+                        <height>0</height>
+                       </size>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QLabel" name="label_20">
+                      <property name="text">
+                       <string>lines</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QSpinBox" name="spinBox_2">
+                      <property name="minimumSize">
+                       <size>
+                        <width>75</width>
+                        <height>0</height>
+                       </size>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <spacer name="horizontalSpacer_3">
+                      <property name="orientation">
+                       <enum>Qt::Horizontal</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>0</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                     </spacer>
+                    </item>
+                   </layout>
                   </item>
                  </layout>
                 </widget>
                </item>
-               <item row="0" column="2">
-                <layout class="QHBoxLayout" name="horizontalLayout_10">
-                 <item>
-                  <widget class="QFrame" name="frameInMemoryPath">
-                   <property name="frameShape">
-                    <enum>QFrame::StyledPanel</enum>
-                   </property>
-                   <property name="frameShadow">
-                    <enum>QFrame::Raised</enum>
-                   </property>
-                   <layout class="QHBoxLayout" name="horizontalLayout_11">
-                    <property name="spacing">
-                     <number>0</number>
-                    </property>
-                    <property name="leftMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="topMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="rightMargin">
-                     <number>0</number>
-                    </property>
-                    <property name="bottomMargin">
-                     <number>0</number>
-                    </property>
-                    <item>
-                     <widget class="QLabel" name="label">
-                      <property name="text">
-                       <string>/vsimem/</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="QLineEdit" name="lineEditInMemory">
-                      <property name="inputMask">
-                       <string/>
-                      </property>
-                      <property name="text">
-                       <string>tempVRT.vrt</string>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QgsFileWidget" name="mQgsFileWidget" native="true">
-                   <property name="enabled">
-                    <bool>true</bool>
-                   </property>
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="fileWidgetButtonVisible" stdset="0">
-                    <bool>true</bool>
-                   </property>
-                   <property name="useLink" stdset="0">
-                    <bool>false</bool>
-                   </property>
-                   <property name="defaultRoot" stdset="0">
-                    <string/>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </item>
-               <item row="23" column="2">
+               <item row="25" column="1">
                 <widget class="QDialogButtonBox" name="buttonBox">
                  <property name="standardButtons">
                   <set>QDialogButtonBox::Cancel|QDialogButtonBox::Save</set>
                  </property>
                 </widget>
                </item>
-               <item row="0" column="0">
-                <widget class="QLabel" name="label_2">
-                 <property name="text">
-                  <string>Path</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="7" column="2">
-                <widget class="QComboBox" name="cbResampling">
-                 <item>
-                  <property name="text">
-                   <string>nearest</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>bilinear</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>cubic</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>cubicspline</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>lanczos</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>average</string>
-                  </property>
-                 </item>
-                 <item>
-                  <property name="text">
-                   <string>mode</string>
-                  </property>
-                 </item>
-                </widget>
-               </item>
-               <item row="11" column="0">
+               <item row="23" column="1">
                 <spacer name="verticalSpacer">
                  <property name="orientation">
                   <enum>Qt::Vertical</enum>
@@ -1285,6 +1194,230 @@
                   </size>
                  </property>
                 </spacer>
+               </item>
+               <item row="8" column="0" colspan="2">
+                <widget class="QgsCollapsibleGroupBox" name="mGroupBox_2">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>50</height>
+                  </size>
+                 </property>
+                 <property name="title">
+                  <string>Data</string>
+                 </property>
+                 <layout class="QGridLayout" name="gridLayout_3" columnstretch="0,2,0,1">
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="label_7">
+                    <property name="text">
+                     <string>Resampling</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QComboBox" name="cbResampling">
+                    <item>
+                     <property name="text">
+                      <string>nearest</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>bilinear</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>cubic</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>cubicspline</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>lanczos</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>average</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>mode</string>
+                     </property>
+                    </item>
+                   </widget>
+                  </item>
+                  <item row="2" column="0">
+                   <widget class="QLabel" name="label_9">
+                    <property name="text">
+                     <string>Classification</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="1">
+                   <widget class="QLabel" name="label_16">
+                    <property name="text">
+                     <string>not implemented</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="2">
+                   <widget class="QLabel" name="label_6">
+                    <property name="text">
+                     <string>No data</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="3">
+                   <widget class="QLineEdit" name="tbNoData">
+                    <property name="readOnly">
+                     <bool>false</bool>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item row="24" column="0" colspan="2">
+                <widget class="QgsCollapsibleGroupBox" name="mGrpBoxOutput">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="title">
+                  <string>Output</string>
+                 </property>
+                 <layout class="QGridLayout" name="gridLayout_4">
+                  <property name="bottomMargin">
+                   <number>9</number>
+                  </property>
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="label_2">
+                    <property name="text">
+                     <string>Path</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <layout class="QHBoxLayout" name="horizontalLayout_10">
+                    <item>
+                     <widget class="QFrame" name="frameInMemoryPath">
+                      <property name="frameShape">
+                       <enum>QFrame::StyledPanel</enum>
+                      </property>
+                      <property name="frameShadow">
+                       <enum>QFrame::Raised</enum>
+                      </property>
+                      <layout class="QHBoxLayout" name="horizontalLayout_11">
+                       <property name="spacing">
+                        <number>0</number>
+                       </property>
+                       <property name="leftMargin">
+                        <number>0</number>
+                       </property>
+                       <property name="topMargin">
+                        <number>0</number>
+                       </property>
+                       <property name="rightMargin">
+                        <number>0</number>
+                       </property>
+                       <property name="bottomMargin">
+                        <number>0</number>
+                       </property>
+                       <item>
+                        <widget class="QLabel" name="label">
+                         <property name="text">
+                          <string>/vsimem/</string>
+                         </property>
+                        </widget>
+                       </item>
+                       <item>
+                        <widget class="QLineEdit" name="lineEditInMemory">
+                         <property name="inputMask">
+                          <string/>
+                         </property>
+                         <property name="text">
+                          <string>tempVRT.vrt</string>
+                         </property>
+                        </widget>
+                       </item>
+                      </layout>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QgsFileWidget" name="mQgsFileWidget">
+                      <property name="enabled">
+                       <bool>true</bool>
+                      </property>
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="fileWidgetButtonVisible">
+                       <bool>true</bool>
+                      </property>
+                      <property name="useLink">
+                       <bool>false</bool>
+                      </property>
+                      <property name="defaultRoot">
+                       <string/>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </item>
+                  <item row="1" column="1">
+                   <layout class="QHBoxLayout" name="horizontalLayout_5">
+                    <property name="spacing">
+                     <number>6</number>
+                    </property>
+                    <property name="bottomMargin">
+                     <number>0</number>
+                    </property>
+                    <item>
+                     <widget class="QCheckBox" name="cbInMemoryOutput">
+                      <property name="text">
+                       <string>In-Memory</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QCheckBox" name="cbAddToMap">
+                      <property name="text">
+                       <string>open after creation</string>
+                      </property>
+                      <property name="checked">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <spacer name="horizontalSpacer_8">
+                      <property name="orientation">
+                       <enum>Qt::Horizontal</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>40</width>
+                        <height>0</height>
+                       </size>
+                      </property>
+                     </spacer>
+                    </item>
+                   </layout>
+                  </item>
+                 </layout>
+                </widget>
                </item>
               </layout>
              </widget>
@@ -1401,6 +1534,11 @@
    <property name="toolTip">
     <string>Select the spatial extent from a map canvas</string>
    </property>
+   <property name="font">
+    <font>
+     <italic>true</italic>
+    </font>
+   </property>
   </action>
   <action name="actionLoadVRT">
    <property name="icon">
@@ -1435,6 +1573,90 @@
    </property>
    <property name="toolTip">
     <string>Click on a raster layer to over its pixel size</string>
+   </property>
+  </action>
+  <action name="actionCopyGrid">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/vrtbuilder/mActionImportRasterBoundsAndPixelSize.svg</normaloff>:/vrtbuilder/mActionImportRasterBoundsAndPixelSize.svg</iconset>
+   </property>
+   <property name="text">
+    <string>CopyGridAndExtent</string>
+   </property>
+   <property name="toolTip">
+    <string>Copy grid and spatial extent from another raster source.</string>
+   </property>
+  </action>
+  <action name="actionAlignGrid">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/vrtbuilder/mActionAlignGrid.svg</normaloff>:/vrtbuilder/mActionAlignGrid.svg</iconset>
+   </property>
+   <property name="text">
+    <string>AlignGrid</string>
+   </property>
+   <property name="toolTip">
+    <string>Align the raster grid to another raster grid. Images might have different spatial extents.</string>
+   </property>
+  </action>
+  <action name="actionCopyExtent">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/vrtbuilder/mActionImportRasterBounds.svg</normaloff>:/vrtbuilder/mActionImportRasterBounds.svg</iconset>
+   </property>
+   <property name="text">
+    <string>CopyExtent</string>
+   </property>
+   <property name="toolTip">
+    <string>Copy the spatial extent from another raster or vector source</string>
+   </property>
+  </action>
+  <action name="actionCopyResolution">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/vrtbuilder/mActionImportPixelSize.svg</normaloff>:/vrtbuilder/mActionImportPixelSize.svg</iconset>
+   </property>
+   <property name="text">
+    <string>CopyResolution</string>
+   </property>
+   <property name="toolTip">
+    <string>Copy the pixel resolution from another raster source</string>
+   </property>
+  </action>
+  <action name="actionPan">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/vrtbuilder/mActionPan.svg</normaloff>:/vrtbuilder/mActionPan.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Pan</string>
+   </property>
+   <property name="toolTip">
+    <string>move map extent</string>
+   </property>
+  </action>
+  <action name="actionZoomIn">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/vrtbuilder/mActionZoomIn.svg</normaloff>:/vrtbuilder/mActionZoomIn.svg</iconset>
+   </property>
+   <property name="text">
+    <string>ZoomIn</string>
+   </property>
+   <property name="toolTip">
+    <string>Zoom into map</string>
+   </property>
+  </action>
+  <action name="actionZoomOut">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/vrtbuilder/mActionZoomOut.svg</normaloff>:/vrtbuilder/mActionZoomOut.svg</iconset>
+   </property>
+   <property name="text">
+    <string>ZoomOut</string>
+   </property>
+   <property name="toolTip">
+    <string>Zoom out</string>
    </property>
   </action>
  </widget>
