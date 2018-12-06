@@ -1075,11 +1075,6 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
             tb.textChanged.connect(self.calculateExtent)
             tb.setValidator(QDoubleValidator(-999999999999999999999.0, 999999999999999999999.0, 20))
 
-        # resolution settings
-        for tb in [self.tbResolutionX, self.tbResolutionY]:
-            tb.setValidator(QDoubleValidator(0.000000000000001, 999999999999999999999, 5))
-            tb.textChanged.connect(self.onResolutionChanged)
-
         self.cbResampling.clear()
         self.cbResampling.setModel(RESAMPLE_ALGS)
 
@@ -1418,10 +1413,6 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
                 isValid &= float(self.tbBoundsXMin.text()) < float(self.tbBoundsXMax.text())
                 isValid &= float(self.tbBoundsYMin.text()) < float(self.tbBoundsYMax.text())
 
-        for tb in [self.tbResolutionX, self.tbResolutionY]:
-            state, _, _ = tb.validator().validate(tb.text(), 0)
-            isValid &= state == QValidator.Acceptable
-
         self.buttonBox.button(QDialogButtonBox.Save).setEnabled(isValid)
 
     def onResolutionChanged(self, *args):
@@ -1605,7 +1596,9 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         self.mSourceFileModel.addSources(files)
 
     def updateSummary(self):
-
+        """
+        Updates (almost) all information visible to the user
+        """
         self.tbSourceFileCount.setText('{}'.format(len(self.mVRTRaster.sourceRaster())))
         self.tbVRTBandCount.setText('{}'.format(len(self.mVRTRaster)))
 
@@ -1614,6 +1607,10 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
             self.previewMap.setDestinationCrs(crs)
             if crs != self.crsSelectionWidget.crs():
                 self.crsSelectionWidget.setCrs(crs)
+
+            unitString = QgsUnitTypes.toAbbreviatedString(crs.mapUnits())
+            self.sbResolutionX.setSuffix(unitString)
+            self.sbResolutionY.setSuffix(unitString)
 
         extent = self.mVRTRaster.extent()
         if isinstance(extent, QgsRectangle):
