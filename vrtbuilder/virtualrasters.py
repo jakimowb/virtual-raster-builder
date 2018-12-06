@@ -30,7 +30,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from vrtbuilder import toRasterLayer
+from vrtbuilder import toRasterLayer, toDataset
 from vrtbuilder.models import Option, OptionListModel
 #lookup GDAL Data Type and its size in bytes
 LUT_GDT_SIZE = {gdal.GDT_Byte:1,
@@ -72,6 +72,7 @@ GRA_tooltips = {'NearestNeighbour':'nearest neighbour resampling (default, faste
               'Q3':'third quartile resampling, selects the third quartile value of all non-NODATA contributing pixels'
               }
 
+#get available resampling algorithms
 RESAMPLE_ALGS = OptionListModel()
 for GRAkey in [k for k in list(gdal.__dict__.keys()) if k.startswith('GRA_')]:
 
@@ -115,25 +116,41 @@ def px2geo(px, gt):
     gy = gt[3] + px.x()*gt[4]+px.y()*gt[5]
     return QgsPoint(gx,gy)
 
-def alignGridExtent(pixelSize: QSizeF, gridRefPoint: QgsPointXY, extent: QgsRectangle)->QgsRectangle:
+def alignPointToGrid(pixelSize:QSizeF, gridRefPoint:QgsPointXY, gridPoint:QgsPointXY)->QgsPointXY:
+    """
+    Shift a point onto a grid defined by a pixelSize and a gridRefPoint
+    :param pixelSize: QSizeF pixel size
+    :param gridRefPoint: QgsPointXY point on reference grid
+    :param gridPoint: QgsPointXY to alignt to reference grid
+    :return: QgsPointXY
+    """
+    w = pixelSize.width()
+    h = pixelSize.height()
+
+    x = gridRefPoint.x() + w * int(round((gridPoint.x() - gridRefPoint.x()) / w))
+    y = gridRefPoint.y() + h * int(round((gridPoint.y() - gridRefPoint.y()) / h))
+    return QgsPointXY(x,y)
+
+def alignRectangleToGrid(pixelSize: QSizeF, gridRefPoint: QgsPointXY, rectangle: QgsRectangle)->QgsRectangle:
     """
     Returns an extent aligned to the pixelSize and reference grid
     :param pixelSize: QSizeF, pixel size
     :param gridRefPoint: QgsPointXY, a reference grid location, i.e. a pixel corner
-    :param extent: QgsExtent. the extent to get aligned
+    :param rectangle: QgsRectangle. the extent to get aligned
     :return: QgsRectangle
     """
 
     w = pixelSize.width()
     h = pixelSize.height()
 
-    x0 = gridRefPoint.x() + w * int(round((extent.xMinimum() - gridRefPoint.x()) / w))
-    y1 = gridRefPoint.y() + h * int(round((extent.yMaximum() - gridRefPoint.y()) / h))
-    x1 = gridRefPoint.x() + w * int(round((extent.xMaximum() - gridRefPoint.x()) / w))
-    y0 = gridRefPoint.y() + h * int(round((extent.yMinimum() - gridRefPoint.y()) / h))
+    x0 = gridRefPoint.x() + w * int(round((rectangle.xMinimum() - gridRefPoint.x()) / w))
+    y1 = gridRefPoint.y() + h * int(round((rectangle.yMaximum() - gridRefPoint.y()) / h))
+    x1 = gridRefPoint.x() + w * int(round((rectangle.xMaximum() - gridRefPoint.x()) / w))
+    y0 = gridRefPoint.y() + h * int(round((rectangle.yMinimum() - gridRefPoint.y()) / h))
 
     newExtent = QgsRectangle(x0, y0, x1, y1)
     ns, nl = newExtent.width() / pixelSize.width(), newExtent.height() / pixelSize.height()
+    ns, nl = round(ns, 10), round(nl, 10)
     assert ns == int(ns)
     assert nl == int(nl)
     return newExtent, QSize(ns, nl)
@@ -300,7 +317,12 @@ class VRTRasterInputSourceBand(object):
         """
         return self.mSource
 
-    def isEqual(self, other):
+    def isEqual(self, other)->bool:
+        """
+        Returns True for same input sources
+        :param other: VRTRasterInputSourceBand
+        :return: bool
+        """
         if isinstance(other, VRTRasterInputSourceBand):
             return self.mSource == other.mSource and self.mBandIndex == other.mBandIndex
         else:
@@ -338,6 +360,8 @@ class VRTRasterInputSourceBand(object):
         lyr = QgsRasterLayer(self.source(), self.name(), 'gdal')
         #todo: set render to this specific band
         return lyr
+
+
 class VRTRasterBand(QObject):
     sigNameChanged = pyqtSignal(str)
     sigSourceInserted = pyqtSignal(int, VRTRasterInputSourceBand)
@@ -348,13 +372,23 @@ class VRTRasterBand(QObject):
         self.mName = ''
         self.setName(name)
         self.mVRT = None
-        self.mMetadata = dict()
+        self.mMetadataDomains = dict()
+        self.mClassificationScheme = None
 
     def __iter__(self):
         return iter(self.mSources)
 
     def __len__(self):
         return len(self.mSources)
+
+    def setMetadata(self, metadataDictionary:dict, domain:str=""):
+        assert isinstance(metadataDictionary, dict)
+        self.mMetadataDomains[domain] = metadataDictionary
+
+    def metadata(self, domain):
+        if domain is None:
+            domain = ""
+        assert isinstance(domain, "")
 
     def setName(self, name:str):
         """
@@ -375,10 +409,19 @@ class VRTRasterBand(QObject):
         return self.mName
 
     def addSource(self, vrtRasterInputSourceBand:VRTRasterInputSourceBand):
+        """
+        Adds an input source to the virtual band
+        :param vrtRasterInputSourceBand: input source
+        """
         assert isinstance(vrtRasterInputSourceBand, VRTRasterInputSourceBand)
         self.insertSource(len(self.mSources), vrtRasterInputSourceBand)
 
     def insertSource(self, index, vrtRasterInputSourceBand:VRTRasterInputSourceBand):
+        """
+        Inserts an input source to the list of virtual band sources
+        :param index: index of input sources
+        :param vrtRasterInputSourceBand: input source
+        """
         assert isinstance(vrtRasterInputSourceBand, VRTRasterInputSourceBand)
         vrtRasterInputSourceBand.mVirtualBand = self
         if index <= len(self.mSources):
@@ -388,7 +431,12 @@ class VRTRasterBand(QObject):
             pass
             #print('DEBUG: index <= len(self.sources)')
 
-    def bandIndex(self):
+    def bandIndex(self)->int:
+        """
+        Returns the index of this Virtual Band.
+        Only available if this VRTRasterBand was added to a parent VRTRaster.
+        :return: int
+        """
         if isinstance(self.mVRT, VRTRaster):
             return self.mVRT.mBands.index(self)
         else:
@@ -466,23 +514,38 @@ class VRTRaster(QObject):
             if not isinstance(self.mExtent, QgsRectangle):
                 self.setExtent(lyr.extent())
 
-    def alignToRasterGrid(self, source):
+    def alignToRasterGrid(self, source, sameExtent:bool=False):
         """
-        Alings the given extent and resolution to a source grid
-        :param source: str | QgsRasterLayer | gdal.Dataset
-        :return:
+        Aligns the VRT raster grid to that in source
+        :param source: str path | gdal.Dataset | QgsRasterLayer
+        :param sameExtent: bool, optional, set True to crop / enlarge the VRT extent to that of source
         """
-
         lyr = toRasterLayer(source)
         assert isinstance(lyr, QgsRasterLayer)
         newCRS = lyr.crs()
-        newResolution = QSizeF(lyr.rasterUnitsPerPixelY(), lyr.rasterUnitsPerPixelY())
-        self.setResolution(newResolution)
-        oldExtent = self.extent()
-        refPoint = QgsPointXY(lyr.extent().xMinimum(), lyr.extent().yMaximum())
-        newExtent = alignGridExtent(newResolution, refPoint, oldExtent)
+        oldCRS = self.crs()
+        newRes = QSizeF(lyr.rasterUnitsPerPixelY(), lyr.rasterUnitsPerPixelY())
+        self.setCrs(newCRS)
+        self.setResolution(newRes)
 
+        ulRef = QgsPointXY(lyr.extent().xMinimum(), lyr.extent().yMaximum())
+        if sameExtent:
+            lrRef = QgsPointXY(lyr.extent().xMaximum(), lyr.extent.yMinimum())
+            newExtent = QgsRectangle(ulRef, lrRef)
+        else:
+            newExtent, px = alignRectangleToGrid(newRes, ulRef, self.extent())
+        self.setExtent(newExtent, newCRS, ulRef)
         s = ""
+
+    def alignToGrid(self, pxSize:QSizeF, refPoint:QgsPointXY):
+        """
+        Aligns the given VRT grid (defined by spatial extent and resolution) to the grid definde by pxSite and refPoint.
+        :param pxSize: QSizeF, new pixel resolution
+        :param refPoint: QgsPointXY, point int the new grid
+        """
+        ext = self.extent()
+        ext2 = alignRectangleToGrid(pxSize, refPoint, ext)
+        self.setExtent(ext2)
 
     def setResamplingAlg(self, value):
         """
@@ -514,7 +577,7 @@ class VRTRaster(QObject):
         """
         "Returns the resampling algorithms.
         :param asString: Set True to return the resampling algorithm as string.
-        :return:  gdal.GRA* constant or descriptive string.
+        :return:  gdal.GRA* constant | str with name.
         """
         if asString:
             i = RESAMPLE_ALGS.optionValues().index(self.mResamplingAlg)
@@ -549,7 +612,7 @@ class VRTRaster(QObject):
         #align to pixel size
         if not isinstance(referenceGrid, QgsPointXY):
             referenceGrid = QgsPointXY(rectangle.xMinimum(), rectangle.yMaximum())
-        extent, px = alignGridExtent(self.mResolution, referenceGrid, rectangle)
+        extent, px = alignRectangleToGrid(self.mResolution, referenceGrid, rectangle)
 
         self.mExtent = extent
 
@@ -610,18 +673,10 @@ class VRTRaster(QObject):
         if isinstance(crs, osr.SpatialReference):
             auth = '{}:{}'.format(crs.GetAttrValue('AUTHORITY',0), crs.GetAttrValue('AUTHORITY',1))
             crs = QgsCoordinateReferenceSystem(auth)
-        if isinstance(crs, QgsCoordinateReferenceSystem):
-            if isinstance(self.crs(), QgsCoordinateReferenceSystem) and crs != self.crs():
-                extent = self.extent()
-                if isinstance(extent, QgsRectangle):
-                    trans = QgsCoordinateTransform()
-                    trans.setDestinationCrs(self.mCrs, crs)
-                    extent = trans.transform(extent)
-                    self.setExtent(extent)
-                self.mCrs = crs
-                self.sigCrsChanged.emit(self.mCrs)
-
-
+        assert isinstance(crs, QgsCoordinateReferenceSystem)
+        if crs != self.crs():
+            self.mCrs = crs
+            self.sigCrsChanged.emit(self.mCrs)
 
 
     def crs(self):
@@ -720,16 +775,17 @@ class VRTRaster(QObject):
                 vBand.addSource(VRTRasterInputSourceBand(file, b))
         return self
 
-    def addFilesAsStack(self, files):
+    def addFilesAsStack(self, files:list):
         """
         Shortcut to stack all input files, i.e. each band of an input file will be a new virtual band.
         Bands in the virtual file will be ordered as file1-band1, file1-band n, file2-band1, file2-band,...
         :param files: [list-of-file-paths]
         :return: self
         """
+        assert isinstance(files, list)
         for file in files:
-            ds = gdal.Open(file)
-            assert isinstance(ds, gdal.Dataset), 'Can not open {}'.format(file)
+            ds = toDataset(file)
+            assert isinstance(ds, gdal.Dataset), 'Can not open {} as gdal.Dataset'.format(file)
             nb = ds.RasterCount
             ds = None
             for b in range(nb):

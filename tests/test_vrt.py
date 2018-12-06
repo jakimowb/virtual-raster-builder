@@ -78,23 +78,15 @@ class testclassData(unittest.TestCase):
 
         #1. create an empty VRT
         VRT = VRTRaster()
-
-
-
         vb1 = VRTRasterBand()
         vb2 = VRTRasterBand()
-
-
         VRT.addVirtualBand(vb1)
         VRT.addVirtualBand(vb2)
-
         self.assertEqual(len(VRT), 2)
         self.assertEqual(vb2, VRT[1])
-
         VRT.removeVirtualBand(vb1)
         self.assertEqual(len(VRT), 1)
         self.assertEqual(vb2, VRT[0])
-
 
         for n in [0, 2]:
             while not len(VRT) == 0:
@@ -131,22 +123,47 @@ class testclassData(unittest.TestCase):
         self.assertIsInstance(crs, QgsCoordinateReferenceSystem)
 
 
+        #align to other raster grid
+        pt = QgsPointXY(ext.xMinimum() - 5, ext.yMaximum() + 3.5)
+
+        lyr = toRasterLayer(landsat2_SAD)
+        self.assertIsInstance(lyr, QgsRasterLayer)
+        self.assertTrue(lyr.crs() != VRT.crs())
+        VRT.alignToRasterGrid(landsat2_SAD)
+        self.assertTrue(lyr.crs() == VRT.crs())
+        res = QSizeF(lyr.rasterUnitsPerPixelX(), lyr.rasterUnitsPerPixelY())
+        self.assertTrue(VRT.resolution() == res)
+
+    def test_vrtRasterMetadata(self):
+
+        ds = gdal.Open(landsat1)
+        self.assertIsInstance(ds, gdal.Dataset)
+        lyr = toRasterLayer(ds)
+        self.assertIsInstance(lyr, QgsRasterLayer)
+
+        VRT = VRTRaster()
+        VRT.addFilesAsStack()
+
 
     def test_alignExtent(self):
 
         pxSize = QSizeF(30,30)
-
         extent = QgsRectangle(30, 210, 300, 600)
-
         refPoint1 = QgsPointXY(-300, -300)
         refPoint2 = QgsPointXY(10, 10)
         refPoint3 = QgsPointXY(-20, -20)
         refPoint4 = QgsPointXY(20, 20)
+        point = QgsPointXY(8,15)
+        pt1 = alignPointToGrid(pxSize, refPoint1, point)
+        pt2 = alignPointToGrid(pxSize, refPoint1, QgsPointXY(16,16))
+        self.assertIsInstance(pt1, QgsPointXY)
+        self.assertEqual(pt1, QgsPointXY(0,0))
+        self.assertEqual(pt2, QgsPointXY(30,30))
 
-        extent1, px1 = alignGridExtent(pxSize, refPoint1, extent)
-        extent2, px2 = alignGridExtent(pxSize, refPoint2, extent)
-        extent3, px3 = alignGridExtent(pxSize, refPoint3, extent)
-        extent4, px4 = alignGridExtent(pxSize, refPoint4, extent)
+        extent1, px1 = alignRectangleToGrid(pxSize, refPoint1, extent)
+        extent2, px2 = alignRectangleToGrid(pxSize, refPoint2, extent)
+        extent3, px3 = alignRectangleToGrid(pxSize, refPoint3, extent)
+        extent4, px4 = alignRectangleToGrid(pxSize, refPoint4, extent)
         for e in [extent1, extent2, extent3, extent4]:
             self.assertIsInstance(e, QgsRectangle)
 

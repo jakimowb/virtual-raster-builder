@@ -87,6 +87,23 @@ def toVectorLayer(src) -> QgsVectorLayer:
 
     return lyr
 
+def toDataset(src, readonly=True)->gdal.Dataset:
+    """
+    Returns a gdal.Dataset if it can be extracted from src
+    :param src: input source
+    :param readonly: bool, true by default, set False to upen the gdal.Dataset in update mode
+    :return: gdal.Dataset
+    """
+    ga = gdal.GA_ReadOnly if readonly else gdal.GA_Update
+    if isinstance(src, str):
+        return gdal.Open(src, ga)
+    elif isinstance(src, QgsRasterLayer) and src.dataProvider().name() == 'gdal':
+        return toDataset(src.source(), readonly=readonly)
+    elif isinstance(src, gdal.Dataset):
+        return src
+    else:
+        return None
+
 def toRasterLayer(src) -> QgsRasterLayer:
     """
     Returns a QgsRasterLayer if it can be extracted from src
