@@ -110,11 +110,21 @@ def write_vsimem(fn:str,data:str):
     return gdal.VSIFCloseL(vsifile)
 
 
+def resolution(lyr)->QSizeF:
+    """Returns the pixel resolution of a QgsRasterLayer or gdal.Dataset"""
+    if isinstance(lyr, QgsRasterLayer):
+        return QSizeF(lyr.rasterUnitsPerPixelX(), lyr.rasterUnitsPerPixelY())
+    elif isinstance(lyr, gdal.Dataset):
+        gt = lyr.GetGeoTransform()
+        return QSizeF(gt[1], abs(gt[5]))
+    else:
+        raise Exception('Unsupported type: {}'.format(lyr))
+
 def px2geo(px, gt):
     #see http://www.gdal.org/gdal_datamodel.html
     gx = gt[0] + px.x()*gt[1]+px.y()*gt[2]
     gy = gt[3] + px.x()*gt[4]+px.y()*gt[5]
-    return QgsPoint(gx,gy)
+    return QgsPointXY(gx,gy)
 
 def alignPointToGrid(pixelSize:QSizeF, gridRefPoint:QgsPointXY, gridPoint:QgsPointXY)->QgsPointXY:
     """
@@ -366,6 +376,7 @@ class VRTRasterBand(QObject):
     sigNameChanged = pyqtSignal(str)
     sigSourceInserted = pyqtSignal(int, VRTRasterInputSourceBand)
     sigSourceRemoved = pyqtSignal(int, VRTRasterInputSourceBand)
+
     def __init__(self, name:str='', parent=None):
         super(VRTRasterBand, self).__init__(parent)
         self.mSources = []
@@ -377,6 +388,9 @@ class VRTRasterBand(QObject):
 
     def __iter__(self):
         return iter(self.mSources)
+
+    def __getitem__(self, slice):
+        return self.mSources[slice]
 
     def __len__(self):
         return len(self.mSources)
@@ -487,6 +501,7 @@ class VRTRaster(QObject):
     sigResolutionChanged = pyqtSignal()
     sigResamplingAlgChanged = pyqtSignal([str],[int])
     sigExtentChanged = pyqtSignal()
+    sigNoDataValueChanged = pyqtSignal(float)
 
     def __init__(self, parent=None):
         super(VRTRaster, self).__init__(parent)
@@ -494,25 +509,36 @@ class VRTRaster(QObject):
         self.mCrs = None
         self.mResamplingAlg = gdal.GRA_NearestNeighbour
         self.mMetadata = dict()
-        self.mExtent = None
+        self.mUL = None
         self.mResolution = None
+        self.mSize = None
+        self.mNoDataValue = None
+        self.sigSourceBandInserted.connect(self.checkBasicParameters)
 
-        self.sigSourceBandInserted.connect(self.onSourceInserted)
+    def checkBasicParameters(self, vrtBand:VRTRasterBand):
 
-    def onSourceInserted(self, vrtBand, srcBand:VRTRasterInputSourceBand):
-        s = ""
-        if not isinstance(self.crs(), QgsCoordinateReferenceSystem) or self.mExtent is None or self.mResolution is None:
-            lyr = srcBand.toRasterLayer()
+        if len(vrtBand) == 0:
+            return
+
+        if not (isinstance(self.crs(), QgsCoordinateReferenceSystem) and
+                isinstance(self.extent(), QgsRectangle)  and
+                isinstance(self.resolution(), QSizeF)):
+            lyr = vrtBand[0].toRasterLayer()
             assert isinstance(lyr, QgsRasterLayer)
 
             if not isinstance(self.mCrs, QgsCoordinateReferenceSystem):
                 self.setCrs(lyr.crs())
 
             if not isinstance(self.mResolution, QSizeF):
-                self.setResolution(QSizeF(lyr.rasterUnitsPerPixelX(), lyr.rasterUnitsPerPixelY()))
+                res = resolution(lyr)
+                self.setResolution(res)
 
-            if not isinstance(self.mExtent, QgsRectangle):
-                self.setExtent(lyr.extent())
+            if not isinstance(self.ul(), QgsPointXY):
+                ext = lyr.extent()
+                self.mUL = QgsPointXY(ext.xMinimum(), ext.yMaximum())
+
+            if not isinstance(self.size(), QSize):
+                self.setSize(QSize(lyr.width(), lyr.height()))
 
     def alignToRasterGrid(self, reference, crop:bool=False):
         """
@@ -586,14 +612,32 @@ class VRTRaster(QObject):
         else:
             return self.mResamplingAlg
 
+
+    def setNoDataValue(self, value):
+        """
+        Sets the image no data value, which will be applied to each single band
+        :param value: float | None
+        """
+        assert isinstance(value, (None, float))
+        if self.mNoDataValue != value:
+            self.mNoDataValue = value
+            self.sigNoDataValueChanged.emit(value)
+
+    def noDataValue(self)->float:
+        """
+        Returns the image no data value
+        :return: float
+        """
+        return self.mNoDataValue
+
     def setExtent(self, rectangle:QgsRectangle, crs:QgsCoordinateReferenceSystem=None, referenceGrid:QgsPointXY=None):
         """
-        Sets the extent of this VRT
+        Sets a new extent. This will change the number of pixels
         :param rectangle: QgsRectangle
         :param crs: QgsCoordinateReferenceSystem of coordinate in rectangle.
         """
-        last = self.mExtent
-        assert isinstance(rectangle, QgsRectangle)
+
+        last = self.extent()
 
         if not isinstance(crs, QgsCoordinateReferenceSystem):
             crs = self.mCrs
@@ -612,20 +656,70 @@ class VRTRaster(QObject):
         #align to pixel size
         if not isinstance(referenceGrid, QgsPointXY):
             referenceGrid = QgsPointXY(rectangle.xMinimum(), rectangle.yMaximum())
-        extent, px = alignRectangleToGrid(self.mResolution, referenceGrid, rectangle)
-
-        self.mExtent = extent
-
-        if last != self.mExtent:
+        extent, px = alignRectangleToGrid(self.resolution(), referenceGrid, rectangle)
+        self.mUL = QgsPointXY(extent.xMinimum(), extent.yMaximum())
+        self.setSize(px)
+        if last != extent:
             self.sigExtentChanged.emit()
         pass
+
+
+    def size(self)->QSize:
+        """
+        Returns the raster size in pixel
+        :return: QSize
+        """
+        return self.mSize
+
+    def setSize(self, size:QSize):
+        """
+        Sets the raster size in pixel. Requires to have resolution, CRS and extent set and will calculate a new
+        extent
+        :param size: QSize, the new raster size
+        """
+        assert size.width() > 0
+        assert size.height() > 0
+
+        if self.mSize != size:
+            self.mSize = size
+            self.sigExtentChanged.emit()
+
+    def ul(self)->QgsPointXY:
+        """
+        Returns the upper-left image pixel corner coordinate.
+
+        :return: QgsPointXY
+        """
+        return self.mUL
+
+    def lr(self)->QgsPointXY:
+        """
+        Returns the lower-right image pixel corner coordinate.
+
+        :return: QgsPointXY
+        """
+        size = self.size()
+        res = self.resolution()
+        ul = self.ul()
+
+        if None in [size, res, ul]:
+            return None
+
+        lr = QgsPointXY(ul.x() + size.width() * res.width(),
+                        ul.y() - size.height() * res.height())
+        return lr
 
     def extent(self)->QgsRectangle:
         """
         Returns the spatial extent
-        :return:
+        :return: QgsRectangle
         """
-        return self.mExtent
+
+        ul = self.ul()
+        lr = self.lr()
+        if ul is None or lr is None:
+            return None
+        return QgsRectangle(ul.x(), lr.y(), lr.x(), ul.y())
 
     def setResolution(self, xy):
         """
@@ -649,6 +743,9 @@ class VRTRaster(QObject):
                 assert xy.width() > 0
                 assert xy.height() > 0
                 self.mResolution = QSizeF(xy)
+                #adjust extent
+                s = ""
+
             elif isinstance(xy, str):
                 assert xy in ['average','highest','lowest']
                 self.mResolution = xy
@@ -661,7 +758,15 @@ class VRTRaster(QObject):
         Returns the internal resolution / pixel size
         :return: QSizeF
         """
-        return self.mResolution
+        if isinstance(self.mResolution, QSizeF):
+            return self.mResolution
+        elif self.mResolution == 'average':
+            pass
+        elif self.mResolution == 'min':
+            pass
+        elif self.mResolution == 'max':
+            pass
+        return None
 
 
     def setCrs(self, crs):
@@ -850,7 +955,10 @@ class VRTRaster(QObject):
 
         for b in range(ds.RasterCount):
             srcBand = ds.GetRasterBand(b+1)
-            vrtBand = VRTRasterBand(name=srcBand.GetDescription().decode('utf-8'))
+            assert isinstance(srcBand, gdal.Band)
+
+            vrtBand = VRTRasterBand(name=srcBand.GetDescription())
+
             for key, xml in srcBand.GetMetadata(str('vrt_sources')).items():
 
                 tree = ElementTree.fromstring(xml)
@@ -858,7 +966,12 @@ class VRTRaster(QObject):
                 srcBandIndex = int(tree.find('SourceBand').text)
                 vrtBand.addSource(VRTRasterInputSourceBand(srcPath, srcBandIndex))
 
+            if b == 0:
+                noData = vrtBand.GetNoDataValue()
+                self.setNoDataValue(noData)
+
             self.insertVirtualBand(bandIndex, vrtBand)
+
             bandIndex += 1
 
 
@@ -877,7 +990,8 @@ class VRTRaster(QObject):
         :param pathVRT: 
         :return:
         """
-        assert len(self) >= 1, 'VRT needs to define at least 1 band'
+        sources = self.sourceRaster()
+        assert len(sources) >= 1, 'VRT needs to define at least 1 input source'
         assert os.path.splitext(pathVRT)[-1].lower() == '.vrt'
 
         srcLookup = dict()
@@ -918,16 +1032,6 @@ class VRTRaster(QObject):
                 tmp = gdal.Warp(warpedFileName, dsSrc, options=wops)
                 assert isinstance(tmp, gdal.Dataset)
                 vrtXML = read_vsimem(warpedFileName)
-                xml = ElementTree.fromstring(vrtXML)
-                #print(vrtXML.decode('utf-8'))
-
-                if False:
-                    dsTmp = gdal.Open(warpedFileName)
-                    assert isinstance(dsTmp, gdal.Dataset)
-                    drvVRT.Delete(warpedFileName)
-                    dsTmp = gdal.Open(warpedFileName)
-                    assert not isinstance(dsTmp, gdal.Dataset)
-
                 srcLookup[pathSrc] = warpedFileName
 
         srcFiles = [srcLookup[src] for src in self.sourceRaster()]
@@ -1117,104 +1221,4 @@ def createVirtualBandStack(bandFiles, pathVRT):
             band.SetNoDataValue(noData)
 
     return vrtDS
-
-
-
-class RasterBounds(object):
-    """
-    Stores boundary information
-    """
-    @staticmethod
-    def create(src):
-        """
-        :param self:
-        :param src:
-        :return:
-        """
-        try:
-            return RasterBounds(src)
-        except Exception as ex:
-            return None
-
-
-    def __init__(self, uri):
-        self.path = None
-        self.polygon = None
-        self.curve = None
-        self.crs = None
-
-        self.fromSource(uri)
-
-    def __eq__(self, other):
-        if not isinstance(other, RasterBounds):
-            return False
-        return self.crs == other.crs and self.polygon.asWkt() == other.polygon.asWkt()
-        if isinstance(uri, str):
-            lyr = QgsRasterLayer(uri)
-            if isinstance(lyr, QgsRasterLayer):
-                self.fromLayer(lyr)
-            else:
-                lyr = QgsVectorLayer(uri)
-                if isinstance(lyr, QgsVectorLayer):
-                    self.fromLayer(lyr)
-            #self.fromImage(uri)
-
-    def fromLayer(self, mapLayer:QgsMapLayer):
-
-        if isinstance(mapLayer, QgsMapLayer) and mapLayer.isValid():
-            crs = mapLayer.crs()
-
-            self.path = mapLayer.source()
-
-            ring = ogr.Geometry(ogr.wkbLinearRing)
-            ext = mapLayer.extent()
-            bounds = None
-            for p in bounds:
-                assert isinstance(p, QgsPoint)
-                ring.AddPoint(p.x(), p.y())
-
-    def fromSource(self, src)->bool:
-        """
-        tries to open 'src' as QgsMapLayer t
-        :param src: any object
-        :return: bool
-        """
-        from vrtbuilder import toRasterLayer
-        lyr = toRasterLayer(src)
-        return self.fromLayer(lyr)
-
-    def fromImage(self, path):
-        warnings.warn('use .fromLayer() instead', DeprecationWarning)
-        self.path = path
-        ds = gdal.Open(path)
-        assert isinstance(ds, gdal.Dataset)
-        gt = ds.GetGeoTransform()
-        bounds = [px2geo(QPoint(0, 0), gt),
-                  px2geo(QPoint(ds.RasterXSize, 0), gt),
-                  px2geo(QPoint(ds.RasterXSize, ds.RasterYSize), gt),
-                  px2geo(QPoint(0, ds.RasterYSize), gt)]
-        crs = QgsCoordinateReferenceSystem(ds.GetProjection())
-        ring = ogr.Geometry(ogr.wkbLinearRing)
-        for p in bounds:
-            assert isinstance(p, QgsPoint)
-            ring.AddPoint(p.x(), p.y())
-
-
-    def fromLayer(self, mapLayer:QgsMapLayer)->bool:
-
-        if not isinstance(mapLayer, QgsMapLayer):
-            return False
-
-        self.path = mapLayer.source()
-        self.polygon = QgsPolygon()
-        assert self.polygon.fromWkt(mapLayer.extent().asWktPolygon())
-        self.polygon.exteriorRing().close()
-        assert self.polygon.exteriorRing().isClosed()
-
-        self.crs = mapLayer.crs()
-
-        return True
-
-    def __repr__(self):
-        return self.polygon.asWkt()
 

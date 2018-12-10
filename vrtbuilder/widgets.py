@@ -30,10 +30,10 @@ from qgis.PyQt.QtXml import *
 from osgeo import gdal, osr, gdalconst as gc
 
 from vrtbuilder.models import TreeModel, TreeNode, TreeView
-from vrtbuilder.virtualrasters import VRTRaster, VRTRasterBand, VRTRasterInputSourceBand, RasterBounds, RESAMPLE_ALGS
+from vrtbuilder.virtualrasters import *
 from vrtbuilder.utils import loadUi
 from vrtbuilder import registerLayerStore, MAPLAYER_STORES
-from vrtbuilder import toRasterLayer
+from vrtbuilder import toRasterLayer, toMapLayer, toVectorLayer
 LUT_FILEXTENSIONS = {}
 
 
@@ -992,8 +992,6 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         self.actionRemoveSourceFiles.setEnabled(False)
         selectionModel.selectionChanged.connect(lambda selected, deselected : self.actionRemoveSourceFiles.setEnabled(selected.count() > 0))
 
-        self.mCrsManuallySet = False
-        self.mBoundsManuallySet = False
 
         self.tbNoData.setValidator(QDoubleValidator())
 
@@ -1050,7 +1048,6 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
     def initActions(self):
 
         # extents
-        self.cbBoundsFromSourceFiles.clicked.connect(self.calculateExtent)
         self.cbBoundsFromSourceFiles.clicked.connect(self.frameExtent.setDisabled)
 
 
@@ -1071,9 +1068,17 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         reg = QRegExp(r"^\D[^ ]*\.vrt$")
         self.lineEditInMemory.setValidator(QRegExpValidator(reg))
 
+        #
         for tb in [self.tbBoundsXMin, self.tbBoundsXMax, self.tbBoundsYMin, self.tbBoundsYMax]:
-            tb.textChanged.connect(self.calculateExtent)
+            #.textEdited is emited on "manual" changed only
+            tb.textEdited.connect(lambda : self.calculateGrid(changedExtent=True))
             tb.setValidator(QDoubleValidator(-999999999999999999999.0, 999999999999999999999.0, 20))
+
+        self.sbResolutionX.valueChanged.connect(lambda : self.calculateGrid(changedResolution=True))
+        self.sbResolutionY.valueChanged.connect(lambda : self.calculateGrid(changedResolution=True))
+
+        self.sbRasterWidth.valueChanged.connect(lambda : self.calculateGrid(changedSize=True))
+        self.sbRasterHeight.valueChanged.connect(lambda : self.calculateGrid(changedSize=True))
 
         self.cbResampling.clear()
         self.cbResampling.setModel(RESAMPLE_ALGS)
@@ -1301,35 +1306,32 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         self.validateInputs()
 
     def setBoundsFromSource(self, source):
-        bounds = RasterBounds.create(source)
-        if isinstance(bounds, RasterBounds):
-            self.setExtent(bounds.polygon.boundingBox(), bounds.crs)
-
-    def setBoundsFromFile(self, file):
-        lyr = toRasterLayer(file)
-        try:
-            lyr = QgsRasterLayer(file)
-
-        except Exception as ex:
-            pass
-
+        """Copies the spatial extent from a given raster or vector source"""
+        lyr = toMapLayer(source)
         if isinstance(lyr, QgsMapLayer):
-            bounds = RasterBounds(lyr)
-            bbox = bounds.polygon.boundingBox()
-            self.setExtent(bbox, bounds.crs)
+            self.setExtent(lyr.extent(), lyr.crs())
 
-    def setResolutionFrom(self, file):
-        if os.path.isfile(file) and isinstance(gdal.Open(file), gdal.Dataset):
-            ds = gdal.Open(file)
-            if isinstance(ds, gdal.Dataset):
-                gt = ds.GetGeoTransform()
-                res = QSizeF(abs(gt[1]), abs(gt[5]))
-                # self.vrtRaster.setResolution()
-                self.tbResolutionX.setText('{}'.format(res.width()))
-                self.tbResolutionY.setText('{}'.format(res.height()))
+    def setResolutionFromSource(self, source):
+        """Copies the pixel resolution forma given raster source"""
+        lyr = toRasterLayer(source)
+        if isinstance(lyr, QgsRasterLayer):
+            self.mVRTRaster.setResolution(resolution(lyr))
 
-            self.validateInputs()
-            self.addSourceFile(file)
+    def setGridFrom(self, source):
+        """
+        Copies the raster grid (CRS, extent, pixe size) from a raster source
+        :param source: any type
+        """
+        lyr = toRasterLayer(source)
+        if isinstance(lyr, QgsRasterLayer):
+            crs = lyr.crs()
+            res = resolution(lyr)
+            ext = lyr.extent()
+            self.mVRTRaster.setCrs(crs)
+            self.mVRTRaster.setResolution(res)
+            refPoint = QgsPointXY(ext.xMinimum(), ext.yMaximum())
+            self.mVRTRaster.setExtent(ext, crs=crs, refPoint=refPoint)
+
 
     def buildButtonMenus(self, *args):
 
@@ -1352,7 +1354,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         def onResFromFile(*args):
             fn, filter = QFileDialog.getOpenFileName(self, "Select raster file", directory='')
             if len(fn) > 0:
-                self.setResolutionFrom(fn)
+                self.setResolutionFromSource(fn)
 
         for file in self.mSourceFileModel.rasterSources():
             bn = os.path.basename(file)
@@ -1364,7 +1366,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
             a = menuCopyResolution.addAction(bn)
             a.setToolTip('Use resolution of {}'.format(file))
             a.setIcon(QIcon(':/vrtbuilder/mIconRaster.svg'))
-            a.triggered.connect(lambda file=file: self.setResolutionFrom(file))
+            a.triggered.connect(lambda file=file: self.setResolutionFromSource(file))
 
             a = menuCopyGrid.addAction(bn)
             a.setToolTip('Use pixel grid of {}'.format(file))
@@ -1385,21 +1387,43 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         self.btnAlignGrid.setMenu(menuAlignGrid)
 
 
-    def calculateExtent(self, *args):
-        if self.cbBoundsFromSourceFiles.isChecked():
-            #derive from source files
-            extent = self.mVRTRaster.fullSourceRasterExtent()
-            if isinstance(extent, QgsRectangle):
-                self.mVRTRaster.setExtent(extent)
+    def calculateGrid(self, changedResolution:bool=False, changedExtent:bool=False, changedCrs:bool=False, changedSize:bool=False):
 
-        else:
-            values = [tb.text() for tb in [self.tbBoundsXMin, self.tbBoundsYMin, self.tbBoundsXMax, self.tbBoundsYMax]]
-            if '' not in values:
-                S = ""
-                values = [float(v) for v in values]
-                rectangle = QgsRectangle(*values)
-                if rectangle.width() > 0 and rectangle.height() > 0:
-                    self.mVRTRaster.setExtent(rectangle)
+        n = sum([changedResolution, changedExtent, changedCrs, changedSize])
+        assert n <= 1, 'only one aspect should be changed on same time manually'
+
+        if changedResolution:
+            #recalculate the grid with new pixel resolution
+            res = QSizeF(self.sbResolutionX.value(), self.sbResolutionY.value())
+            if res.width() > 0  and res.height() > 0:
+                self.mVRTRaster.setResolution(res)
+            return
+
+        if changedSize:
+            #recalculate grid with new raster size
+            pass
+
+        if changedCrs:
+            pass
+
+        if changedExtent:
+            #recalculate with new extent
+
+            if self.cbBoundsFromSourceFiles.isChecked():
+                #derive from source files
+                extent = self.mVRTRaster.fullSourceRasterExtent()
+                if isinstance(extent, QgsRectangle):
+                    self.mVRTRaster.setExtent(extent)
+
+            else:
+                values = [tb.text() for tb in [self.tbBoundsXMin, self.tbBoundsYMin, self.tbBoundsXMax, self.tbBoundsYMax]]
+                if '' not in values:
+                    S = ""
+                    values = [float(v) for v in values]
+                    rectangle = QgsRectangle(*values)
+                    if rectangle.width() > 0 and rectangle.height() > 0:
+                        self.mVRTRaster.setExtent(rectangle)
+
         self.validateInputs()
 
     def validateInputs(self, *args):
@@ -1415,16 +1439,6 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
 
         self.buttonBox.button(QDialogButtonBox.Save).setEnabled(isValid)
 
-    def onResolutionChanged(self, *args):
-
-        x = self.tbResolutionX.text()
-        y = self.tbResolutionY.text()
-        if len(x) > 0 and len(y) > 0:
-            x = float(x)
-            y = float(y)
-            self.mVRTRaster.setResolution(QSizeF(x, y))
-
-        self.validateInputs()
 
     def restoreDefaultSettings(self):
         self.cbAddToMap.setChecked(True)
@@ -1595,6 +1609,8 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         """
         self.mSourceFileModel.addSources(files)
 
+
+
     def updateSummary(self):
         """
         Updates (almost) all information visible to the user
@@ -1618,6 +1634,14 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
             self.tbBoundsXMax.setText('{}'.format(extent.xMaximum()))
             self.tbBoundsYMin.setText('{}'.format(extent.yMinimum()))
             self.tbBoundsYMax.setText('{}'.format(extent.yMaximum()))
+
+
+        res = self.mVRTRaster.resolution()
+        if isinstance(res, QSizeF):
+            self.sbResolutionX.setValue(res.width())
+            self.sbResolutionY.setValue(res.height())
+
+
 
         self.resetMap()
 

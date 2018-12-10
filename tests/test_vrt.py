@@ -96,19 +96,9 @@ class testclassData(unittest.TestCase):
                 VRT.addVirtualBand(VRTRasterBand())
             path =  os.path.join(tmpDir, 'testEmptyVRT.vrt')
 
-            if n == 0:
-                self.assertRaises(Exception, VRT.saveVRT, path)
-                continue
 
-            self.assertIsInstance(VRT.saveVRT(path), gdal.Dataset)
-
-            f = open(path, encoding='utf8')
-            xml = ''.join(f.readlines())
-            f.close()
-
-            ds = gdal.Open(path)
-            self.assertIsInstance(ds, gdal.Dataset)
-            self.assertEqual(ds.RasterCount, len(VRT))
+            self.assertRaises(Exception, VRT.saveVRT, path)
+            continue
 
         ext = VRT.extent()
         self.assertTrue(ext == None)
@@ -333,25 +323,6 @@ class testclassData(unittest.TestCase):
 
         if SHOW_GUI:
             QGIS_APP.exec_()
-
-    def test_bounds(self):
-
-        p = exampledata.landsat1
-
-        b1 = RasterBounds.create(p)
-        self.assertIsInstance(b1, RasterBounds)
-
-        lyr = QgsRasterLayer(p)
-        b2 = RasterBounds.create(lyr)
-
-        self.assertIsInstance(b2, RasterBounds)
-        self.assertEqual(b1, b2)
-
-        QGIS_APP.exec_()
-
-
-    def test_vrtBuilderGUI(self):
-        pass
 
 
     def test_init(self):

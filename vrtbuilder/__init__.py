@@ -104,6 +104,21 @@ def toDataset(src, readonly=True)->gdal.Dataset:
     else:
         return None
 
+
+def toMapLayer(src)->QgsMapLayer:
+    """
+    Return a QgsMapLayer if it can be extracted from src
+    :param src: any type of input
+    :return: QgsMapLayer
+    """
+    lyr = toRasterLayer(src)
+    if isinstance(lyr, QgsMapLayer):
+        return lyr
+    lyr = toVectorLayer(src)
+    if isinstance(lyr, QgsMapLayer):
+        return lyr
+    return lyr
+
 def toRasterLayer(src) -> QgsRasterLayer:
     """
     Returns a QgsRasterLayer if it can be extracted from src
