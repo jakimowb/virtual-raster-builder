@@ -1,0 +1,19 @@
+# .readthedocs.yml
+name: VRT Builder
+type: sphinx
+
+build:
+  image: latest
+
+python:
+  version: 3.6
+  pip_install: true
+  setup_py_install: false
+
+
+formats:
+  - htmlzip
+  - epub
+  - pdf
+
+requirements_file:  requirements.txt

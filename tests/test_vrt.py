@@ -52,6 +52,8 @@ class testclassData(unittest.TestCase):
         ds1 = VRT.saveVRT(path)
         ds2 = gdal.Open(path)
 
+
+
         self.assertIsInstance(ds1, gdal.Dataset)
         self.assertIsInstance(ds2, gdal.Dataset)
         self.assertEqual(len(VRT), ds1.RasterCount)
@@ -61,6 +63,7 @@ class testclassData(unittest.TestCase):
         arr2 = ds2.ReadAsArray()
         self.assertTrue(np.array_equal(arr1, arr2))
 
+        print('\n'.join(vsiFiles()))
         VRT.setCrs(QgsCoordinateReferenceSystem('EPSG:4281'))
         ds3 = VRT.saveVRT('/vsimem/ds3.vrt')
         self.assertIsInstance(ds3, gdal.Dataset)
@@ -69,7 +72,8 @@ class testclassData(unittest.TestCase):
         self.assertNotEqual(ds1.GetProjection(), ds3.GetProjection())
         arr3 = ds3.ReadAsArray()
         self.assertFalse(np.array_equal(arr1, arr3))
-        pass
+
+    pass
 
     def test_vrtRaster(self):
 
