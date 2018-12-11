@@ -865,7 +865,7 @@ class VRTRaster(QObject):
             self.sigBandRemoved.emit(index, virtualBand)
 
 
-    def removeInputSource(self, path):
+    def removeInputSource(self, path:str):
         assert path in self.sourceRaster()
         for vBand in self.mBands:
             assert isinstance(vBand, VRTRasterBand)
@@ -873,6 +873,10 @@ class VRTRaster(QObject):
                 vBand.removeSource(path)
 
     def removeVirtualBand(self, bandOrIndex):
+        """
+        Removes a single
+        :param bandOrIndex: int |VRTRasterBand
+        """
         self.removeVirtualBands([bandOrIndex])
 
     def addFilesAsMosaic(self, files):
@@ -987,9 +991,6 @@ class VRTRaster(QObject):
             self.insertVirtualBand(bandIndex, vrtBand)
 
             bandIndex += 1
-
-
-
 
     def saveVRT(self, pathVRT)->gdal.Dataset:
         """
@@ -1183,10 +1184,6 @@ class VRTRaster(QObject):
 
     def __iter__(self):
         return iter(self.mBands)
-
-
-
-
 
 def createVirtualBandMosaic(bandFiles, pathVRT):
     drv = gdal.GetDriverByName('VRT')
