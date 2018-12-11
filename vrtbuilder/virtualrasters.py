@@ -77,7 +77,7 @@ def vsiFiles()->list:
     Returns the URIs pointing on VSIMEM files
     :return: [list-of-str]
     """
-    return [p for p in gdal.ReadDirRecursive('/vsimem/') if not p.endswith('/')]
+    return ['/vsimem/'+ p for p in gdal.ReadDirRecursive('/vsimem/') if not p.endswith('/')]
 
 #get available resampling algorithms
 RESAMPLE_ALGS = OptionListModel()
@@ -1009,15 +1009,16 @@ class VRTRaster(QObject):
         assert len(sources) >= 1, 'VRT needs to define at least 1 input source'
         assert os.path.splitext(pathVRT)[-1].lower() == '.vrt'
 
-        srcLookup = dict()
+        srcPathLookup = dict()
         srcNodata = None
         inMemory = pathVRT.startswith('/vsimem/')
 
         if inMemory:
-            dirWarped = '/vsimem/warped'
-            gdal.Mkdir(dirWarped, 1)
+            dirWarped = '/vsimem/'
+            #gdal.Mkdir(dirWarped, 1)
         else:
             dirWarped = os.path.join(os.path.splitext(pathVRT)[0] + '.WarpedImages')
+            os.makedirs(dirWarped, exist_ok=True)
 
         for i, pathSrc in enumerate(self.sourceRaster()):
             dsSrc = gdal.Open(pathSrc)
@@ -1030,26 +1031,28 @@ class VRTRaster(QObject):
             crs = QgsCoordinateReferenceSystem(dsSrc.GetProjection())
 
             if crs == self.mCrs:
-                srcLookup[pathSrc] = pathSrc
+                srcPathLookup[pathSrc] = pathSrc
             else:
-                #do a CRS transformation using VRTs
-
+                #reproject, if necessary, based on VRT
                 warpedFileName = 'warped.{}.{}.vrt'.format(os.path.basename(pathSrc), uuid.uuid4())
                 if inMemory:
-                    warpedFileName = dirWarped + '/' + warpedFileName
+                    warpedFileName = dirWarped + warpedFileName
                 else:
-                    os.makedirs(dirWarped, exist_ok=True)
                     warpedFileName = os.path.join(dirWarped, warpedFileName)
 
                 wops = gdal.WarpOptions(format='VRT',
                                         dstSRS=self.mCrs.toWkt())
+
                 gdal.Warp(warpedFileName, dsSrc, options=wops)
                 tmp = gdal.Open(warpedFileName)
                 assert isinstance(tmp, gdal.Dataset)
-                #vrtXML = read_vsimem(warpedFileName)
-                srcLookup[pathSrc] = warpedFileName
 
-        srcFiles = [srcLookup[src] for src in self.sourceRaster()]
+                srcPathLookup[pathSrc] = warpedFileName
+
+
+        srcFiles = [srcPathLookup[src] for src in self.sourceRaster()]
+
+
 
         #these need to be set
         ns = nl = gt = crs = eType = None
@@ -1060,13 +1063,21 @@ class VRTRaster(QObject):
         if isinstance(self.crs(), QgsCoordinateReferenceSystem):
             srs = self.crs().toWkt()
 
+        if True:
+            for file in srcFiles:
+                ds = gdal.Open(file)
+                assert isinstance(ds, gdal.Dataset)
+                assert ds.GetProjection() == srs
+
         if len(srcFiles) > 0:
-            # 1. build a temporary VRT that describes the spatial shifts of all input sources
+            # 1. build a temporary VRT that describes the spatial proportions of all input sources
             kwds = {}
+
             if res is None:
                 res = 'average'
+
             if isinstance(res, QSizeF):
-                kwds['resolution'] = 'user'
+                #kwds['resolution'] = 'user'
                 kwds['xRes'] = res.width()
                 kwds['yRes'] = res.height()
             else:
@@ -1075,25 +1086,52 @@ class VRTRaster(QObject):
 
             if isinstance(extent, QgsRectangle):
                 kwds['outputBounds'] = (extent.xMinimum(), extent.yMinimum(), extent.xMaximum(), extent.yMaximum())
+                pass
 
             if srs is not None:
                 kwds['outputSRS'] = srs
 
+            kwds['bandList'] = [1 for _ in srcFiles]
+            kwds['separate'] = True
 
+            vro = gdal.BuildVRTOptions(**kwds)
 
-            pathInMEMVRT = '/vsimem/{}.vrt'.format(uuid.uuid4())
-            vro = gdal.BuildVRTOptions(separate=True, **kwds)
-            gdal.BuildVRT(pathInMEMVRT, srcFiles, options=vro)
-            dsVRTDst = gdal.Open(pathInMEMVRT)
+            pathInMEMVRT = '/vsimem/tmp.{}.vrt'.format(uuid.uuid4())
+            dsVRTDst = gdal.BuildVRT(pathInMEMVRT, srcFiles, options=vro)
+            if not isinstance(dsVRTDst, gdal.Dataset):
+                s = ""
+            if not isinstance(dsVRTDst.GetFileList(), list):
+                print('## VSI Files ##')
+                vsiF = vsiFiles()
+                for s in srcFiles:
+                    if s not in vsiF:
+                        s = ""
+
+                    ds = gdal.Open(s)
+                    assert isinstance(ds, gdal.Dataset)
+                    assert ds.RasterCount >= 1
+                    assert len(ds.GetFileList()) > 0
+                    assert ds.GetProjection() == dsVRTDst.GetProjection()
+
+                print('\n'.join(vsiFiles()))
+
+                print(ds.GetMetadata_Dict('DERIVED_SUBDATASETS'))
+                s = ""
+            else:
+                print(ds.GetMetadata_Dict('DERIVED_SUBDATASETS'))
+                s  =""
             assert isinstance(dsVRTDst, gdal.Dataset)
+            
             assert isinstance(dsVRTDst.GetFileList(), list)
             ns, nl = dsVRTDst.RasterXSize, dsVRTDst.RasterYSize
             gt = dsVRTDst.GetGeoTransform()
-            crs = dsVRTDst.GetProjectionRef()
-            band = dsVRTDst.GetRasterBand(1)
-            eType = band.DataType
+
             SOURCE_TEMPLATES = dict()
             for i, srcFile in enumerate(srcFiles):
+                band = dsVRTDst.GetRasterBand(i+1)
+                assert isinstance(band, gdal.Band)
+                if i == 0:
+                    eType = band.DataType
                 vrt_sources = dsVRTDst.GetRasterBand(i+1).GetMetadata(str('vrt_sources'))
                 assert len(vrt_sources) == 1
                 srcXML = vrt_sources['source_0']
@@ -1147,7 +1185,7 @@ class VRTRaster(QObject):
             for iSrc, sourceInfo in enumerate(vBand.mSources):
                 assert isinstance(sourceInfo, VRTRasterInputSourceBand)
                 bandIndex = sourceInfo.mBandIndex
-                xml = SOURCE_TEMPLATES[srcLookup[sourceInfo.mSource]]
+                xml = SOURCE_TEMPLATES[srcPathLookup[sourceInfo.mSource]]
                 xml = re.sub('<SourceBand>1</SourceBand>', '<SourceBand>{}</SourceBand>'.format(bandIndex+1), xml)
                 md['source_{}'.format(iSrc)] = xml
             vrtBandDst.SetMetadata(md, 'vrt_sources')
