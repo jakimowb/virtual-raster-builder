@@ -4,4 +4,19 @@
 # see https://www.python.org/dev/peps/pep-0440/#version-specifiers
 ###### Requirements ######
 
-gdal
+#standard requirements
+-r requirements.txt
+
+#requirements for developers
+# Required packages to run tests
+pytest
+py
+pytest-cov
+
+recommonmark
+sphinx
+sphinx-argparse
+sphinx-markdown
+sphinx-rtd-theme
+sphinx-autobuild
+
