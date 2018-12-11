@@ -21,9 +21,9 @@ from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtXml import *
 
 import numpy as np
-from tests import *
+from testing import *
 QGIS_APP = initQgisApplication()
-SHOW_GUI = True
+SHOW_GUI = False
 from vrtbuilder import toRasterLayer, toVectorLayer
 from vrtbuilder.widgets import *
 from vrtbuilder.virtualrasters import *
