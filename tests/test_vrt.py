@@ -52,8 +52,6 @@ class testclassData(unittest.TestCase):
         ds1 = VRT.saveVRT(path)
         ds2 = gdal.Open(path)
 
-
-
         self.assertIsInstance(ds1, gdal.Dataset)
         self.assertIsInstance(ds2, gdal.Dataset)
         self.assertEqual(len(VRT), ds1.RasterCount)
