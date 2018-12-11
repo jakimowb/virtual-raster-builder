@@ -12,24 +12,19 @@ __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
-import unittest, tempfile
-from qgis.gui import *
-from qgis.core import *
-from qgis.PyQt.QtGui import *
-from qgis.PyQt.QtWidgets import *
-from qgis.PyQt.QtCore import *
-from qgis.PyQt.QtXml import *
+import unittest
 
-import numpy as np
-import testing
+from tests.testing import *
+from tests import testing
+
 QGIS_APP = testing.initQgisApplication()
 SHOW_GUI = False
-from vrtbuilder import toRasterLayer, toVectorLayer
 from vrtbuilder.widgets import *
 from vrtbuilder.virtualrasters import *
 from vrtbuilder.utils import *
-from exampledata import landsat1, landsat2, landsat2_SAD, rapideye
-import exampledata
+from exampledata import landsat1, landsat2, landsat2_SAD
+
+
 class testclassData(unittest.TestCase):
 
 
