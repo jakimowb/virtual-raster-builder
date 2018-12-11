@@ -1,7 +1,7 @@
 import os, sys, re, uuid, importlib
 import numpy as np
 import qgis
-from osgeo import gdal, ogr
+from osgeo import gdal, ogr, osr
 from qgis.gui import *
 from qgis.core import *
 from qgis.PyQt.QtWidgets import *
@@ -14,7 +14,7 @@ SHOW_GUI = True
 
 
 
-def initQgisApplication(*args, qgisResourceDir:str=None, **kwds)->QgsApplication:
+def initQgisApplication(qgisResourceDir:str=None)->QgsApplication:
     """
     Initializes a QGIS Environment
     :return: QgsApplication instance of local QGIS installation
