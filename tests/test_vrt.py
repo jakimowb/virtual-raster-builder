@@ -338,7 +338,6 @@ class testclassData(unittest.TestCase):
 
         pass
 
-
         dsVEC = TestObjects.inMemoryVector()
         sources = [dsVEC, dsVEC.GetDescription()]
         for s in sources:
