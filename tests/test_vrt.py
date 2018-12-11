@@ -64,7 +64,7 @@ class testclassData(unittest.TestCase):
         self.assertTrue(np.array_equal(arr1, arr2))
 
         print('\n'.join(vsiFiles()))
-        VRT.setCrs(QgsCoordinateReferenceSystem('EPSG:4281'))
+        VRT.setCrs(QgsCoordinateReferenceSystem('EPSG:32723'))
         ds3 = VRT.saveVRT('/vsimem/ds3.vrt')
         self.assertIsInstance(ds3, gdal.Dataset)
         self.assertEqual(len(VRT), ds3.RasterCount)
