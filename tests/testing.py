@@ -9,10 +9,7 @@ from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtCore import *
 import qgis.testing
 
-
 SHOW_GUI = True
-
-
 
 def initQgisApplication(qgisResourceDir:str=None)->QgsApplication:
     """
@@ -25,7 +22,6 @@ def initQgisApplication(qgisResourceDir:str=None)->QgsApplication:
 
         if not 'QGIS_PREFIX_PATH' in os.environ.keys():
             raise Exception('env variable QGIS_PREFIX_PATH not set')
-
 
         if sys.platform == 'darwin':
             # add location of Qt Libraries
@@ -50,7 +46,7 @@ def initQgisApplication(qgisResourceDir:str=None)->QgsApplication:
                 if "qInitResources" in dir(mod):
                     mod.qInitResources()
 
-        #initiate a PythonRunner instance if None exists
+        # initiate a PythonRunner instance if None exists
         if not QgsPythonRunner.isValid():
             r = PythonRunnerImpl()
             QgsPythonRunner.setInstance(r)

@@ -12,30 +12,29 @@ __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
-import unittest
+import unittest, tempfile
 
 from tests.testing import *
 from tests import testing
 
 QGIS_APP = testing.initQgisApplication()
-SHOW_GUI = False
+SHOW_GUI = True
 from vrtbuilder.widgets import *
 from vrtbuilder.virtualrasters import *
 from vrtbuilder.utils import *
-from exampledata import landsat1, landsat2, landsat2_SAD
+from exampledata import Landsat8_West_tif, Landsat8_East_tif, RapidEye_tif, Sentinel2_East_tif, Sentinel2_West_tif
+
 
 
 class testclassData(unittest.TestCase):
-
-
 
     def test_vsi_support(self):
 
         VRT = VRTRaster()
         vb1 = VRTRasterBand()
         vb2 = VRTRasterBand()
-        vb1.addSource(VRTRasterInputSourceBand.fromGDALDataSet(landsat1)[0])
-        vb2.addSource(VRTRasterInputSourceBand.fromGDALDataSet(landsat2_SAD)[0])
+        vb1.addSource(VRTRasterInputSourceBand.fromGDALDataSet(Landsat8_East_tif)[0])
+        vb2.addSource(VRTRasterInputSourceBand.fromGDALDataSet(Landsat8_West_tif)[0])
         VRT.addVirtualBand(vb1)
         VRT.addVirtualBand(vb2)
 
@@ -56,22 +55,9 @@ class testclassData(unittest.TestCase):
         arr2 = ds2.ReadAsArray()
         self.assertTrue(np.array_equal(arr1, arr2))
 
-        print('\n'.join(vsiFiles()))
-        VRT.setCrs(QgsCoordinateReferenceSystem('EPSG:32723'))
-        ds3 = VRT.saveVRT('/vsimem/ds3.vrt')
-        self.assertIsInstance(ds3, gdal.Dataset)
-        self.assertEqual(len(VRT), ds3.RasterCount)
-        self.assertEqual(len(VRT), ds1.RasterCount)
-        self.assertNotEqual(ds1.GetProjection(), ds3.GetProjection())
-        arr3 = ds3.ReadAsArray()
-        self.assertFalse(np.array_equal(arr1, arr3))
-
-    pass
-
     def test_vrtRaster(self):
 
         tmpDir = tempfile.mkdtemp()
-
 
         #1. create an empty VRT
         VRT = VRTRaster()
@@ -101,7 +87,7 @@ class testclassData(unittest.TestCase):
         self.assertTrue(ext == None)
         band1 = VRT[0]
         self.assertIsInstance(band1, VRTRasterBand)
-        band1.addSource(VRTRasterInputSourceBand(landsat1, 0))
+        band1.addSource(VRTRasterInputSourceBand(Landsat8_East_tif, 0))
         ext = VRT.extent()
         res = VRT.resolution()
         crs = VRT.crs()
@@ -109,28 +95,23 @@ class testclassData(unittest.TestCase):
         self.assertIsInstance(res, QSizeF)
         self.assertIsInstance(crs, QgsCoordinateReferenceSystem)
 
-
         #align to other raster grid
         pt = QgsPointXY(ext.xMinimum() - 5, ext.yMaximum() + 3.5)
-
-        lyr = toRasterLayer(landsat2_SAD)
+        lyr = toRasterLayer(RapidEye_tif)
         self.assertIsInstance(lyr, QgsRasterLayer)
         self.assertTrue(lyr.crs() != VRT.crs())
-        VRT.alignToRasterGrid(landsat2_SAD)
+        VRT.alignToRasterGrid(RapidEye_tif)
         self.assertTrue(lyr.crs() == VRT.crs())
         res = QSizeF(lyr.rasterUnitsPerPixelX(), lyr.rasterUnitsPerPixelY())
         self.assertTrue(VRT.resolution() == res)
 
     def test_vrtRasterMetadata(self):
-
-        ds = gdal.Open(landsat1)
+        ds = gdal.Open(Landsat8_East_tif)
         self.assertIsInstance(ds, gdal.Dataset)
         lyr = toRasterLayer(ds)
         self.assertIsInstance(lyr, QgsRasterLayer)
-
         VRT = VRTRaster()
-        VRT.addFilesAsStack()
-
+        VRT.addFilesAsStack([Landsat8_East_tif, Sentinel2_West_tif])
 
     def test_alignExtent(self):
 
@@ -157,18 +138,15 @@ class testclassData(unittest.TestCase):
         for px in [px1, px2, px3, px4]:
             self.assertIsInstance(px, QSize)
 
-
         self.assertTrue(extent1 == extent)
         self.assertTrue(extent2 == QgsRectangle(40, 220, 310, 610))
         self.assertTrue(extent3 == QgsRectangle(40, 220, 310, 610))
 
 
-
-
     def test_VRTRasterInputSourceBand(self):
 
-        bands1 = VRTRasterInputSourceBand.fromRasterLayer(landsat1)
-        bands2 = VRTRasterInputSourceBand.fromGDALDataSet(landsat1)
+        bands1 = VRTRasterInputSourceBand.fromRasterLayer(Landsat8_East_tif)
+        bands2 = VRTRasterInputSourceBand.fromGDALDataSet(Landsat8_East_tif)
 
         self.assertIsInstance(bands1, list)
         self.assertIsInstance(bands2, list)
@@ -178,6 +156,7 @@ class testclassData(unittest.TestCase):
             self.assertIsInstance(b1, VRTRasterInputSourceBand)
             self.assertIsInstance(b2, VRTRasterInputSourceBand)
             self.assertTrue(b2.name() in b1.name())
+
 
     def test_describeRaw(self):
         from exampledata import speclib as pathESL
@@ -196,8 +175,8 @@ class testclassData(unittest.TestCase):
 
         assert dt == 5 #float
         eType = gdal.GDT_Float64
-
-        pathVRT1 = os.path.join(self.tmpDir, 'vrtRawfile.vrt')
+        tmpDir = tempfile.gettempdir()
+        pathVRT1 = os.path.join(tmpDir, 'vrtRawfile.vrt')
         pathVRT2 = '/vsimem/myrawvrt'
 
         for pathVRT in [pathVRT1, pathVRT2]:
@@ -223,7 +202,7 @@ class testclassData(unittest.TestCase):
 
 
         #this should look like a spectrum
-        if True:
+        if SHOW_GUI:
 
             yVals = arr[32,:]
             import pyqtgraph as pg
@@ -236,9 +215,9 @@ class testclassData(unittest.TestCase):
 
 
     def test_gui(self):
-        from exampledata import landsat1
+        from exampledata import Landsat8_West_tif
         reg = QgsProject.instance()
-        lyr = QgsRasterLayer(landsat1)
+        lyr = QgsRasterLayer(Landsat8_West_tif)
         reg.addMapLayer(lyr)
         GUI = VRTBuilderWidget()
         self.assertIsInstance(GUI, VRTBuilderWidget)
@@ -246,7 +225,7 @@ class testclassData(unittest.TestCase):
         GUI.loadSrcFromMapLayerRegistry()
         self.assertTrue(len(GUI.mSourceFileModel), 1)
         files = GUI.mSourceFileModel.rasterSources()
-        self.assertTrue(landsat1 in files)
+        self.assertTrue(Landsat8_West_tif in files)
 
         self.assertIsInstance(GUI.mSourceFileModel.rootNode(), TreeNode)
         child1 = GUI.mSourceFileModel.rootNode().childNodes()[0]
@@ -276,8 +255,9 @@ class testclassData(unittest.TestCase):
         GUI.previewMap.mousePressEvent(event)
 
         #load more source files
-        GUI.addSourceFiles([landsat1, landsat2, landsat2_SAD])
-        self.assertTrue(len(GUI.mSourceFileModel.rasterSources()) == 3)
+        sources = [Landsat8_East_tif, Landsat8_West_tif, Sentinel2_West_tif, Sentinel2_East_tif]
+        GUI.addSourceFiles(sources)
+        self.assertTrue(len(GUI.mSourceFileModel.rasterSources()) == len(sources))
 
 
         #test map tools
@@ -322,13 +302,97 @@ class testclassData(unittest.TestCase):
             QGIS_APP.exec_()
 
 
+    def test_vrtRasterReprojections(self):
+
+        VRT = VRTRaster()
+        vb1 = VRTRasterBand()
+        vb2 = VRTRasterBand()
+        vb1.addSource(VRTRasterInputSourceBand.fromGDALDataSet(Landsat8_West_tif)[0])
+        vb2.addSource(VRTRasterInputSourceBand.fromGDALDataSet(RapidEye_tif)[0])
+        VRT.addVirtualBand(vb1)
+        VRT.addVirtualBand(vb2)
+
+        crs1 = VRT.crs()
+        self.assertIsInstance(crs1, QgsCoordinateReferenceSystem)
+        extent1 = VRT.extent()
+        res1 = VRT.resolution()
+        size1 = VRT.size()
+
+        ul1 = VRT.ul()
+        lr1 = VRT.lr()
+        self.assertEqual(lr1, QgsPointXY(ul1.x() + size1.width() * res1.width(),
+                                         ul1.y() - size1.height() * res1.height()))
+
+        if True:
+            crs2 = QgsCoordinateReferenceSystem('EPSG:32721')
+            VRT.setCrs(crs2)
+            res2 = VRT.resolution()
+            self.assertIsInstance(res2, QSizeF)
+            self.assertEqual(res1, res2)
+
+            ul2 = VRT.ul()
+            lr2 = VRT.lr()
+
+            self.assertTrue(ul2.y() > 0, msg='UTM South Y coordinate should be positive.')
+
+            size2 = VRT.size()
+            self.assertNotEqual(ul1, ul2)
+            self.assertNotEqual(lr1, lr2)
+
+            self.assertEqual(crs2, VRT.crs())
+            self.assertEqual(size1, size2)
+            extent2 = VRT.extent()
+            self.assertNotEqual(extent1, extent2)
+            self.assertAlmostEqual(extent1.width(), extent2.width())
+            self.assertAlmostEqual(extent1.height(), extent2.height())
+
+            VRT.setResolution(res1)
+            self.assertEqual(extent1.width(), VRT.extent().width())
+            self.assertEqual(extent1.height(), VRT.extent().height())
+
+            self.assertIsInstance(crs2, QgsCoordinateReferenceSystem)
+
+            path = '/vsimem/myinmemory.vrt'
+            ds1 = VRT.saveVRT(path)
+            self.assertIsInstance(ds1, gdal.Dataset)
+            data = ds1.ReadAsArray()
+            self.assertTrue(data.max() > 0)
+
+            self.assertTrue(data.shape == (len(VRT), VRT.size().height(), VRT.size().width()))
+            ds1 = None
+            gdal.Unlink(path)
+
+
+        #convert to degree
+        crs3 = QgsCoordinateReferenceSystem('EPSG:4326')
+        VRT.setCrs(crs3)
+        res3 = VRT.resolution()
+        self.assertTrue(res3.width() < 1)
+        self.assertTrue(res3.height() < 1)
+
+        path = '/vsimem/myinmemory3.vrt'
+        ds1 = VRT.saveVRT(path)
+        self.assertIsInstance(ds1, gdal.Dataset)
+        data = ds1.ReadAsArray()
+        self.assertTrue(data.max() > 0)
+        nb, nl, ns = data.shape
+        self.assertTrue(nb == len(VRT))
+        self.assertTrue(ns == VRT.size().width())
+        self.assertTrue(nl == VRT.size().height())
+
+        ds1 = None
+        gdal.Unlink(path)
+
+        print('\n'.join(vsiFiles()))
+
+
     def test_init(self):
 
-        dsMEM = TestObjects.inMemoryImage(100,20,3)
+        dsMEM = TestObjects.inMemoryImage(100, 20, 3)
         self.assertIsInstance(dsMEM, gdal.Dataset)
 
 
-        sources = [landsat1, gdal.Open(landsat1), QgsRasterLayer(landsat1), dsMEM, dsMEM.GetFileList()[0]]
+        sources = [Landsat8_East_tif, gdal.Open(Landsat8_East_tif), QgsRasterLayer(Landsat8_East_tif), dsMEM, dsMEM.GetFileList()[0]]
         for s in sources:
             self.assertIsInstance(toRasterLayer(s), QgsRasterLayer)
 
@@ -346,6 +410,7 @@ class testclassData(unittest.TestCase):
 
 if __name__ == "__main__":
 
+    SHOW_GUI = False
     unittest.main()
 
 

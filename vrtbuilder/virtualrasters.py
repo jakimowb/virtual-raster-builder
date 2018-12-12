@@ -72,12 +72,19 @@ GRA_tooltips = {'NearestNeighbour':'nearest neighbour resampling (default, faste
               'Q3':'third quartile resampling, selects the third quartile value of all non-NODATA contributing pixels'
               }
 
+
+
+
 def vsiFiles()->list:
     """
     Returns the URIs pointing on VSIMEM files
     :return: [list-of-str]
     """
-    return ['/vsimem/'+ p for p in gdal.ReadDirRecursive('/vsimem/') if not p.endswith('/')]
+    files = gdal.ReadDirRecursive('/vsimem/')
+    if isinstance(files, list):
+        return ['/vsimem/' + p for p in files if not p.endswith('/')]
+    return []
+
 
 #get available resampling algorithms
 RESAMPLE_ALGS = OptionListModel()
@@ -127,11 +134,28 @@ def resolution(lyr)->QSizeF:
     else:
         raise Exception('Unsupported type: {}'.format(lyr))
 
-def px2geo(px, gt):
-    #see http://www.gdal.org/gdal_datamodel.html
+def px2geo(px, gt)->QgsPointXY:
+    """
+    :param px:
+    :param gt:
+    :return:
+    """
     gx = gt[0] + px.x()*gt[1]+px.y()*gt[2]
     gy = gt[3] + px.x()*gt[4]+px.y()*gt[5]
     return QgsPointXY(gx,gy)
+
+def geotransform(upperLeft:QgsPointXY, resolution:QSizeF)->tuple:
+    """
+    Create a GeoTransformation tuple
+    :param upperLeft: QgsPointXY upper left image coordinate
+    :param resolution: QSizeF, pixel resolution
+    :return: tuple
+    """
+    assert resolution.height() > 0
+    assert resolution.width() > 0
+    gt = (upperLeft.x(), resolution.width(), 0,
+          upperLeft.y(), 0, resolution.height())
+    return gt
 
 def alignPointToGrid(pixelSize:QSizeF, gridRefPoint:QgsPointXY, gridPoint:QgsPointXY)->QgsPointXY:
     """
@@ -777,20 +801,56 @@ class VRTRaster(QObject):
         return None
 
 
-    def setCrs(self, crs):
+    def setCrs(self, crs, warpArgs:dict=None):
         """
-        Sets the output Coordinate Reference System (CRS)
+        Sets the output Coordinate Reference System (CRS). The UL coordinate will be reprojected to automatically to and the LR is calculated using the resolution and former pixel size
         :param crs: osr.SpatialReference or QgsCoordinateReferenceSystem
-        :return:
         """
         if isinstance(crs, osr.SpatialReference):
-            auth = '{}:{}'.format(crs.GetAttrValue('AUTHORITY',0), crs.GetAttrValue('AUTHORITY',1))
+            auth = '{}:{}'.format(crs.GetAttrValue('AUTHORITY', 0), crs.GetAttrValue('AUTHORITY',1))
             crs = QgsCoordinateReferenceSystem(auth)
         assert isinstance(crs, QgsCoordinateReferenceSystem)
         if crs != self.crs():
-            self.mCrs = crs
-            self.sigCrsChanged.emit(self.mCrs)
+            crsOld = self.crs()
+            if isinstance(crsOld, QgsCoordinateReferenceSystem):
+                drvVRT = gdal.GetDriverByName('VRT')
+                id = uuid.uuid4()
+                tmpSrc = '/vsimem/tmp.{}.src.vrt'.format(id)
+                tmpDst = '/vsimem/tmp.{}.dst.vrt'.format(id)
+                dsVRTDst = drvVRT.Create(tmpSrc, self.size().width(), self.size().height(), 1, eType=gdal.GDT_Byte)
+                dsVRTDst.SetProjection(self.crs().toWkt())
+                dsVRTDst.SetGeoTransform(geotransform(self.ul(), self.resolution()))
+                dsVRTDst.FlushCache()
 
+                if not isinstance(warpArgs, dict):
+                    warpArgs = dict()
+
+                wops = gdal.WarpOptions(dstSRS=crs.toWkt(), format='VRT', **warpArgs)
+
+                dsWarped = gdal.Warp(tmpDst, dsVRTDst, options=wops)
+                assert isinstance(dsWarped, gdal.Dataset)
+
+                gt = dsWarped.GetGeoTransform()
+                ul = px2geo(QgsPoint(0,0), gt)
+                size = QSize(dsWarped.RasterXSize,dsWarped.RasterYSize)
+                res = resolution(dsWarped)
+                # clean
+                dsVRTDst = dsWarped = None
+                gdal.Unlink(tmpSrc)
+                gdal.Unlink(tmpDst)
+
+                # set new image properties
+                self.mUL = ul
+                self.mSize = size
+                self.mCrs = crs
+                self.mResolution = res
+                self.sigExtentChanged.emit()
+
+            else:
+
+                self.mCrs = crs
+
+            self.sigCrsChanged.emit(self.mCrs)
 
     def crs(self)->QgsCoordinateReferenceSystem:
         """
@@ -798,6 +858,17 @@ class VRTRaster(QObject):
         :return: QgsCoordinateReferenceSystem
         """
         return self.mCrs
+
+    def srs(self)->osr.SpatialReference:
+        """
+        Returns the raster coordinate reference system / projection system as osr.SpatialReference
+        :return: osr.SpatialReference
+        """
+        if not isinstance(self.mCrs, QgsCoordinateReferenceSystem):
+            return None
+        srs = osr.SpatialReference()
+        srs.ImportFromWkt(self.mCrs.toWkt())
+        return srs
 
     def addVirtualBand(self, virtualBand:VRTRasterBand):
         """
@@ -1020,6 +1091,10 @@ class VRTRaster(QObject):
             dirWarped = os.path.join(os.path.splitext(pathVRT)[0] + '.WarpedImages')
             os.makedirs(dirWarped, exist_ok=True)
 
+        dstExtent = self.extent()
+        outputBounds = (dstExtent.xMinimum(), dstExtent.yMinimum(), dstExtent.xMaximum(), dstExtent.yMaximum())
+        outputBoundsSRS = self.srs()
+
         for i, pathSrc in enumerate(self.sourceRaster()):
             dsSrc = gdal.Open(pathSrc)
             assert isinstance(dsSrc, gdal.Dataset)
@@ -1030,22 +1105,30 @@ class VRTRaster(QObject):
 
             crs = QgsCoordinateReferenceSystem(dsSrc.GetProjection())
 
-            if crs == self.mCrs:
+            if crs == self.crs():
                 srcPathLookup[pathSrc] = pathSrc
             else:
                 #reproject, if necessary, based on VRT
-                warpedFileName = 'warped.{}.{}.vrt'.format(os.path.basename(pathSrc), uuid.uuid4())
+                bn = os.path.basename(pathSrc)
+                warpedFileName = 'warped.{}.{}.vrt'.format(bn, uuid.uuid4())
                 if inMemory:
                     warpedFileName = dirWarped + warpedFileName
                 else:
                     warpedFileName = os.path.join(dirWarped, warpedFileName)
 
                 wops = gdal.WarpOptions(format='VRT',
+                                        resampleAlg=self.mResamplingAlg,
+                                        outputBounds=outputBounds,
+                                        outputBoundsSRS=outputBoundsSRS,
+                                        xRes=self.resolution().width(),
+                                        yRes=self.resolution().height(),
                                         dstSRS=self.mCrs.toWkt())
 
-                gdal.Warp(warpedFileName, dsSrc, options=wops)
-                tmp = gdal.Open(warpedFileName)
+                tmp = gdal.Warp(warpedFileName, dsSrc, options=wops)
                 assert isinstance(tmp, gdal.Dataset)
+                crs = QgsCoordinateReferenceSystem(tmp.GetProjection())
+                if not crs == self.crs():
+                    s = ""
 
                 srcPathLookup[pathSrc] = warpedFileName
 
@@ -1063,12 +1146,6 @@ class VRTRaster(QObject):
         if isinstance(self.crs(), QgsCoordinateReferenceSystem):
             srs = self.crs().toWkt()
 
-        if True:
-            for file in srcFiles:
-                ds = gdal.Open(file)
-                assert isinstance(ds, gdal.Dataset)
-                assert ds.GetProjection() == srs
-
         if len(srcFiles) > 0:
             # 1. build a temporary VRT that describes the spatial proportions of all input sources
             kwds = {}
@@ -1081,7 +1158,7 @@ class VRTRaster(QObject):
                 kwds['xRes'] = res.width()
                 kwds['yRes'] = res.height()
             else:
-                assert res in ['highest','lowest','average']
+                assert res in ['highest', 'lowest', 'average']
                 kwds['resolution'] = res
 
             if isinstance(extent, QgsRectangle):
@@ -1091,44 +1168,38 @@ class VRTRaster(QObject):
             if srs is not None:
                 kwds['outputSRS'] = srs
 
-            kwds['bandList'] = [1 for _ in srcFiles]
+            kwds['bandList'] = [1 for _ in srcFiles] # use the first band only.
             kwds['separate'] = True
 
             vro = gdal.BuildVRTOptions(**kwds)
 
-            pathInMEMVRT = '/vsimem/tmp.{}.vrt'.format(uuid.uuid4())
-            dsVRTDst = gdal.BuildVRT(pathInMEMVRT, srcFiles, options=vro)
-            if not isinstance(dsVRTDst, gdal.Dataset):
-                s = ""
-            if not isinstance(dsVRTDst.GetFileList(), list):
-                print('## VSI Files ##')
-                vsiF = vsiFiles()
-                for s in srcFiles:
-                    if s not in vsiF:
-                        s = ""
-
-                    ds = gdal.Open(s)
-                    assert isinstance(ds, gdal.Dataset)
-                    assert ds.RasterCount >= 1
-                    assert len(ds.GetFileList()) > 0
-                    assert ds.GetProjection() == dsVRTDst.GetProjection()
-
-                print('\n'.join(vsiFiles()))
-
-                print(ds.GetMetadata_Dict('DERIVED_SUBDATASETS'))
-                s = ""
-            else:
-                print(ds.GetMetadata_Dict('DERIVED_SUBDATASETS'))
-                s  =""
+            pathTemplateVRT = '/vsimem/template.{}.vrt'.format(uuid.uuid4())
+            dsVRTDst = gdal.BuildVRT(pathTemplateVRT, srcFiles, options=vro)
+            dsVRTDst.FlushCache()
             assert isinstance(dsVRTDst, gdal.Dataset)
-            
             assert isinstance(dsVRTDst.GetFileList(), list)
+            if not dsVRTDst.RasterCount == len(srcFiles):
+                ds0 = gdal.Open(srcFiles[0])
+                res0 = resolution(ds0)
+                pUL = px2geo(QPoint(0,0), ds0.GetGeoTransform())
+                pLR = px2geo(QPoint(ds0.RasterXSize, ds0.RasterYSize), ds0.GetGeoTransform())
+                ex0 = QgsRectangle(pUL, pLR)
+
+                if not (self.extent().contains(ex0) or self.extent().intersects(ex0)):
+                    s = ""
+                lyr2 = QgsRasterLayer(srcFiles[0])
+                assert lyr2.isValid()
+                s = ""
+
+            assert dsVRTDst.RasterCount == len(srcFiles)
             ns, nl = dsVRTDst.RasterXSize, dsVRTDst.RasterYSize
             gt = dsVRTDst.GetGeoTransform()
 
             SOURCE_TEMPLATES = dict()
             for i, srcFile in enumerate(srcFiles):
                 band = dsVRTDst.GetRasterBand(i+1)
+                if not isinstance(band, gdal.Band):
+                    s = ""
                 assert isinstance(band, gdal.Band)
                 if i == 0:
                     eType = band.DataType
@@ -1138,7 +1209,7 @@ class VRTRaster(QObject):
                 assert os.path.basename(srcFile)+'</SourceFilename>' in srcXML
                 assert '<SourceBand>1</SourceBand>' in srcXML
                 SOURCE_TEMPLATES[srcFile] = srcXML
-
+            gdal.Unlink(pathTemplateVRT)
             #drvVRT.Delete(pathInMEMVRT)
 
         else:
@@ -1160,6 +1231,9 @@ class VRTRaster(QObject):
 
             gt = (x0, resx, 0, y1, 0, -resy)
             eType = gdal.GDT_Float32
+
+
+
 
         #2. build final VRT from scratch
         drvVRT = gdal.GetDriverByName('VRT')

@@ -17,7 +17,7 @@
 """
 # noinspection PyPep8Naming
 
-import os, sys, fnmatch, site, re
+import os, sys, fnmatch, site, re, importlib
 
 from osgeo import gdal, ogr
 from qgis.core import *
@@ -143,3 +143,45 @@ def toRasterLayer(src) -> QgsRasterLayer:
         return lyr
     else:
         return None
+
+
+
+def initQgisApplication(qgisResourceDir:str=None)->QgsApplication:
+    """
+    Initializes a QGIS Environment
+    :return: QgsApplication instance of local QGIS installation
+    """
+    import qgis.testing
+    from qgis.PyQt.QtWidgets import QApplication
+    if isinstance(QgsApplication.instance(), QgsApplication):
+        return QgsApplication.instance()
+    else:
+
+        if not 'QGIS_PREFIX_PATH' in os.environ.keys():
+            raise Exception('env variable QGIS_PREFIX_PATH not set')
+
+        if sys.platform == 'darwin':
+            # add location of Qt Libraries
+            assert '.app' in qgis.__file__, 'Can not locate path of QGIS.app'
+            PATH_QGIS_APP = re.search(r'.*\.app', qgis.__file__).group()
+            QApplication.addLibraryPath(os.path.join(PATH_QGIS_APP, *['Contents', 'PlugIns']))
+            QApplication.addLibraryPath(os.path.join(PATH_QGIS_APP, *['Contents', 'PlugIns', 'qgis']))
+
+        qgsApp = qgis.testing.start_app()
+
+        if not isinstance(qgisResourceDir, str):
+            parentDir = os.path.dirname(os.path.dirname(__file__))
+            resourceDir = os.path.join(parentDir, 'qgisresources')
+            if os.path.exists(resourceDir):
+                qgisResourceDir = resourceDir
+
+        if isinstance(qgisResourceDir, str) and os.path.isdir(qgisResourceDir):
+            modules = [m for m in os.listdir(qgisResourceDir) if re.search(r'[^_].*\.py', m)]
+            modules = [m[0:-3] for m in modules]
+            for m in modules:
+                mod = importlib.import_module('qgisresources.{}'.format(m))
+                if "qInitResources" in dir(mod):
+                    mod.qInitResources()
+
+
+        return qgsApp

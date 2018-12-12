@@ -30,11 +30,11 @@ class run():
     qgsApp = initQgisApplication()
     from vrtbuilder.widgets import VRTBuilderWidget
     W = VRTBuilderWidget(None)
-    from exampledata import landsat1, landsat2, landsat2_SAD, rapideye
+    from exampledata import landsat1, landsat2, landsat2_SAD, rapideye_west
     W.addSourceFile(landsat1)
     W.addSourceFile(landsat2)
     W.addSourceFile(landsat2_SAD)
-    W.addSourceFile(rapideye)
+    W.addSourceFile(rapideye_west)
     W.show()
 
     #close QGIS
