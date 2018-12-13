@@ -2,8 +2,8 @@
 import os
 _dn = os.path.dirname(__file__)
 speclib = os.path.join(_dn, r'SpecLib_BerlinUrbanGradient.sli')
-Landsat8_West_tif = os.path.join(_dn, r'Landsat8.West.tif')
-Landsat8_East_tif = os.path.join(_dn, r'Landsat8.East.tif')
-Sentinel2_West_tif = os.path.join(_dn, r'Sentinel2.West.tif')
-Sentinel2_East_tif = os.path.join(_dn, r'Sentinel2.East.tif')
-RapidEye_tif = os.path.join(_dn, r'RapidEye.tif')
+Landsat8_West_tif = os.path.join(_dn, r'C:/Users/geo_beja/Repositories/QGIS_Plugins/virtual-raster-builder\exampledata\Landsat8.West.tif')
+Landsat8_East_tif = os.path.join(_dn, r'C:/Users/geo_beja/Repositories/QGIS_Plugins/virtual-raster-builder\exampledata\Landsat8.East.tif')
+Sentinel2_West_tif = os.path.join(_dn, r'C:/Users/geo_beja/Repositories/QGIS_Plugins/virtual-raster-builder\exampledata\Sentinel2.West.tif')
+Sentinel2_East_tif = os.path.join(_dn, r'C:/Users/geo_beja/Repositories/QGIS_Plugins/virtual-raster-builder\exampledata\Sentinel2.East.tif')
+RapidEye_tif = os.path.join(_dn, r'C:/Users/geo_beja/Repositories/QGIS_Plugins/virtual-raster-builder\exampledata\RapidEye.tif')

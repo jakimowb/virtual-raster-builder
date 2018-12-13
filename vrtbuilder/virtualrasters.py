@@ -134,6 +134,7 @@ def resolution(lyr)->QSizeF:
     else:
         raise Exception('Unsupported type: {}'.format(lyr))
 
+
 def px2geo(px, gt)->QgsPointXY:
     """
     :param px:
@@ -142,7 +143,69 @@ def px2geo(px, gt)->QgsPointXY:
     """
     gx = gt[0] + px.x()*gt[1]+px.y()*gt[2]
     gy = gt[3] + px.x()*gt[4]+px.y()*gt[5]
-    return QgsPointXY(gx,gy)
+    return QgsPointXY(gx, gy)
+
+
+def geo2pxF(geo, gt):
+    """
+    Returns the pixel position related to a Geo-Coordinate in floating point precision.
+    :param geo: Geo-Coordinate as QgsPoint
+    :param gt: GDAL Geo-Transformation tuple, as described in http://www.gdal.org/gdal_datamodel.html
+    :return: pixel position as QPointF
+    """
+    assert isinstance(geo, QgsPointXY)
+    # see http://www.gdal.org/gdal_datamodel.html
+    px = (geo.x() - gt[0]) / gt[1]  # x pixel
+    py = (geo.y() - gt[3]) / gt[5]  # y pixel
+    return QPointF(px, py)
+
+
+def geo2px(geo, gt):
+    """
+    Returns the pixel position related to a Geo-Coordinate as integer number.
+    Floating-point coordinate are casted to integer coordinate, e.g. the pixel coordinate (0.815, 23.42) is returned as (0,23)
+    :param geo: Geo-Coordinate as QgsPointXY
+    :param gt: GDAL Geo-Transformation tuple, as described in http://www.gdal.org/gdal_datamodel.html or
+          gdal.Dataset or QgsRasterLayer
+    :return: pixel position as QPpint
+    """
+
+    if isinstance(gt, QgsRasterLayer):
+        return geo2px(geo, geotransform(gt))
+    elif isinstance(gt, gdal.Dataset):
+        return geo2px(gt.GetGeoTransform())
+    else:
+        px = geo2pxF(geo, gt)
+        return QPoint(int(px.x()), int(px.y()))
+
+
+def transformBoundingBox(rectangle:QgsRectangle, trans:QgsCoordinateTransform)->QgsRectangle:
+    """
+    Transforms a minimum bounding box into another CRS.
+    :param rectangle: QgsRectangle
+    :param trans: QgsCoordinateTransform
+    :return: QgsRectangle
+    """
+    assert isinstance(rectangle, QgsRectangle)
+    assert isinstance(trans, QgsCoordinateTransform)
+
+    pts = [QgsPointXY(rectangle.xMinimum(), rectangle.yMinimum()),
+           QgsPointXY(rectangle.xMinimum(), rectangle.yMaximum()),
+           QgsPointXY(rectangle.xMaximum(), rectangle.yMinimum()),
+           QgsPointXY(rectangle.xMaximum(), rectangle.yMaximum())
+           ]
+    pts = [trans.transform(pt) for pt in pts]
+
+    xvalues = [pt.x() for pt in pts]
+    yvalues = [pt.y() for pt in pts]
+
+    xMin = min(xvalues)
+    xMax = max(xvalues)
+    yMin = min(yvalues)
+    yMax = max(yvalues)
+
+    return QgsRectangle(xMin, yMin, xMax, yMax)
+
 
 def geotransform(upperLeft:QgsPointXY, resolution:QSizeF)->tuple:
     """
@@ -151,6 +214,14 @@ def geotransform(upperLeft:QgsPointXY, resolution:QSizeF)->tuple:
     :param resolution: QSizeF, pixel resolution
     :return: tuple
     """
+    if isinstance(upperLeft, QgsRasterLayer):
+        resolution = resolution(upperLeft)
+        upperLeft = QgsPointXY(upperLeft.extent().xMinimum(), upperLeft.extent().yMaximum())
+    if isinstance(upperLeft, gdal.Dataset):
+        return upperLeft.GetGeoTransform()
+    if isinstance(upperLeft, gdal.Band):
+        return upperLeft.GetDataset().GetGeoTransform()
+
     assert resolution.height() > 0
     assert resolution.width() > 0
     gt = (upperLeft.x(), resolution.width(), 0,
@@ -174,27 +245,35 @@ def alignPointToGrid(pixelSize:QSizeF, gridRefPoint:QgsPointXY, gridPoint:QgsPoi
 
 def alignRectangleToGrid(pixelSize: QSizeF, gridRefPoint: QgsPointXY, rectangle: QgsRectangle)->QgsRectangle:
     """
-    Returns an extent aligned to the pixelSize and reference grid
+    Returns an (extent, size) aligned to the pixelSize and reference grid
     :param pixelSize: QSizeF, pixel size
     :param gridRefPoint: QgsPointXY, a reference grid location, i.e. a pixel corner
     :param rectangle: QgsRectangle. the extent to get aligned
-    :return: QgsRectangle
+    :return: tuple (QgsRectangle, QSize)
     """
 
     w = pixelSize.width()
     h = pixelSize.height()
 
-    x0 = gridRefPoint.x() + w * int(round((rectangle.xMinimum() - gridRefPoint.x()) / w))
-    y1 = gridRefPoint.y() + h * int(round((rectangle.yMaximum() - gridRefPoint.y()) / h))
-    x1 = gridRefPoint.x() + w * int(round((rectangle.xMaximum() - gridRefPoint.x()) / w))
-    y0 = gridRefPoint.y() + h * int(round((rectangle.yMinimum() - gridRefPoint.y()) / h))
+    xMin = gridRefPoint.x() + w * int(round((rectangle.xMinimum() - gridRefPoint.x()) / w))
+    yMax = gridRefPoint.y() + h * int(round((rectangle.yMaximum() - gridRefPoint.y()) / h))
+    xMax = gridRefPoint.x() + w * int(round((rectangle.xMaximum() - gridRefPoint.x()) / w))
+    yMin = gridRefPoint.y() + h * int(round((rectangle.yMinimum() - gridRefPoint.y()) / h))
 
-    newExtent = QgsRectangle(x0, y0, x1, y1)
-    ns, nl = newExtent.width() / pixelSize.width(), newExtent.height() / pixelSize.height()
-    ns, nl = round(ns, 10), round(nl, 10)
-    assert ns == int(ns)
-    assert nl == int(nl)
-    return newExtent, QSize(ns, nl)
+    width = float(xMax - xMin)
+    height = float(yMax - yMin)
+
+    ns = int(round(width / w))
+    nl = int(round(height / h))
+
+    ns = max(1, ns)
+    nl = max(1, nl)
+
+    newExtent = QgsRectangle(xMin, yMax, xMin + ns * w, yMax - nl * h)
+    size = QSize(ns, nl)
+    if size.width() < 0 or size.height() < 0:
+        s = ""
+    return newExtent, size
 
 
 def describeRawFile(pathRaw, pathVrt, xsize, ysize,
@@ -676,10 +755,12 @@ class VRTRaster(QObject):
 
         if isinstance(crs, QgsCoordinateReferenceSystem):
             assert isinstance(self.mCrs, QgsCoordinateReferenceSystem), 'use .setCrs() to specific the VRT coordinate reference system first'
-            trans = QgsCoordinateTransform()
-            trans.setSourceCrs(crs)
-            trans.setDestinationCrs(self.mCrs)
-            rectangle = trans.transform(rectangle)
+            if crs != self.mCrs:
+                trans = QgsCoordinateTransform()
+                trans.setSourceCrs(crs)
+                trans.setDestinationCrs(self.mCrs)
+                rectangle = transformBoundingBox(rectangle, trans)
+                referenceGrid = trans.transform(referenceGrid)
 
         assert isinstance(rectangle, QgsRectangle)
         assert rectangle.width() > 0
@@ -688,7 +769,8 @@ class VRTRaster(QObject):
         #align to pixel size
         if not isinstance(referenceGrid, QgsPointXY):
             referenceGrid = QgsPointXY(rectangle.xMinimum(), rectangle.yMaximum())
-        extent, px = alignRectangleToGrid(self.resolution(), referenceGrid, rectangle)
+        res = self.resolution()
+        extent, px = alignRectangleToGrid(res, referenceGrid, rectangle)
         self.mUL = QgsPointXY(extent.xMinimum(), extent.yMaximum())
         self.setSize(px)
         if last != extent:
@@ -741,6 +823,15 @@ class VRTRaster(QObject):
                         ul.y() - size.height() * res.height())
         return lr
 
+    def outputBounds(self)->tuple:
+        """
+        Returns a bounds tuple.
+        :return: tuple (xMin, yMin, xMax, yMax)
+        """
+        ul = self.ul()
+        lr = self.lr()
+        return (ul.x(), lr.y(), lr.x(), ul.y())
+
     def extent(self)->QgsRectangle:
         """
         Returns the spatial extent
@@ -753,34 +844,55 @@ class VRTRaster(QObject):
             return None
         return QgsRectangle(ul.x(), lr.y(), lr.x(), ul.y())
 
-    def setResolution(self, xy):
+    def setResolution(self, resolution, crs:QgsCoordinateReferenceSystem=None):
         """
         Set the VRT resolution.
-        :param xy: explicit value given as QSizeF(x,y) object or
+        :param resolution: explicit value given as QSizeF(x,y) object or
                    implicit as 'highest','lowest','average'
         """
         last = self.resolution()
 
-        if xy is None:
-            xy = 'average'
+        if resolution is None:
+            resolution = 'average'
 
-        if isinstance(xy, str):
+        if isinstance(resolution, str):
             #find source resolutions
             res = []
             self.sourceRaster()
 
 
         else:
-            if isinstance(xy, QSizeF):
-                assert xy.width() > 0
-                assert xy.height() > 0
-                self.mResolution = QSizeF(xy)
+            if isinstance(resolution, QSizeF):
+                assert resolution.width() > 0
+                assert resolution.height() > 0
+
+                if isinstance(self.crs(), QgsCoordinateReferenceSystem) and isinstance(crs, QgsCoordinateReferenceSystem):
+                    muSrc = crs.mapUnits()
+                    muDst = self.crs().mapUnits()
+                    if muSrc != muDst:
+                        #convert resolution into target units
+
+                        trans = QgsCoordinateTransform()
+                        trans.setSourceCrs(crs)
+                        trans.setDestinationCrs(self.crs())
+                        ulSrc = trans.transform(self.ul(), direction=QgsCoordinateTransform.ReverseTransform)
+                        lrSrc = QgsPointXY(ulSrc.x() + resolution.width(), ulSrc.y() + resolution.height())
+                        vect = self.ul() - trans.transform(lrSrc)
+
+                        resolution = QSizeF(abs(vect.x()), abs(vect.y()))
+
+
+
+
+
+
+                self.mResolution = QSizeF(resolution)
                 #adjust extent
                 s = ""
 
-            elif isinstance(xy, str):
-                assert xy in ['average','highest','lowest']
-                self.mResolution = xy
+            elif isinstance(resolution, str):
+                assert resolution in ['average', 'highest', 'lowest']
+                self.mResolution = resolution
 
         if last != self.mResolution:
             self.sigResolutionChanged.emit()
@@ -803,7 +915,8 @@ class VRTRaster(QObject):
 
     def setCrs(self, crs, warpArgs:dict=None):
         """
-        Sets the output Coordinate Reference System (CRS). The UL coordinate will be reprojected to automatically to and the LR is calculated using the resolution and former pixel size
+        Sets the output Coordinate Reference System (CRS). The UL coordinate will be reprojected to automatically to new CRS
+         and the LR is calculated using the resolution and former pixel size. The new image will have at least a size of 1x1 pixel
         :param crs: osr.SpatialReference or QgsCoordinateReferenceSystem
         """
         if isinstance(crs, osr.SpatialReference):
@@ -817,32 +930,51 @@ class VRTRaster(QObject):
                 id = uuid.uuid4()
                 tmpSrc = '/vsimem/tmp.{}.src.vrt'.format(id)
                 tmpDst = '/vsimem/tmp.{}.dst.vrt'.format(id)
-                dsVRTDst = drvVRT.Create(tmpSrc, self.size().width(), self.size().height(), 1, eType=gdal.GDT_Byte)
-                dsVRTDst.SetProjection(self.crs().toWkt())
-                dsVRTDst.SetGeoTransform(geotransform(self.ul(), self.resolution()))
-                dsVRTDst.FlushCache()
+
+                dsVRTDummySrc = drvVRT.Create(tmpSrc, self.size().width(), self.size().height(), 1, eType=gdal.GDT_Byte)
+                dsVRTDummySrc.SetProjection(self.crs().toWkt())
+                dsVRTDummySrc.SetGeoTransform(geotransform(self.ul(), self.resolution()))
+                dsVRTDummySrc.FlushCache()
 
                 if not isinstance(warpArgs, dict):
                     warpArgs = dict()
 
-                wops = gdal.WarpOptions(dstSRS=crs.toWkt(), format='VRT', **warpArgs)
+                wops = gdal.WarpOptions(dstSRS=crs.toWkt(),
+                                        #outputBoundsSRS=self.srs(), #keep same bounds
+                                        #outputBounds=self.outputBounds(),
+                                        format='VRT',
+                                        **warpArgs)
 
-                dsWarped = gdal.Warp(tmpDst, dsVRTDst, options=wops)
-                assert isinstance(dsWarped, gdal.Dataset)
-
-                gt = dsWarped.GetGeoTransform()
-                ul = px2geo(QgsPoint(0,0), gt)
-                size = QSize(dsWarped.RasterXSize,dsWarped.RasterYSize)
-                res = resolution(dsWarped)
-                # clean
-                dsVRTDst = dsWarped = None
+                dsVRTWarped = gdal.Warp(tmpDst, dsVRTDummySrc, options=wops)
                 gdal.Unlink(tmpSrc)
+
+                if not isinstance(dsVRTWarped, gdal.Dataset):
+
+                    trans = QgsCoordinateTransform()
+                    trans.setSourceCrs(self.crs())
+                    trans.setDestinationCrs(crs)
+
+                    ul2 = trans.transform(self.ul())
+                    lr2 = trans.transform(self.lr())
+                    raise Exception('Coordinate Transform failed')
+
+                gt = dsVRTWarped.GetGeoTransform()
+                ul = px2geo(QgsPoint(0, 0), gt)
+                size = QSize(dsVRTWarped.RasterXSize, dsVRTWarped.RasterYSize)
+                res = resolution(dsVRTWarped)
+                # clean
+                dsVRTDummySrc = dsVRTWarped = None
+
                 gdal.Unlink(tmpDst)
 
                 # set new image properties
                 self.mUL = ul
                 self.mSize = size
                 self.mCrs = crs
+
+                if crs.mapUnits() == QgsUnitTypes:
+                    s = ""
+
                 self.mResolution = res
                 self.sigExtentChanged.emit()
 

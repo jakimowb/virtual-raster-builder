@@ -14,10 +14,11 @@ __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
 import unittest, tempfile
 
-from tests.testing import *
-from tests import testing
+from tests.testing import initQgisApplication, TestObjects
 
-QGIS_APP = testing.initQgisApplication()
+
+QGIS_APP = initQgisApplication()
+
 SHOW_GUI = True
 from vrtbuilder.widgets import *
 from vrtbuilder.virtualrasters import *
@@ -304,6 +305,8 @@ class testclassData(unittest.TestCase):
 
     def test_vrtRasterReprojections(self):
 
+        ds1 = TestObjects.inMemoryImage(1000, 2000, 1, crs='EPSG:32633')
+        ds2 = TestObjects.inMemoryImage(1000, 2000, 1, crs='EPSG:32633')
         VRT = VRTRaster()
         vb1 = VRTRasterBand()
         vb2 = VRTRasterBand()
@@ -324,9 +327,14 @@ class testclassData(unittest.TestCase):
                                          ul1.y() - size1.height() * res1.height()))
 
         if True:
+            #change coordinate system
             crs2 = QgsCoordinateReferenceSystem('EPSG:32721')
             VRT.setCrs(crs2)
+
+
             res2 = VRT.resolution()
+            size2 = VRT.size()
+            extent2 = VRT.extent()
             self.assertIsInstance(res2, QSizeF)
             self.assertEqual(res1, res2)
 
@@ -335,13 +343,13 @@ class testclassData(unittest.TestCase):
 
             self.assertTrue(ul2.y() > 0, msg='UTM South Y coordinate should be positive.')
 
-            size2 = VRT.size()
+
             self.assertNotEqual(ul1, ul2)
             self.assertNotEqual(lr1, lr2)
 
             self.assertEqual(crs2, VRT.crs())
             self.assertEqual(size1, size2)
-            extent2 = VRT.extent()
+
             self.assertNotEqual(extent1, extent2)
             self.assertAlmostEqual(extent1.width(), extent2.width())
             self.assertAlmostEqual(extent1.height(), extent2.height())

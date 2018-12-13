@@ -35,7 +35,8 @@ from PyQt5.QtXml import *
 import vrtbuilder
 APP = vrtbuilder.initQgisApplication()
 from vrtbuilder import DIR_UI, DIR_ROOT
-from vrtbuilder.utils import file_search
+from vrtbuilder.utils import *
+from vrtbuilder.virtualrasters import *
 jp = os.path.join
 
 DIR_BUILD = jp(DIR_ROOT, 'build')
@@ -294,11 +295,31 @@ def createTestData():
     sources['Sentinel2.East.tif'] =  r'Q:\Processing_BJ\01_Data\level2\X0017_Y0035\20180616_LEVEL2_SEN2B_BOA.tif'
     sources['RapidEye.tif'] = r'F:\TSData\re_2014-06-25.tif'
 
+
+    if False:
+        for key, path in list(sources.items()):
+
+            if 'RapidEye' in key:
+                continue
+            pathTmp = '/vsimem/'+key
+
+            tmpSRS = osr.SpatialReference()
+            tmpSRS.ImportFromEPSG(32721)
+
+            wops = gdal.WarpOptions(format='VRT', resampleAlg=gdal.GRA_CubicSpline, dstSRS=tmpSRS)
+
+            dsW = gdal.Warp(pathTmp, path, options=wops)
+            assert isinstance(dsW, gdal.Dataset)
+            sources[key] = pathTmp
+
+
+
+
     EOI = QgsRectangle(680469.9310372458, 9247092.924818395, 685600.0262901867, 9249499.405864319)
     EOIcrs = QgsCoordinateReferenceSystem('EPSG:32721')
 
-    EOI = QgsRectangle(507553.13337468985, 2899027.7772952854, 512672.31327543425, 2901188.614764268)
-    EOIcrs = None #QgsCoordinateReferenceSystem('EPSG:102033')
+    #EOI = QgsRectangle(507553.13337468985, 2899027.7772952854, 512672.31327543425, 2901188.614764268)
+    #EOIcrs = None #QgsCoordinateReferenceSystem('EPSG:102033')
 
     #1. create two landsat subsets with same CRS and extent
 
@@ -311,9 +332,8 @@ def createTestData():
     initLines.append(testfilepath('speclib', 'SpecLib_BerlinUrbanGradient.sli'))
     for bn, src in sources.items():
 
-        varName = re.sub(r'[.+]','_',bn)
 
-        assert os.path.isfile(src)
+
         lyr = QgsRasterLayer(src, 'n', 'gdal')
         assert isinstance(lyr, QgsRasterLayer)
         assert lyr.isValid()
@@ -325,29 +345,45 @@ def createTestData():
         trans = QgsCoordinateTransform()
         trans.setSourceCrs(EOIcrs)
         trans.setDestinationCrs(lyrCRS)
-        ext2 = trans.transform(EOI)
+        maxExtent = trans.transform(EOI)
+        srcDS = gdal.Open(src)
+        ns, nl = srcDS.RasterXSize, srcDS.RasterYSize
+        gt = geotransform(srcDS, None)
 
-        #get intersection
-        intersection = lyrExt.intersect(ext2)
-        lyr = None
+        if True:
+            upperLeft = geo2px(QgsPointXY(maxExtent.xMinimum(), maxExtent.yMaximum()), gt)
+            lowerRight = geo2px(QgsPointXY(maxExtent.xMaximum(), maxExtent.yMinimum()), gt)
 
+            x0, y0 = upperLeft.x(), upperLeft.y()
+            x1, y1 = lowerRight.x(), lowerRight.y()
+
+            if x0 < 0:
+                x0 = 0
+            if y0 < 0:
+                y0 = 0
+            if x1 > ns - 1:
+                x1 = ns - 1
+            if y1 > nl - 1:
+                y1 = nl - 1
+
+            width = x1 - x0 + 1
+            height = y1 - y0 + 1
+
+            #srcWin --- subwindow in pixels to extract: [left_x, top_y, width, height]
+            srcWin = (x0, y0, width, height)
+
+
+        assert isinstance(srcDS, gdal.Dataset)
+        from vrtbuilder.virtualrasters import px2geo
+
+        tops = gdal.TranslateOptions(format='GTiff', srcWin=srcWin)
         pathDst = os.path.join(dirOutput, bn)
-        initLines.append(testfilepath(varName, bn))
-        projWin = (intersection.xMinimum(), intersection.yMaximum(), intersection.xMaximum(), intersection.yMinimum())
-        if 'West' in bn:
-            projWin = (intersection.xMinimum(), intersection.yMaximum(), intersection.xMaximum()+60, intersection.yMinimum())
-        outputSRS = None
-        if False and 'level2' in src:
-            outputSRS = osr.SpatialReference()
-            outputSRS.ImportFromEPSG(102033)
-        tops = gdal.TranslateOptions(format='GTiff',
-                    projWin=projWin, projWinSRS=lyrCRS.toWkt(),
-                    outputSRS=outputSRS
-                    )
         print('Write {}...'.format(pathDst))
-        dsDst = gdal.Translate(pathDst, src, options=tops)
-        assert isinstance(dsDst, gdal.Dataset)
+        varName = re.sub(r'[.+]', '_', bn)
+        initLines.append(testfilepath(varName, pathDst))
 
+        dsDst = gdal.Translate(pathDst, srcDS, options=tops)
+        assert isinstance(dsDst, gdal.Dataset)
 
     pathInit = os.path.join(dirOutput, '__init__.py')
     with open(pathInit, 'w', encoding='utf-8') as f:

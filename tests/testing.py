@@ -425,3 +425,4 @@ class PythonRunnerImpl(QgsPythonRunner):
             raise ex
             return False
         return True
+

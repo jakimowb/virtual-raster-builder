@@ -765,8 +765,8 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>430</width>
-                <height>572</height>
+                <width>407</width>
+                <height>574</height>
                </rect>
               </property>
               <layout class="QGridLayout" name="gridLayout_2">
@@ -823,6 +823,26 @@
                     <property name="spacing">
                      <number>6</number>
                     </property>
+                    <item>
+                     <widget class="QToolButton" name="bntDrawExtent">
+                      <property name="toolTip">
+                       <string>Select resolution from other raster image</string>
+                      </property>
+                      <property name="text">
+                       <string>...</string>
+                      </property>
+                      <property name="icon">
+                       <iconset resource="resources.qrc">
+                        <normaloff>:/vrtbuilder/mActionSelect.svg</normaloff>:/vrtbuilder/mActionSelect.svg</iconset>
+                      </property>
+                      <property name="popupMode">
+                       <enum>QToolButton::DelayedPopup</enum>
+                      </property>
+                      <property name="autoRaise">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
+                    </item>
                     <item>
                      <widget class="QToolButton" name="btnCopyResolution">
                       <property name="toolTip">
@@ -932,7 +952,7 @@
                    </widget>
                   </item>
                   <item row="1" column="1">
-                   <widget class="QgsProjectionSelectionWidget" name="crsSelectionWidget" native="true">
+                   <widget class="QgsProjectionSelectionWidget" name="crsSelectionWidget">
                     <property name="enabled">
                      <bool>true</bool>
                     </property>
@@ -947,7 +967,7 @@
                   <item row="2" column="0">
                    <widget class="QLabel" name="label_17">
                     <property name="text">
-                     <string>Bounds</string>
+                     <string>Wxtent</string>
                     </property>
                    </widget>
                   </item>
@@ -1056,6 +1076,12 @@
                     </item>
                     <item>
                      <widget class="QDoubleSpinBox" name="sbResolutionX">
+                      <property name="minimumSize">
+                       <size>
+                        <width>50</width>
+                        <height>0</height>
+                       </size>
+                      </property>
                       <property name="maximumSize">
                        <size>
                         <width>100</width>
@@ -1079,11 +1105,20 @@
                     </item>
                     <item>
                      <widget class="QDoubleSpinBox" name="sbResolutionY">
+                      <property name="enabled">
+                       <bool>false</bool>
+                      </property>
                       <property name="sizePolicy">
                        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                         <horstretch>0</horstretch>
                         <verstretch>0</verstretch>
                        </sizepolicy>
+                      </property>
+                      <property name="minimumSize">
+                       <size>
+                        <width>50</width>
+                        <height>0</height>
+                       </size>
                       </property>
                       <property name="maximumSize">
                        <size>
@@ -1096,6 +1131,16 @@
                       </property>
                       <property name="maximum">
                        <double>10000000000000000.000000000000000</double>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QCheckBox" name="cbLinkResolutionXY">
+                      <property name="text">
+                       <string>same</string>
+                      </property>
+                      <property name="checked">
+                       <bool>true</bool>
                       </property>
                      </widget>
                     </item>
@@ -1134,7 +1179,7 @@
                      <widget class="QSpinBox" name="sbRasterWidth">
                       <property name="minimumSize">
                        <size>
-                        <width>0</width>
+                        <width>100</width>
                         <height>0</height>
                        </size>
                       </property>
@@ -1154,7 +1199,7 @@
                      <widget class="QSpinBox" name="sbRasterHeight">
                       <property name="minimumSize">
                        <size>
-                        <width>0</width>
+                        <width>100</width>
                         <height>0</height>
                        </size>
                       </property>
@@ -1359,7 +1404,7 @@
                      </widget>
                     </item>
                     <item>
-                     <widget class="QgsFileWidget" name="mQgsFileWidget" native="true">
+                     <widget class="QgsFileWidget" name="mQgsFileWidget">
                       <property name="enabled">
                        <bool>true</bool>
                       </property>
@@ -1369,13 +1414,13 @@
                         <verstretch>0</verstretch>
                        </sizepolicy>
                       </property>
-                      <property name="fileWidgetButtonVisible" stdset="0">
+                      <property name="fileWidgetButtonVisible">
                        <bool>true</bool>
                       </property>
-                      <property name="useLink" stdset="0">
+                      <property name="useLink">
                        <bool>false</bool>
                       </property>
-                      <property name="defaultRoot" stdset="0">
+                      <property name="defaultRoot">
                        <string/>
                       </property>
                      </widget>
@@ -1699,5 +1744,22 @@
  <resources>
   <include location="resources.qrc"/>
  </resources>
- <connections/>
+ <connections>
+  <connection>
+   <sender>cbLinkResolutionXY</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>sbResolutionY</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>594</x>
+     <y>296</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>517</x>
+     <y>297</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>
