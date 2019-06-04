@@ -1148,7 +1148,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
 
             files, filer = QFileDialog.getOpenFileNames(self, "Open raster images", directory='')
             if len(files) > 0:
-                self.addSourceFile(files)
+                self.addSourceFiles(files)
 
         self.btnAddFromRegistry.clicked.connect(self.loadSrcFromMapLayerRegistry)
         self.btnAddSrcFiles.clicked.connect(onAddSourceFiles)

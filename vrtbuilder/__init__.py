@@ -22,13 +22,15 @@ import os, sys, fnmatch, site, re, importlib
 from osgeo import gdal, ogr
 from qgis.core import *
 from qgis.gui import *
+from qgis.PyQt.QtCore import *
+
 
 DIR = os.path.dirname(__file__)
 DIR_ROOT = os.path.dirname(DIR)
-DIR_UI = os.path.join(DIR,'ui')
+DIR_UI = os.path.join(DIR, 'ui')
 DIR_EXAMPLEDATA = os.path.join(DIR_ROOT, 'exampledata')
 
-VERSION = '0.5'
+VERSION = '0.6'
 LICENSE = 'GNU GPL-3'
 TITLE = 'Virtual Raster Builder'
 DESCRIPTION = 'A QGIS Plugin to create GDAL Virtual Raster (VRT) files by drag and drop.'
@@ -48,7 +50,7 @@ Economic Affairs and Energy (BMWi, grant no. 50EE1529).
 """
 
 
-PATH_ICON = os.path.join(DIR_UI,'mActionNewVirtualLayer.png')
+PATH_ICON = os.path.join(DIR_UI, 'mActionNewVirtualLayer.png')
 #import vrtbuilder.ui.resources
 #vrtbuilder.ui.resources.qInitResources()
 __version__ = VERSION
@@ -129,12 +131,16 @@ def toRasterLayer(src) -> QgsRasterLayer:
     try:
         if isinstance(src, str):
             lyr = QgsRasterLayer(src)
+        elif isinstance(src, QUrl) and src.isValid():
+            if src.isLocalFile():
+                lyr = QgsRasterLayer(src.toLocalFile())
         if isinstance(src, gdal.Dataset):
             lyr = QgsRasterLayer(src.GetFileList()[0], '', 'gdal')
         elif isinstance(src, QgsMapLayer) :
             lyr = src
         elif isinstance(src, gdal.Band):
             return toRasterLayer(src.GetDataset())
+        
 
     except Exception as ex:
         print(ex)
