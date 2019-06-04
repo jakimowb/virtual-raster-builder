@@ -111,7 +111,7 @@ def updateMetadataTxt():
     #see http://docs.qgis.org/testing/en/docs/pyqgis_developer_cookbook/plugins.html#plugin-metadata
     #for required & optional meta tags
     pathDst = jp(DIR_ROOT, 'metadata.txt')
-    pathChanges = jp(DIR_ROOT, 'CHANGES.txt' )
+    pathChanges = jp(DIR_ROOT, 'CHANGELOG')
     assert os.path.exists(pathDst)
 
     import collections
@@ -128,8 +128,8 @@ def updateMetadataTxt():
     #update/set new metadata
     import vrtbuilder
     md['name'] = vrtbuilder.TITLE
-    md['qgisMinimumVersion'] = "3.0"
-    #md['qgisMaximumVersion'] =
+    md['qgisMinimumVersion'] = "3.4"
+    md['qgisMaximumVersion'] = "3.99"
     md['description'] = vrtbuilder.DESCRIPTION.strip()
     md['about'] = '\n\t'.join(vrtbuilder.ABOUT.splitlines())
     md['version'] = vrtbuilder.VERSION.strip()
@@ -252,32 +252,19 @@ def deploy():
     #os.chdir(dirPlugin)
     #shutil.make_archive(pathZip, 'zip', '..', dirPlugin)
 
-    #6. copy to local QGIS user DIR
-    if False:
-        import shutil
+    # 6. install the zip file into the local QGIS instance. You will need to restart QGIS!
+    if True:
+        print('\n### To update/install the EO Time Series Viewer run this command on your QGIS Python shell:\n')
+        print('from pyplugin_installer.installer import pluginInstaller')
+        print('pluginInstaller.installFromZipFile(r"{}")'.format(pathZip))
+        print('#### Close (and restart manually)\n')
 
-        from os.path import expanduser
-        #QGIS 2 pathQGIS = os.path.join(expanduser("~"), *['.qgis2','python','plugins'])
-
-        from vrtbuilder.utils import initQgisApplication
-        qgsApp = initQgisApplication()
-
-        import qgis.user
-
-        pathQGIS = qgis.user.userpythonhome
-        pathQGIS = pathQGIS.replace('python3', 'QGIS/QGIS3')
-        pathQGIS = os.path.join(pathQGIS, *['plugins'])
-
-
-
-        assert os.path.isdir(pathQGIS)
-        pathDst = os.path.join(pathQGIS, os.path.basename(dirPlugin))
-        rm(pathDst)
-        shutil.copytree(dirPlugin, pathDst)
-        s  =""
-
+        print('QProcess.startDetached(QgsApplication.arguments()[0], [])')
+        print('QgsApplication.quit()\n')
+        print('## press ENTER\n')
 
     print('Finished')
+
 
 def createTestData():
     """
@@ -394,12 +381,16 @@ def createTestData():
 if __name__ == '__main__':
     icondir = jp(DIR_UI)
     pathQrc = jp(DIR_UI,'resources.qrc')
-    if True:
+    if False:
         createTestData()
         exit(0)
+    
 
     if True:
-        compile_rc_files(DIR_UI)
+        from qps.make.make import compileQGISResourceFiles, compileResourceFile
+        from qps.utils import file_search
+        for file in file_search(DIR_UI, '*.qrc'):
+            compileResourceFile(file)
 
 
     if True:

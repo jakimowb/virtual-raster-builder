@@ -573,9 +573,15 @@ class VRTRasterBand(QObject):
         :param vrtRasterInputSourceBand: band index| VRTRasterInputSourceBand
         :return: The VRTRasterInputSourceBand that was removed
         """
-        if not isinstance(vrtRasterInputSourceBand, VRTRasterInputSourceBand):
-            vrtRasterInputSourceBand = self.mSources[vrtRasterInputSourceBand]
-        if vrtRasterInputSourceBand in self.mSources:
+        if isinstance(vrtRasterInputSourceBand, str):
+            for sourceBand in self:
+                assert isinstance(sourceBand, VRTRasterInputSourceBand)
+                if sourceBand.source() == vrtRasterInputSourceBand:
+                    vrtRasterInputSourceBand  = sourceBand
+                    break
+
+
+        if isinstance(vrtRasterInputSourceBand, VRTRasterInputSourceBand) and vrtRasterInputSourceBand in self.mSources:
             i = self.mSources.index(vrtRasterInputSourceBand)
             self.mSources.remove(vrtRasterInputSourceBand)
             self.sigSourceRemoved.emit(i, vrtRasterInputSourceBand)
@@ -1069,10 +1075,14 @@ class VRTRaster(QObject):
 
 
     def removeInputSource(self, path:str):
+        """
+        Removes all bands that relate to a input source image.
+        :param path: str, path of input source image
+        """
         assert path in self.sourceRaster()
         for vBand in self.mBands:
             assert isinstance(vBand, VRTRasterBand)
-            if path in vBand.mSources():
+            if path in vBand.sourceFiles():
                 vBand.removeSource(path)
 
     def removeVirtualBand(self, bandOrIndex):
