@@ -238,6 +238,12 @@ def build():
     #    for i in range(1, len(aboutText)):
     #        aboutText[i] = '    ' + aboutText[i]
     #    aboutText = ''.join(aboutText)
+
+    with open(PATH_CHANGELOG, 'r', encoding='utf-8') as f:
+        changelog = f.readlines()
+        changelog = ''.join(changelog)
+    MD.mChangelog = changelog
+
     MD.mName = vrtbuilder.TITLE
     MD.mCategory = 'Raster'
     MD.mAbout = vrtbuilder.ABOUT
