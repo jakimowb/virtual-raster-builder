@@ -479,6 +479,7 @@ class VRTRasterInputSourceBand(object):
         """
         lyr = QgsRasterLayer(self.source(), self.name(), 'gdal')
         #todo: set render to this specific band
+        
         return lyr
 
 
@@ -638,10 +639,10 @@ class VRTRaster(QObject):
             return
 
         if not (isinstance(self.crs(), QgsCoordinateReferenceSystem) and
-                isinstance(self.extent(), QgsRectangle)  and
+                isinstance(self.extent(), QgsRectangle) and
                 isinstance(self.resolution(), QSizeF)):
             lyr = vrtBand[0].toRasterLayer()
-            assert isinstance(lyr, QgsRasterLayer)
+            assert isinstance(lyr, QgsRasterLayer), 'Unable to open {} as QgsRasterLayer'.format(vrtBand[0])
 
             if not isinstance(self.mCrs, QgsCoordinateReferenceSystem):
                 self.setCrs(lyr.crs())
@@ -753,7 +754,8 @@ class VRTRaster(QObject):
         :param rectangle: QgsRectangle
         :param crs: QgsCoordinateReferenceSystem of coordinate in rectangle.
         """
-
+        
+        
         last = self.extent()
 
         if not isinstance(crs, QgsCoordinateReferenceSystem):
@@ -766,22 +768,27 @@ class VRTRaster(QObject):
                 trans.setSourceCrs(crs)
                 trans.setDestinationCrs(self.mCrs)
                 rectangle = transformBoundingBox(rectangle, trans)
-                referenceGrid = trans.transform(referenceGrid)
+
+                if isinstance(referenceGrid, QgsPointXY):
+                    referenceGrid = trans.transform(referenceGrid)
 
         assert isinstance(rectangle, QgsRectangle)
-        assert rectangle.width() > 0
-        assert rectangle.height() > 0
+        if not (rectangle.isFinite() and rectangle.width() > 0 and rectangle.height() > 0):
+            return 
 
-        #align to pixel size
+        # align to pixel size
         if not isinstance(referenceGrid, QgsPointXY):
             referenceGrid = QgsPointXY(rectangle.xMinimum(), rectangle.yMaximum())
+        
         res = self.resolution()
-        extent, px = alignRectangleToGrid(res, referenceGrid, rectangle)
-        self.mUL = QgsPointXY(extent.xMinimum(), extent.yMaximum())
-        self.setSize(px)
-        if last != extent:
-            self.sigExtentChanged.emit()
-        pass
+        if isinstance(res, QSizeF):
+            extent, px = alignRectangleToGrid(res, referenceGrid, rectangle)
+            self.mUL = QgsPointXY(extent.xMinimum(), extent.yMaximum())
+            self.setSize(px)
+            
+            if last != extent:
+                self.sigExtentChanged.emit()
+
 
 
     def size(self)->QSize:
@@ -931,62 +938,60 @@ class VRTRaster(QObject):
         assert isinstance(crs, QgsCoordinateReferenceSystem)
         if crs != self.crs():
             crsOld = self.crs()
-            if isinstance(crsOld, QgsCoordinateReferenceSystem):
-                drvVRT = gdal.GetDriverByName('VRT')
-                id = uuid.uuid4()
-                tmpSrc = '/vsimem/tmp.{}.src.vrt'.format(id)
-                tmpDst = '/vsimem/tmp.{}.dst.vrt'.format(id)
+            crsNew = crs
 
-                dsVRTDummySrc = drvVRT.Create(tmpSrc, self.size().width(), self.size().height(), 1, eType=gdal.GDT_Byte)
-                dsVRTDummySrc.SetProjection(self.crs().toWkt())
-                dsVRTDummySrc.SetGeoTransform(geotransform(self.ul(), self.resolution()))
-                dsVRTDummySrc.FlushCache()
+            self.mCrs = crs
 
-                if not isinstance(warpArgs, dict):
-                    warpArgs = dict()
+            try:
+                if isinstance(crsOld, QgsCoordinateReferenceSystem) and isinstance(self.size(), QSize):
+                    drvVRT = gdal.GetDriverByName('VRT')
+                    id = uuid.uuid4()
+                    tmpSrc = '/vsimem/tmp.{}.src.vrt'.format(id)
+                    tmpDst = '/vsimem/tmp.{}.dst.vrt'.format(id)
 
-                wops = gdal.WarpOptions(dstSRS=crs.toWkt(),
-                                        #outputBoundsSRS=self.srs(), #keep same bounds
-                                        #outputBounds=self.outputBounds(),
-                                        format='VRT',
-                                        **warpArgs)
+                    dsVRTDummySrc = drvVRT.Create(tmpSrc, self.size().width(), self.size().height(), 1, eType=gdal.GDT_Byte)
+                    dsVRTDummySrc.SetProjection(crsOld.toWkt())
+                    dsVRTDummySrc.SetGeoTransform(geotransform(self.ul(), self.resolution()))
+                    dsVRTDummySrc.FlushCache()
 
-                dsVRTWarped = gdal.Warp(tmpDst, dsVRTDummySrc, options=wops)
-                gdal.Unlink(tmpSrc)
+                    if not isinstance(warpArgs, dict):
+                        warpArgs = dict()
 
-                if not isinstance(dsVRTWarped, gdal.Dataset):
+                    wops = gdal.WarpOptions(dstSRS=crsNew.toWkt(),
+                                            #outputBoundsSRS=self.srs(), #keep same bounds
+                                            #outputBounds=self.outputBounds(),
+                                            format='VRT',
+                                            **warpArgs)
 
-                    trans = QgsCoordinateTransform()
-                    trans.setSourceCrs(self.crs())
-                    trans.setDestinationCrs(crs)
+                    dsVRTWarped = gdal.Warp(tmpDst, dsVRTDummySrc, options=wops)
+                    gdal.Unlink(tmpSrc)
 
-                    ul2 = trans.transform(self.ul())
-                    lr2 = trans.transform(self.lr())
-                    raise Exception('Coordinate Transform failed')
+                    if not isinstance(dsVRTWarped, gdal.Dataset):
 
-                gt = dsVRTWarped.GetGeoTransform()
-                ul = px2geo(QgsPoint(0, 0), gt)
-                size = QSize(dsVRTWarped.RasterXSize, dsVRTWarped.RasterYSize)
-                res = resolution(dsVRTWarped)
-                # clean
-                dsVRTDummySrc = dsVRTWarped = None
+                        trans = QgsCoordinateTransform()
+                        trans.setSourceCrs(crsOld)
+                        trans.setDestinationCrs(crsNew)
 
-                gdal.Unlink(tmpDst)
+                        ul2 = trans.transform(self.ul())
+                        lr2 = trans.transform(self.lr())
+                        raise Exception('Warping failed from \n{} \nto {}'.format(self.crs().description(), crs.description()))
 
-                # set new image properties
-                self.mUL = ul
-                self.mSize = size
-                self.mCrs = crs
+                    gt = dsVRTWarped.GetGeoTransform()
+                    ul = px2geo(QgsPoint(0, 0), gt)
+                    size = QSize(dsVRTWarped.RasterXSize, dsVRTWarped.RasterYSize)
+                    res = resolution(dsVRTWarped)
+                    # clean
+                    dsVRTDummySrc = dsVRTWarped = None
 
-                if crs.mapUnits() == QgsUnitTypes:
-                    s = ""
+                    gdal.Unlink(tmpDst)
 
-                self.mResolution = res
-                self.sigExtentChanged.emit()
-
-            else:
-
-                self.mCrs = crs
+                    # set new image properties
+                    self.mUL = ul
+                    self.mSize = size
+                    self.mResolution = res
+                    self.sigExtentChanged.emit()
+            except Exception as ex:
+                print(ex, file=sys.stderr)
 
             self.sigCrsChanged.emit(self.mCrs)
 

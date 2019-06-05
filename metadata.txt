@@ -1,8 +1,8 @@
 [general]
 name=Virtual Raster Builder
 description=A QGIS Plugin to create GDAL Virtual Raster (VRT) files by drag and drop.
-version=0.5
-qgisMinimumVersion=3.0
+version=0.6
+qgisMinimumVersion=3.4
 author=Benjamin Jakimow, Geomatics Lab, Humboldt-Universität zu Berlin
 about=
 	The VRT Builder is a plugin to create GDAL Virtual Raster (VRT) files by drag and drop. 
@@ -24,7 +24,11 @@ experimental=False
 deprecated=False
 tags=remote sensing, raster
 category=Raster
-changelog=
+changelog=0.6 2019-06-04:
+    * preview window shows extent of VRT raster sources
+    * VRT raster grid resolution and extent can be aligned to or taken from another raster image (#12)
+    *
+
 0.5 2018-06-15:
     * supports in-memory files based on GDAL "/vsimem/"
     * does not require temporal local VRT files any more
@@ -41,3 +45,4 @@ changelog=
     * Code-base converted to PyQt5 and QGIS 3
     * Small fixes of smaller UI response issues
     * Sphinx - based documentation, documentation is also shown in the "help" tab
+qgisMaximumVersion=3.99

@@ -11,7 +11,7 @@ updateexternals.setProjectRepository(DIR_REPO)
 RemoteInfo.create(r'https://bitbucket.org/jakimowb/qgispluginsupport.git',
                   key='qps',
                   #prefixLocal='site-packages/qps',
-                  prefixLocal='eotimeseriesviewer/externals/qps',
+                  prefixLocal='vrtbuilder/externals/qps',
                   prefixRemote=r'qps',
                   remoteBranch='master')
 
@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
     if 'qps' in to_update:
         import make
-        path = os.path.join(DIR_REPO, r'eotimeseriesviewer/externals/qps/qpsresources.qrc')
+        path = os.path.join(DIR_REPO, r'vrtbuilder/externals/qps/qpsresources.qrc')
         make.compileResourceFile(path)
 
     exit()

@@ -29,11 +29,12 @@ from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtXml import *
 from osgeo import gdal, osr, gdalconst as gc
 
-from vrtbuilder.models import TreeModel, TreeNode, TreeView
-from vrtbuilder.virtualrasters import *
-from vrtbuilder.utils import loadUi
+from .models import TreeModel, TreeNode, TreeView
+from .virtualrasters import *
+from .utils import *
 from vrtbuilder import registerLayerStore, MAPLAYER_STORES
-from vrtbuilder import toRasterLayer, toMapLayer, toVectorLayer
+from . import toRasterLayer, toMapLayer, toVectorLayer
+
 LUT_FILEXTENSIONS = {}
 
 
@@ -72,6 +73,53 @@ for i in range(gdal.GetDriverCount()):
 
 
 
+def sourceBaseName(source)->str:
+    """
+    
+    :param source: 
+    :return: 
+    """
+    if isinstance(source, str):
+        return os.path.basename(source)
+    elif isinstance(source, QgsRasterLayer):
+        if source.dataProvider().name() == 'gdal':
+            return os.path.basename(source.source())
+        else:
+            return source.name()
+    elif isinstance(source, QgsVectorLayer):
+        if source.dataProvider().name() == 'ogr':
+            return os.path.basename(source.source())
+        else:
+            return source.name()
+        
+    elif isinstance(source, QgsMapLayer):
+        return source.name()
+    
+    return str(source)
+    
+
+
+def sourceIcon(source)->QIcon:
+    """
+    Returns a QgsMapLayer icon 
+    :param layer: QgsMapLayer | str (considered as Raster)
+    :return: QIcon
+    """
+    if isinstance(source, str):
+        return QIcon(r':/images/themes/default/mIconRaster.svg')
+    elif isinstance(source, QgsRasterLayer):
+        return QIcon(r':/images/themes/default/mIconRaster.svg')
+    elif isinstance(source, QgsVectorLayer):
+        if source.geometryType() == QgsWkbTypes.PolygonGeometry:
+            return QIcon(r':/images/themes/default/mIconPolygonLayer.svg')
+        elif source.geometryType() == QgsWkbTypes.LineGeometry:
+            return QIcon(r':/images/themes/default/mIconLineLayer.svg')
+        elif source.geometryType() == QgsWkbTypes.PointGeometry:
+            return QIcon(r':/images/themes/default/mIconPointLayer.svg')
+        else:
+            return QIcon(r':/images/themes/default/mIconVector.svg')
+    else:
+        return QIcon()
 
 
 class SourceRasterBandNode(TreeNode):
@@ -1058,6 +1106,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
 
 
         self.mVRTRaster.sigCrsChanged.connect(self.updateSummary)
+        #self.mVRTRaster.sigSourceBandInserted.connect(self.onVRTSourceBandAdded)
         self.mVRTRaster.sigSourceBandInserted.connect(self.updateSummary)
         self.mVRTRaster.sigSourceBandRemoved.connect(self.updateSummary)
         self.mVRTRaster.sigBandInserted.connect(self.updateSummary)
@@ -1093,7 +1142,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         self.restoreLastSettings()
         self.validateInputs()
         self.resetMap()
-
+            
     def initActions(self):
 
         # extents
@@ -1344,26 +1393,18 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
 
         pass
 
-    def setExtent(self, bbox:QgsRectangle, crs:QgsCoordinateReferenceSystem):
+    def setExtent(self, spatialExtent:SpatialExtent):
         """
         Sets the boundaries of destination raster image
         :param bbox: QgsRectangle
-        :param crs: QgsCoordinateReferenceSytem
+        :param crs: Target QgsCoordinateReferenceSystem. Defaults to the VRT crs.
         """
-        assert isinstance(bbox, QgsRectangle)
-        assert isinstance(crs, QgsCoordinateReferenceSystem)
-
+        assert isinstance(spatialExtent, SpatialExtent)
+        
         if not isinstance(self.mVRTRaster.crs(), QgsCoordinateReferenceSystem):
-            self.mVRTRaster.setCrs(crs)
-
-        if isinstance(crs, QgsCoordinateReferenceSystem) \
-                and isinstance(self.mVRTRaster.crs(), QgsCoordinateReferenceSystem):
-            trans = QgsCoordinateTransform()
-            trans.setSourceCrs(crs)
-            trans.setDestinationCrs(self.mVRTRaster.crs())
-            bbox = trans.transform(bbox)
-
-        self.mVRTRaster.setExtent(bbox, crs)
+            self.mVRTRaster.setCrs(spatialExtent.crs())
+        spatialExtent = spatialExtent.toCrs(self.mVRTRaster.crs())
+        self.mVRTRaster.setExtent(spatialExtent)
 
         self.validateInputs()
 
@@ -1371,17 +1412,19 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         """Copies the spatial extent from a given raster or vector source"""
         lyr = toMapLayer(source)
         if isinstance(lyr, QgsMapLayer):
-            self.setExtent(lyr.extent(), lyr.crs())
+            spatialExtent = SpatialExtent.fromLayer(lyr)
+            if isinstance(spatialExtent, SpatialExtent):
+                self.setExtent(spatialExtent)
 
     def setResolutionFromSource(self, source):
-        """Copies the pixel resolution forma given raster source"""
+        """Copies the pixel resolution from a QgsRasterLayer"""
         lyr = toRasterLayer(source)
         if isinstance(lyr, QgsRasterLayer):
-            self.mVRTRaster.setResolution(resolution(lyr))
+            self.mVRTRaster.setResolution(resolution(lyr), crs=lyr.crs())
 
     def setGridFrom(self, source):
         """
-        Copies the raster grid (CRS, extent, pixe size) from a raster source
+        Copies the raster grid (CRS, extent, pixel size) from a raster source
         :param source: any type
         """
         lyr = toRasterLayer(source)
@@ -1392,7 +1435,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
             self.mVRTRaster.setCrs(crs)
             self.mVRTRaster.setResolution(res)
             refPoint = QgsPointXY(ext.xMinimum(), ext.yMaximum())
-            self.mVRTRaster.setExtent(ext, crs=crs, refPoint=refPoint)
+            self.mVRTRaster.setExtent(ext, referenceGrid=refPoint)
 
 
     def buildButtonMenus(self, *args):
@@ -1409,40 +1452,73 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
              isinstance(qgis.utils.iface.mapCanvas(), QgsMapCanvas):
             a = menuCopyExtent.addAction('QGIS MapCanvas')
             a.setToolTip('Use spatial extent of QGIS map canvas.')
-            a.triggered.connect(lambda : self.setExtent(qgis.utils.iface.mapCanvas().extent(), crs = qgis.utils.iface.mapCanvas().mapSettings().destinationCrs()))
+            a.triggered.connect(lambda: self.setExtent(SpatialExtent.fromMapCanvas(qgis.utils.iface.mapCanvas())))
 
         menuCopyExtent.addAction(self.actionSelectSpatialExtent)
 
-        def onResFromFile(*args):
-            fn, filter = QFileDialog.getOpenFileName(self, "Select raster file", directory='')
-            if len(fn) > 0:
-                self.setResolutionFromSource(fn)
+        vectorLayerSources = []
+        rasterLayerSources = []
+        handledSources = set()
 
         for file in self.mSourceFileModel.rasterSources():
-            bn = os.path.basename(file)
+            rasterLayerSources.append(file)
+            handledSources.add(file)
+
+        for layer in QgsProject.instance().mapLayers().values():
+            if layer.source() in handledSources:
+                continue
+
+            handledSources.add(layer.source())
+
+            if isinstance(layer, QgsRasterLayer):
+                rasterLayerSources.append(layer)
+            elif isinstance(layer, QgsVectorLayer):
+                vectorLayerSources.append(layer)
+
+
+
+        for source in rasterLayerSources:
+            bn = sourceBaseName(source)
+            if isinstance(source, str):
+                file = source
+                icon = QIcon(r':/images/themes/default/mIconRaster.svg')
+            elif isinstance(source, QgsRasterLayer):
+                icon = sourceIcon(source)
+                file = source.source()
+
+
             a = menuCopyExtent.addAction(bn)
-            a.setToolTip('Use spatial extent of {}'.format(file))
-            a.triggered.connect(lambda file=file: self.setBoundsFromSource(file))
-            a.setIcon(QIcon(':/vrtbuilder/mIconRaster.svg'))
-
+            a.setToolTip('Use spatial extent of {}. (Extent will be converted into the current CRS.)'.format(file))
+            a.triggered.connect(lambda *args, src=source: self.setBoundsFromSource(src))
+            a.setIcon(icon)
+            
             a = menuCopyResolution.addAction(bn)
-            a.setToolTip('Use resolution of {}'.format(file))
-            a.setIcon(QIcon(':/vrtbuilder/mIconRaster.svg'))
-            a.triggered.connect(lambda file=file: self.setResolutionFromSource(file))
-
+            a.setToolTip('Use resolution of {}.'.format(file))
+            a.triggered.connect(lambda *args, src=source: self.setResolutionFromSource(src))
+            a.setIcon(icon)
+            
             a = menuCopyGrid.addAction(bn)
             a.setToolTip('Use pixel grid of {}'.format(file))
-            a.setIcon(QIcon(':/vrtbuilder/mIconRaster.svg'))
-            a.triggered.connect(lambda file=file: self.setGridFrom(file))
-
+            a.triggered.connect(lambda *args, src=source: self.setGridFrom(src))
+            a.setIcon(icon)
+            
             a = menuAlignGrid.addAction(bn)
             a.setToolTip('Align to pixel grid of {}'.format(file))
-            a.setIcon(QIcon(':/vrtbuilder/mIconRaster.svg'))
-            a.triggered.connect(lambda b, file=file: self.mVRTRaster.alignToRasterGrid(file))
-
-
-        #bound can be retrieved from Vector data as well
-
+            a.triggered.connect(lambda *args, src=source: self.mVRTRaster.alignToRasterGrid(src))
+            a.setIcon(icon)
+        
+        if len(vectorLayerSources) > 0:
+            menuCopyExtent.addSeparator()
+            
+            for source in vectorLayerSources:
+                if isinstance(source, QgsVectorLayer):
+                    icon = sourceIcon(source)
+                    bn = sourceBaseName(source)
+                    a = menuCopyExtent.addAction(bn)
+                    a.setToolTip('Use spatial extent of {}'.format(layer.source()))
+                    a.triggered.connect(lambda *args, src=source: self.setBoundsFromSource(src))
+                    a.setIcon(icon)
+        
         self.btnCopyResolution.setMenu(menuCopyResolution)
         self.btnCopyExtent.setMenu(menuCopyExtent)
         self.bntCopyGrid.setMenu(menuCopyGrid)
@@ -1686,7 +1762,9 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         crs = self.mVRTRaster.crs()
         if isinstance(crs, QgsCoordinateReferenceSystem):
             if crs != self.crsSelectionWidget.crs():
+                b = self.crsSelectionWidget.blockSignals(True)
                 self.crsSelectionWidget.setCrs(crs)
+                self.crsSelectionWidget.blockSignals(b)
 
             unitString = QgsUnitTypes.toAbbreviatedString(crs.mapUnits())
             self.sbResolutionX.setSuffix(unitString)

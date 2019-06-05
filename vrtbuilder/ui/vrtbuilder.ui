@@ -133,8 +133,8 @@
                 <string>n+</string>
                </property>
                <property name="icon">
-                <iconset resource="resources.qrc">
-                 <normaloff>:/vrtbuilder/mActionExpandTree.svg</normaloff>:/vrtbuilder/mActionExpandTree.svg</iconset>
+                <iconset resource="../../../../QGIS/images/images.qrc">
+                 <normaloff>:/images/themes/default/mActionExpandTree.svg</normaloff>:/images/themes/default/mActionExpandTree.svg</iconset>
                </property>
                <property name="autoRaise">
                 <bool>true</bool>
@@ -150,8 +150,8 @@
                 <string>n-</string>
                </property>
                <property name="icon">
-                <iconset resource="resources.qrc">
-                 <normaloff>:/vrtbuilder/mActionCollapseTree.svg</normaloff>:/vrtbuilder/mActionCollapseTree.svg</iconset>
+                <iconset resource="../../../../QGIS/images/images.qrc">
+                 <normaloff>:/images/themes/default/mActionCollapseTree.svg</normaloff>:/images/themes/default/mActionCollapseTree.svg</iconset>
                </property>
                <property name="autoRaise">
                 <bool>true</bool>
@@ -454,8 +454,8 @@
                <string>...</string>
               </property>
               <property name="icon">
-               <iconset resource="resources.qrc">
-                <normaloff>:/vrtbuilder/mActionZoomIn.svg</normaloff>:/vrtbuilder/mActionZoomIn.svg</iconset>
+               <iconset resource="../../../../QGIS/images/images.qrc">
+                <normaloff>:/images/themes/default/mActionZoomIn.svg</normaloff>:/images/themes/default/mActionZoomIn.svg</iconset>
               </property>
               <property name="autoRaise">
                <bool>true</bool>
@@ -468,8 +468,8 @@
                <string>...</string>
               </property>
               <property name="icon">
-               <iconset resource="resources.qrc">
-                <normaloff>:/vrtbuilder/mActionZoomOut.svg</normaloff>:/vrtbuilder/mActionZoomOut.svg</iconset>
+               <iconset resource="../../../../QGIS/images/images.qrc">
+                <normaloff>:/images/themes/default/mActionZoomOut.svg</normaloff>:/images/themes/default/mActionZoomOut.svg</iconset>
               </property>
               <property name="autoRaise">
                <bool>true</bool>
@@ -482,8 +482,8 @@
                <string>...</string>
               </property>
               <property name="icon">
-               <iconset resource="resources.qrc">
-                <normaloff>:/vrtbuilder/mActionZoomFullExtent.svg</normaloff>:/vrtbuilder/mActionZoomFullExtent.svg</iconset>
+               <iconset resource="../../../../QGIS/images/images.qrc">
+                <normaloff>:/images/themes/default/mActionZoomFullExtent.svg</normaloff>:/images/themes/default/mActionZoomFullExtent.svg</iconset>
               </property>
               <property name="autoRaise">
                <bool>true</bool>
@@ -496,8 +496,8 @@
                <string>...</string>
               </property>
               <property name="icon">
-               <iconset resource="resources.qrc">
-                <normaloff>:/vrtbuilder/mActionPan.svg</normaloff>:/vrtbuilder/mActionPan.svg</iconset>
+               <iconset resource="../../../../QGIS/images/images.qrc">
+                <normaloff>:/images/themes/default/mActionPan.svg</normaloff>:/images/themes/default/mActionPan.svg</iconset>
               </property>
               <property name="autoRaise">
                <bool>true</bool>
@@ -559,7 +559,7 @@
           <bool>true</bool>
          </property>
          <property name="currentIndex">
-          <number>1</number>
+          <number>0</number>
          </property>
          <widget class="QWidget" name="tabSrcFiles">
           <property name="autoFillBackground">
@@ -615,8 +615,8 @@
                 <string>n+</string>
                </property>
                <property name="icon">
-                <iconset resource="resources.qrc">
-                 <normaloff>:/vrtbuilder/mActionExpandTree.svg</normaloff>:/vrtbuilder/mActionExpandTree.svg</iconset>
+                <iconset resource="../../../../QGIS/images/images.qrc">
+                 <normaloff>:/images/themes/default/mActionExpandTree.svg</normaloff>:/images/themes/default/mActionExpandTree.svg</iconset>
                </property>
                <property name="autoRaise">
                 <bool>true</bool>
@@ -632,8 +632,8 @@
                 <string>n-</string>
                </property>
                <property name="icon">
-                <iconset resource="resources.qrc">
-                 <normaloff>:/vrtbuilder/mActionCollapseTree.svg</normaloff>:/vrtbuilder/mActionCollapseTree.svg</iconset>
+                <iconset resource="../../../../QGIS/images/images.qrc">
+                 <normaloff>:/images/themes/default/mActionCollapseTree.svg</normaloff>:/images/themes/default/mActionCollapseTree.svg</iconset>
                </property>
                <property name="autoRaise">
                 <bool>true</bool>
@@ -967,7 +967,7 @@
                   <item row="2" column="0">
                    <widget class="QLabel" name="label_17">
                     <property name="text">
-                     <string>Wxtent</string>
+                     <string>Extent</string>
                     </property>
                    </widget>
                   </item>
@@ -1676,8 +1676,8 @@
   </action>
   <action name="actionPan">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/vrtbuilder/mActionPan.svg</normaloff>:/vrtbuilder/mActionPan.svg</iconset>
+    <iconset resource="../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionPan.svg</normaloff>:/images/themes/default/mActionPan.svg</iconset>
    </property>
    <property name="text">
     <string>Pan</string>
@@ -1688,8 +1688,8 @@
   </action>
   <action name="actionZoomIn">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/vrtbuilder/mActionZoomIn.svg</normaloff>:/vrtbuilder/mActionZoomIn.svg</iconset>
+    <iconset resource="../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionZoomIn.svg</normaloff>:/images/themes/default/mActionZoomIn.svg</iconset>
    </property>
    <property name="text">
     <string>ZoomIn</string>
@@ -1700,14 +1700,23 @@
   </action>
   <action name="actionZoomOut">
    <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/vrtbuilder/mActionZoomOut.svg</normaloff>:/vrtbuilder/mActionZoomOut.svg</iconset>
+    <iconset resource="../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionZoomOut.svg</normaloff>:/images/themes/default/mActionZoomOut.svg</iconset>
    </property>
    <property name="text">
     <string>ZoomOut</string>
    </property>
    <property name="toolTip">
     <string>Zoom out</string>
+   </property>
+  </action>
+  <action name="actionactionZoomFullExtent">
+   <property name="icon">
+    <iconset resource="../../../../QGIS/images/images.qrc">
+     <normaloff>:/images/themes/default/mActionZoomFullExtent.svg</normaloff>:/images/themes/default/mActionZoomFullExtent.svg</iconset>
+   </property>
+   <property name="text">
+    <string>actionZoomFullExtent</string>
    </property>
   </action>
  </widget>
@@ -1743,6 +1752,8 @@
  </customwidgets>
  <resources>
   <include location="resources.qrc"/>
+  <include location="../externals/qps/qpsresources.qrc"/>
+  <include location="../../../../QGIS/images/images.qrc"/>
  </resources>
  <connections>
   <connection>

@@ -5,13 +5,11 @@
     <file>mActionImportPixelSize.svg</file>
     <file>mActionImportRasterBounds.svg</file>
     <file>mActionDefaultMapTool.svg</file>
-    <file>mActionIdentify.svg</file>
     <file>mActionSelect.svg</file>
     <file>mActionImportRaster.svg</file>
     <file>mOptionMosaikFiles.svg</file>
     <file>mOptionStackFiles.svg</file>
     <file>mActionImportFromRegistry.svg</file>
-    <file>qgis_icon.svg</file>
     <file>mIconRaster.svg</file>
     <file>mActionNewVirtualLayer.svg</file>
     <file>mActionRemoveRasterLayer.svg</file>
@@ -20,16 +18,8 @@
     <file>mActionImportVirtualRaster.svg</file>
     <file>mActionRemoveVirtualRaster.svg</file>
     <file>mIconVirtualRaster.svg</file>
-    <file>mActionZoomOut.svg</file>
-    <file>mActionZoomIn.svg</file>
-    <file>mActionZoomFullExtent.svg</file>
-    <file>mActionPan.svg</file>
-    <file>CRS.svg</file>
-    <file>mActionExpandTree.svg</file>
-    <file>mActionCollapseTree.svg</file>
     <file>logo_dlr.png</file>
     <file>logo_gfz.png</file>
     <file>logo_hu-berlin.png</file>
   </qresource>
-  <qresource prefix="newPrefix"/>
 </RCC>

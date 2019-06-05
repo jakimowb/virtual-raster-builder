@@ -26,16 +26,21 @@ from qgis.PyQt.QtCore import *
 
 
 DIR = os.path.dirname(__file__)
-DIR_ROOT = os.path.dirname(DIR)
+DIR_REPO = os.path.dirname(DIR)
 DIR_UI = os.path.join(DIR, 'ui')
-DIR_EXAMPLEDATA = os.path.join(DIR_ROOT, 'exampledata')
+DIR_EXAMPLEDATA = os.path.join(DIR_REPO, 'exampledata')
+PATH_CHANGELOG = os.path.join(DIR_REPO, 'CHANGELOG')
 
-VERSION = '0.6'
+VERSION = '0.6' #subversion will be set automatically
 LICENSE = 'GNU GPL-3'
 TITLE = 'Virtual Raster Builder'
 DESCRIPTION = 'A QGIS Plugin to create GDAL Virtual Raster (VRT) files by drag and drop.'
-WEBSITE = 'https://bitbucket.org/jakimowb/virtual-raster-builder'
+HOMEPAGE = 'https://bitbucket.org/jakimowb/virtual-raster-builder'
+
 REPOSITORY = 'https://bitbucket.org/jakimowb/virtual-raster-builder'
+ISSUE_TRACKER = 'https://bitbucket.org/jakimowb/virtual-raster-builder/issues'
+AUTHOR='Benjamin Jakimow'
+MAIL='benjamin.jakimow@geo.hu-berlin.de'
 ABOUT = """
 The VRT Builder is a plugin to create GDAL Virtual Raster (VRT) files by drag and drop. 
 It helps to create new images by stacking or mosaicing of source image bands, as well as to 
@@ -57,6 +62,25 @@ __version__ = VERSION
 
 
 MAPLAYER_STORES = [QgsProject.instance()]
+
+
+def initResources():
+    """
+    Loads (or reloads) required Qt resources
+    :return:
+    """
+    try:
+        from .ui.resources import qInitResources as initVRTBuilderResources
+        initVRTBuilderResources()
+    except:
+        print('Unable to initialize VRT Builder resources', file=sys.stderr)
+
+    try:
+        from .externals.qps.qpsresources import qInitResources as initQPSResources
+        initQPSResources()
+    except Exception as ex:
+        print('Unable to import qps.resources', file=sys.stderr)
+
 
 def registerLayerStore(store):
     assert isinstance(store, (QgsProject, QgsMapLayerStore))
@@ -136,7 +160,7 @@ def toRasterLayer(src) -> QgsRasterLayer:
                 lyr = QgsRasterLayer(src.toLocalFile())
         if isinstance(src, gdal.Dataset):
             lyr = QgsRasterLayer(src.GetFileList()[0], '', 'gdal')
-        elif isinstance(src, QgsMapLayer) :
+        elif isinstance(src, QgsMapLayer):
             lyr = src
         elif isinstance(src, gdal.Band):
             return toRasterLayer(src.GetDataset())
@@ -150,44 +174,3 @@ def toRasterLayer(src) -> QgsRasterLayer:
     else:
         return None
 
-
-
-def initQgisApplication(qgisResourceDir:str=None)->QgsApplication:
-    """
-    Initializes a QGIS Environment
-    :return: QgsApplication instance of local QGIS installation
-    """
-    import qgis.testing
-    from qgis.PyQt.QtWidgets import QApplication
-    if isinstance(QgsApplication.instance(), QgsApplication):
-        return QgsApplication.instance()
-    else:
-
-        if not 'QGIS_PREFIX_PATH' in os.environ.keys():
-            raise Exception('env variable QGIS_PREFIX_PATH not set')
-
-        if sys.platform == 'darwin':
-            # add location of Qt Libraries
-            assert '.app' in qgis.__file__, 'Can not locate path of QGIS.app'
-            PATH_QGIS_APP = re.search(r'.*\.app', qgis.__file__).group()
-            QApplication.addLibraryPath(os.path.join(PATH_QGIS_APP, *['Contents', 'PlugIns']))
-            QApplication.addLibraryPath(os.path.join(PATH_QGIS_APP, *['Contents', 'PlugIns', 'qgis']))
-
-        qgsApp = qgis.testing.start_app()
-
-        if not isinstance(qgisResourceDir, str):
-            parentDir = os.path.dirname(os.path.dirname(__file__))
-            resourceDir = os.path.join(parentDir, 'qgisresources')
-            if os.path.exists(resourceDir):
-                qgisResourceDir = resourceDir
-
-        if isinstance(qgisResourceDir, str) and os.path.isdir(qgisResourceDir):
-            modules = [m for m in os.listdir(qgisResourceDir) if re.search(r'[^_].*\.py', m)]
-            modules = [m[0:-3] for m in modules]
-            for m in modules:
-                mod = importlib.import_module('qgisresources.{}'.format(m))
-                if "qInitResources" in dir(mod):
-                    mod.qInitResources()
-
-
-        return qgsApp

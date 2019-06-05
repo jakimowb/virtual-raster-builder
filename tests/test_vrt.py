@@ -12,20 +12,33 @@ __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
-import unittest, tempfile
-
-from tests.testing import initQgisApplication, TestObjects
+import unittest, tempfile, os
+import numpy as np
+from vrtbuilder.tests import initQgisApplication, TestObjects
+from qgis.core import QgsRectangle
 
 
 QGIS_APP = initQgisApplication()
 
-SHOW_GUI = True
+SHOW_GUI = True and os.environ.get('CI') is None
+
 from vrtbuilder.widgets import *
 from vrtbuilder.virtualrasters import *
 from vrtbuilder.utils import *
 from exampledata import Landsat8_West_tif, Landsat8_East_tif, RapidEye_tif, Sentinel2_East_tif, Sentinel2_West_tif
 
 
+from qgis.utils import iface
+assert isinstance(iface, QgisInterface)
+
+
+import vrtbuilder
+vrtbuilder.initResources()
+
+qgisMapCanvas = iface.mapCanvas()
+assert isinstance(qgisMapCanvas, QgsMapCanvas)
+qgisMapCanvas.setDestinationCrs(QgsCoordinateReferenceSystem('EPSG:4326'))
+qgisMapCanvas.setExtent(QgsRectangle(-90, -90, 90, 90))
 
 class testclassData(unittest.TestCase):
 
@@ -218,6 +231,9 @@ class testclassData(unittest.TestCase):
     def test_gui(self):
         from exampledata import Landsat8_West_tif
         reg = QgsProject.instance()
+        reg.addMapLayer(TestObjects.createVectorLayer(QgsWkbTypes.PolygonGeometry))
+        reg.addMapLayer(TestObjects.createVectorLayer(QgsWkbTypes.LineGeometry))
+        reg.addMapLayer(TestObjects.createVectorLayer(QgsWkbTypes.PointGeometry))
         lyr = QgsRasterLayer(Landsat8_West_tif)
         reg.addMapLayer(lyr)
         GUI = VRTBuilderWidget()

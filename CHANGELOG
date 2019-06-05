@@ -1,3 +1,8 @@
+0.6 2019-06-04:
+    * preview window shows extent of VRT raster sources
+    * added options to copy raster grid properties (resolution, extent) from other rasters (#12)
+    * added option to align the VRR rastergrid to that of another raster image (#12)
+    * included QPS library for faster updates
 
 0.5 2018-06-15:
     * supports in-memory files based on GDAL "/vsimem/"
