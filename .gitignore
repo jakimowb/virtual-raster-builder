@@ -7,9 +7,13 @@ temp/
 build/
 tmp/
 doc/build/
+doc/build/*
+vrtbuilder/ui/resources.py
+vrtbuilder/externals/qps/qpsresources.py
+qgisresources/
+qgisresources/*
 
 # Untrack compiled files
-.idea/*
 *.aux.xml
 *.pyc
 *.pyd
