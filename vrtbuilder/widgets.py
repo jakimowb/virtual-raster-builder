@@ -279,7 +279,7 @@ class VRTRasterPreviewMapCanvas(QgsMapCanvas):
             self.mSelectedSourceRubberBand.addGeometry(geom, crs = layer.crs())
 
         if self.extent().width() == 0:
-            self.setExtent(self.mRubberBand.rect())
+            self.setExtent(self.mSelectedSourceRubberBand.rect())
 
 
 

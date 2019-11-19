@@ -456,5 +456,4 @@ def updateRepositoryXML(MD:QGISMetadataFileWriter, path:str=None):
 
 
 if __name__ == "__main__":
-    #updateSphinxChangelog()
     build()
