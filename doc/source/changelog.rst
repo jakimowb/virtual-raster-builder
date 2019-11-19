@@ -1,3 +1,7 @@
+0.7 2019-11-19:
+   * fixed `#17 <https://bitbucket.org/jakimowb/eo-time-series-viewer/issues/17>`_ -
+   * fixed `#18 <https://bitbucket.org/jakimowb/eo-time-series-viewer/issues/18>`_ - output raster size in px can be now set to values larger 99px
+
 0.6 2019-06-04:
     * preview window shows extent of VRT raster sources
     * added options to copy raster grid properties (resolution, extent) from other rasters (`#12 <https://bitbucket.org/jakimowb/eo-time-series-viewer/issues/12>`_)
@@ -14,7 +18,6 @@
     * fixed bug `#7 <https://bitbucket.org/jakimowb/eo-time-series-viewer/issues/7>`_ import of raster layers known to QGIS MapLayerRegistry
     * enhancement `#7 <https://bitbucket.org/jakimowb/eo-time-series-viewer/issues/7>`_ VRTs can now be written with empty virtual raster bands (but have to define at least one virtual band)
     * fixed bug `#10 <https://bitbucket.org/jakimowb/eo-time-series-viewer/issues/10>`_ removal of selected data sources
-
 
 0.3 2018-03-02:
     * Code-base converted to PyQt5 and QGIS 3
