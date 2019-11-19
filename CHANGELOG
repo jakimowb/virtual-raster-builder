@@ -1,3 +1,6 @@
+07 2019-11-19:
+   * fixed bug #18, output raster size in px can be now set to values larger 99px
+
 0.6 2019-06-04:
     * preview window shows extent of VRT raster sources
     * added options to copy raster grid properties (resolution, extent) from other rasters (#12)

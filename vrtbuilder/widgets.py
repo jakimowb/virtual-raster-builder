@@ -32,6 +32,7 @@ from osgeo import gdal, osr, gdalconst as gc
 from .models import TreeModel, TreeNode, TreeView
 from .virtualrasters import *
 from .utils import *
+from .externals.qps.maptools import SpatialExtentMapTool
 from vrtbuilder import registerLayerStore, MAPLAYER_STORES
 from . import toRasterLayer, toMapLayer, toVectorLayer
 
@@ -886,80 +887,6 @@ class VRTRasterTreeModel(TreeModel):
         return Qt.CopyAction | Qt.MoveAction
 
 
-class MapToolSpatialExtent(QgsMapToolEmitPoint):
-    sigSpatialExtentSelected = pyqtSignal(QgsRectangle, QgsCoordinateReferenceSystem)
-
-    def __init__(self, canvas):
-        self.mCanvas = canvas
-        QgsMapToolEmitPoint.__init__(self, self.mCanvas)
-        self.mRubberBand = QgsRubberBand(self.mCanvas, 3)
-        self.mRubberBand.setColor(Qt.red)
-        self.mRubberBand.setFillColor(Qt.transparent)
-        self.mRubberBand.setWidth(1)
-
-        self.reset()
-
-    def reset(self):
-        self.startPoint = self.endPoint = None
-        self.isEmittingPoint = False
-        self.mRubberBand.reset(3)
-
-    def canvasPressEvent(self, e):
-        self.startPoint = self.toMapCoordinates(e.pos())
-        self.endPoint = self.startPoint
-        self.isEmittingPoint = True
-        self.showRect(self.startPoint, self.endPoint)
-
-    def canvasReleaseEvent(self, e):
-        self.isEmittingPoint = False
-
-        crs = self.mCanvas.mapSettings().destinationCrs()
-        rect = self.rectangle()
-
-        self.reset()
-        if crs is not None and rect is not None:
-            self.sigSpatialExtentSelected.emit(rect, crs)
-
-    def canvasMoveEvent(self, e):
-
-        if not self.isEmittingPoint:
-            return
-
-        self.endPoint = self.toMapCoordinates(e.pos())
-        self.showRect(self.startPoint, self.endPoint)
-
-    def showRect(self, startPoint, endPoint):
-        #self.mRubberBand.reset(QgsWkbTypes.Polygon)
-        self.mRubberBand.reset(3)
-        if startPoint.x() == endPoint.x() or startPoint.y() == endPoint.y():
-            return
-
-        point1 = QgsPointXY(startPoint.x(), startPoint.y())
-        point2 = QgsPointXY(startPoint.x(), endPoint.y())
-        point3 = QgsPointXY(endPoint.x(), endPoint.y())
-        point4 = QgsPointXY(endPoint.x(), startPoint.y())
-
-        self.mRubberBand.addPoint(point1, False)
-        self.mRubberBand.addPoint(point2, False)
-        self.mRubberBand.addPoint(point3, False)
-        self.mRubberBand.addPoint(point4, False)  # true to update canvas
-        self.mRubberBand.closePoints(doUpdate=True)
-        self.mRubberBand.show()
-
-    def rectangle(self):
-        if self.startPoint is None or self.endPoint is None:
-            return None
-        elif self.startPoint.x() == self.endPoint.x() or self.startPoint.y() == self.endPoint.y():
-
-            return None
-
-        return QgsRectangle(self.startPoint, self.endPoint)
-
-        # def deactivate(self):
-        #   super(RectangleMapTool, self).deactivate()
-        # self.deactivated.emit()
-
-
 class MapToolIdentifySource(QgsMapToolIdentify):
     sigMapLayersIdentified = pyqtSignal(list)
     sigMapLayerIdentified = pyqtSignal(QgsMapLayer)
@@ -1350,7 +1277,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
 
             elif name == 'SELECT_EXTENT':
 
-                mapTool = MapToolSpatialExtent(canvas)
+                mapTool = SpatialExtentMapTool(canvas)
                 mapTool.sigSpatialExtentSelected.connect(self.setExtent)
 
             elif name == 'COPY_RESOLUTION':
