@@ -71,12 +71,12 @@ def createQgsMapCanvasUserInputWidget(canvas:QgsMapCanvas)->QgsUserInputWidget:
         mUserInputWidget.setAnchorPoint(QgsFloatingWidget.TopRight)
     return mUserInputWidget
 
-class MapTools(object):
+class MapTools(enum.Enum):
     """
-    Static class to support handling of QgsMapTools.
+    Static class to support the creation of QgsMapTools.
     """
-    def __init__(self):
-        raise Exception('This class is not for any instantiation')
+    #def __init__(self):
+    #    raise Exception('This class is not for any instantiation')
     ZoomIn = 'ZOOM_IN'
     ZoomOut = 'ZOOM_OUT'
     ZoomFull = 'ZOOM_FULL'
@@ -88,45 +88,75 @@ class MapTools(object):
     MoveToCenter = 'MOVE_CENTER'
     AddFeature = 'ADD_FEATURE'
     SelectFeature = 'SELECT_FEATURE'
+    SelectFeatureByPolygon = 'SELECT_FEATURE_POLYGON'
+    SelectFeatureByFreehand = 'SELECT_FEATURE_FREEHAND'
+    SelectFeatureByRadius = 'SELECT_FEATURE_RADIUS'
 
     @staticmethod
-    def create(mapToolKey:str, canvas, *args, activate=True, **kwds)->QgsMapTool:
+    def toMapToolEnum(arg):
+        if isinstance(arg, str):
+            names = MapTools.mapToolNames()
+            values = MapTools.mapToolValues()
+            if arg in names:
+                arg = MapTools.__members__.get(arg)
+            elif arg in values:
+                arg = MapTools.__members__.get(names[values.index(arg)])
+        assert isinstance(arg, MapTools)
+        return arg
+
+    @staticmethod
+    def create(mapToolEnum, canvas, *args, activate=True, **kwds)->QgsMapTool:
         """
         Creates
-        :param mapToolKey: str, identifies the requested QgsMapTool, e.g. 'ZOOM_IN'
+        :param mapToolEnum: str, identifies the requested QgsMapTool, e.g. 'ZOOM_IN'
         :param canvas: QgsMapCanvas to set the QgsMapTool on
         :param activate: bool, set True (default) to set the QgsMapTool to the QgsMapCanvas `canvas`
         :param args: optional arguments
         :param kwds: optional keywords
         :return: QgsMapTool
         """
-        assert isinstance(mapToolKey, str)
-        mapToolKey = mapToolKey.upper()
-        assert mapToolKey in MapTools.mapToolKeys(), 'Unknown MapTool key "{}"'.format(mapToolKey)
+
+        mapToolEnum = MapTools.toMapToolEnum(mapToolEnum)
+
+        assert isinstance(mapToolEnum, MapTools)
         assert isinstance(canvas, QgsMapCanvas)
 
         mapTool = None
-        if mapToolKey == MapTools.ZoomIn:
+        if mapToolEnum == MapTools.ZoomIn:
             mapTool = QgsMapToolZoom(canvas, False)
-        elif mapToolKey == MapTools.ZoomOut:
+        elif mapToolEnum == MapTools.ZoomOut:
             mapTool = QgsMapToolZoom(canvas, True)
-        elif mapToolKey == MapTools.Pan:
+        elif mapToolEnum == MapTools.Pan:
             mapTool = QgsMapToolPan(canvas)
-        elif mapToolKey == MapTools.ZoomPixelScale:
+        elif mapToolEnum == MapTools.ZoomPixelScale:
             mapTool = PixelScaleExtentMapTool(canvas)
-        elif mapToolKey == MapTools.ZoomFull:
+        elif mapToolEnum == MapTools.ZoomFull:
             mapTool = FullExtentMapTool(canvas)
-        elif mapToolKey == MapTools.CursorLocation:
+        elif mapToolEnum == MapTools.CursorLocation:
             mapTool = CursorLocationMapTool(canvas, *args, **kwds)
-        elif mapToolKey == MapTools.MoveToCenter:
+        elif mapToolEnum == MapTools.MoveToCenter:
             mapTool = CursorLocationMapTool(canvas, *args, **kwds)
             mapTool.sigLocationRequest.connect(canvas.setCenter)
-        elif mapToolKey == MapTools.SpectralProfile:
+        elif mapToolEnum == MapTools.SpectralProfile:
             mapTool = SpectralProfileMapTool(canvas, *args, **kwds)
-        elif mapToolKey == MapTools.TemporalProfile:
+        elif mapToolEnum == MapTools.TemporalProfile:
             mapTool = TemporalProfileMapTool(canvas, *args, **kwds)
+        elif mapToolEnum == MapTools.AddFeature:
+            mapTool = QgsMapToolAddFeature(canvas, *args, **kwds)
+        elif mapToolEnum == MapTools.SelectFeature:
+            mapTool = QgsMapToolSelect(canvas)
+            mapTool.setSelectionMode(QgsMapToolSelectionHandler.SelectionMode.SelectSimple)
+        elif mapToolEnum == MapTools.SelectFeatureByFreehand:
+            mapTool = QgsMapToolSelect(canvas)
+            mapTool.setSelectionMode(QgsMapToolSelectionHandler.SelectionMode.SelectFreehand)
+        elif mapToolEnum == MapTools.SelectFeatureByPolygon:
+            mapTool = QgsMapToolSelect(canvas)
+            mapTool.setSelectionMode(QgsMapToolSelectionHandler.SelectionMode.SelectPolygon)
+        elif mapToolEnum == MapTools.SelectFeatureByRadius:
+            mapTool = QgsMapToolSelect(canvas)
+            mapTool.setSelectionMode(QgsMapToolSelectionHandler.SelectionMode.SelectRadius)
         else:
-            raise NotImplementedError('mapToolKey {}'.format(mapToolKey))
+            raise NotImplementedError('Unknown MapTool "{}"'.format(mapToolEnum))
 
         if activate:
             canvas.setMapTool(mapTool)
@@ -135,13 +165,21 @@ class MapTools(object):
 
     @staticmethod
     def mapToolKeys()->list:
-        """
-        Returns all keys which can be used to return a QgsMapTool with `MapTools.create(key:str, canvas:QgsMapCanvas, *args, **kwds)`.
-        :return: [list-of-str]
-        """
-        return [MapTools.__dict__[k] for k in MapTools.__dict__.keys()
-                if isinstance(MapTools.__dict__[k], str) and not k.startswith('_')]
+        import warnings
+        warnings.warn('Deprecated. use .mapToolValues() instead', DeprecationWarning)
+        return MapTools.mapToolValues()
 
+    @staticmethod
+    def mapToolNames() -> list:
+        return [k.name for k in list(MapTools)]
+
+    @staticmethod
+    def mapToolValues()->list:
+        return [k.value for k in list(MapTools)]
+
+    @staticmethod
+    def mapToolEnums()->list:
+        return list(MapTools.__members__.values())
 
 class CursorLocationMapTool(QgsMapToolEmitPoint):
     """
@@ -254,7 +292,7 @@ class PixelScaleExtentMapTool(QgsMapTool):
     """
     def __init__(self, canvas):
         super(PixelScaleExtentMapTool, self).__init__(canvas)
-        #see defintion getThemePixmap(const QString &):QPixmap in qgsapplication.cpp
+
         self.mCursor = createCursor(':/qps/ui/icons/cursor_zoom_pixelscale.svg')
         self.setCursor(self.mCursor)
         canvas.setCursor(self.mCursor)
@@ -1019,12 +1057,12 @@ class QgsMapToolAddFeature(QgsMapToolDigitizeFeature):
         #mToolName = tr( "Add feature" );
         #connect( QgisApp::instance(), &QgisApp::newProject, this, &QgsMapToolAddFeature::stopCapturing );
         #connect( QgisApp::instance(), &QgisApp::projectRead, this, &QgsMapToolAddFeature::stopCapturing );
-
+        QgsProject.instance().cleared.connect(self.stopCapturing)
 
     def addFeature(self, vlayer:QgsVectorLayer, f:QgsFeature, showModal:bool )->bool:
 
         scope = QgsExpressionContextUtils.mapToolCaptureScope(self.snappingMatches() )
-        action = QgsFeatureAction(tr( "add feature" ), f, vlayer, '', -1, self)
+        action = QgsFeatureAction("add feature", f, vlayer, '', -1, self)
         res = action.addFeature({}, showModal, scope )
         if showModal:
             del action
@@ -1036,7 +1074,7 @@ class QgsMapToolAddFeature(QgsMapToolDigitizeFeature):
         vlayer = self.currentVectorLayer()
         res = self.addFeature( vlayer, f, False)
 
-        if res and ( self.mode() == self.CaptureLine or self.mode() == self.CapturePolygon):
+        if res and (self.mode() == self.CaptureLine or self.mode() == self.CapturePolygon):
 
             #//add points to other features to keep topology up-to-date
             topologicalEditing = QgsProject.instance().topologicalEditing()
@@ -1224,11 +1262,11 @@ class QgsMapToolSelectUtils(object):
         behavior = QgsVectorLayer.SetSelection
 
         # either shift or control modifier switches to "toggle" selection mode
-        if ( modifiers & Qt.ShiftModifier or modifiers & Qt.ControlModifier ):
+        if ( modifiers & Qt.ShiftModifier or modifiers & Qt.ControlModifier ) and not Qt.AltModifier:
 
             selectId = selectedFeatures[0]
             layerSelectedFeatures = vlayer.selectedFeatureIds()
-            if ( layerSelectedFeatures.contains( selectId ) ):
+            if selectId in layerSelectedFeatures:
                 behavior = QgsVectorLayer.RemoveFromSelection
             else:
                 behavior = QgsVectorLayer.AddToSelection

@@ -19,12 +19,13 @@
 ***************************************************************************
 """
 
-import os, json, pickle, warnings, csv, re, sys
+import os, json, pickle, warnings, csv, re, sys, typing
 from qgis.core import *
 from qgis.gui import *
 from qgis.PyQt.QtCore import *
 from qgis.PyQt.QtGui import *
 from qgis.PyQt.QtWidgets import *
+from qgis.PyQt.QtXml import *
 import numpy as np
 from osgeo import gdal
 from ..utils import gdalDataset, nextColor, loadUIFormClass, findMapLayer, registeredMapLayers
@@ -38,7 +39,8 @@ DEFAULT_FIRST_COLOR = QColor('#a6cee3')
 MIMEDATA_KEY = 'hub-classscheme'
 MIMEDATA_KEY_TEXT = 'text/plain'
 MIMEDATA_INTERNAL_IDs = 'classinfo_ids'
-
+MIMEDATA_KEY_QGIS_STYLE = 'application/qgis.style'
+MAX_UNIQUE_CLASSES = 100
 
 def findMapLayersWithClassInfo()->list:
     """
@@ -318,8 +320,22 @@ class ClassificationScheme(QAbstractTableModel):
         cs.insertClasses(classes)
         mimeData = QMimeData()
         mimeData.setData(MIMEDATA_KEY, cs.qByteArray())
-        mimeData.setData(MIMEDATA_INTERNAL_IDs, QByteArray(pickle.dumps([id(c) for c in classes ])))
+        mimeData.setData(MIMEDATA_INTERNAL_IDs, QByteArray(pickle.dumps([id(c) for c in classes])))
         mimeData.setText(cs.toString())
+
+        renderer = self.featureRenderer()
+
+        doc = QDomDocument()
+        err = ''
+        for typeName in ['POLYGON']:
+            lyr = QgsVectorLayer('{}?crs=epsg:4326&field=id:integer'.format(typeName), cs.name(), 'memory')
+            assert isinstance(lyr, QgsVectorLayer) and lyr.isValid()
+            lyr.setRenderer(renderer.clone())
+            err = lyr.exportNamedStyle(doc)
+            xml = doc.toString()
+            s = ""
+        mimeData.setData(MIMEDATA_KEY_QGIS_STYLE, doc.toByteArray())
+        mimeData.setText(doc.toString())
         return mimeData
 
     def mimeTypes(self)->list:
@@ -577,17 +593,17 @@ class ClassificationScheme(QAbstractTableModel):
 
         return cs
 
-    def featureRenderer(self)->QgsCategorizedSymbolRenderer:
+    def featureRenderer(self, symbolType:typing.Union[QgsMarkerSymbol, QgsFillSymbol, QgsLineSymbol]=QgsFillSymbol)->QgsCategorizedSymbolRenderer:
         """
         Returns the ClassificationScheme as QgsCategorizedSymbolRenderer
         :return: ClassificationScheme
         """
 
-        r = QgsCategorizedSymbolRenderer('dummy', [])
+        r = QgsCategorizedSymbolRenderer(self.name(), [])
 
         for c in self:
             assert isinstance(c, ClassInfo)
-            symbol = QgsMarkerSymbol()
+            symbol = symbolType()
             symbol.setColor(QColor(c.color()))
             cat = QgsRendererCategory(c.label(), symbol, c.name(), render=True)
             r.addCategory(cat)
@@ -604,7 +620,15 @@ class ClassificationScheme(QAbstractTableModel):
         if not isinstance(renderer, QgsCategorizedSymbolRenderer):
             return None
         classes = []
-        for cat in sorted(renderer.categories(), key = lambda c:c.value()):
+
+        # move a None element to first position
+        categories = renderer.categories()
+        cNames = [c.value() for c in categories]
+        if None in cNames:
+            i = cNames.index(None)
+            categories.insert(0, categories.pop(i))
+
+        for cat in categories:
             assert isinstance(cat, QgsRendererCategory)
             c = ClassInfo(name=cat.label(), color=QColor(cat.symbol().color()))
             classes.append(c)
@@ -980,12 +1004,45 @@ class ClassificationScheme(QAbstractTableModel):
             if isinstance(ba, ClassificationScheme):
                 return ba
         if MIMEDATA_KEY_TEXT in mimeData.formats():
-
             ba = ClassificationScheme.fromQByteArray(mimeData.data(MIMEDATA_KEY_TEXT))
             if isinstance(ba, ClassificationScheme):
                 return ba
+        if MIMEDATA_KEY_QGIS_STYLE in mimeData.formats():
+            s = ""
 
         return None
+
+    @staticmethod
+    def fromUniqueFieldValues(layer:QgsVectorLayer, fieldIndex):
+        scheme = None
+
+        if not isinstance(layer, QgsVectorLayer):
+            return scheme
+
+        if isinstance(fieldIndex, str):
+            fieldIndex = layer.fields().indexFromName(fieldIndex)
+        elif isinstance(fieldIndex, QgsField):
+            fieldIndex = layer.fields().indexFromName(fieldIndex.name())
+
+        if not isinstance(fieldIndex, int) and fieldIndex >= 0 and fieldIndex < layer.fields().count():
+            return scheme
+
+        field = layer.fields().at(fieldIndex)
+        if re.search('int|string', field.typeName(), re.I):
+            values = layer.uniqueValues(fieldIndex, limit=MAX_UNIQUE_CLASSES)
+            values = sorted(values)
+
+            if len(values) > 0:
+                scheme = ClassificationScheme()
+                scheme.insertClass(ClassInfo(0, 'unclassified'))
+                if field.isNumeric():
+                    for v in values:
+                        scheme.insertClass(ClassInfo(int(v), name=str(v)))
+                else:
+                    for i, v in enumerate(values):
+                        scheme.insertClass(ClassInfo(i+1, name=str(v)))
+
+        return scheme
 
     @staticmethod
     def fromMapLayer(layer:QgsMapLayer):
@@ -1411,7 +1468,20 @@ class ClassificationSchemeWidget(QWidget, loadClassificationUI('classificationsc
 
             s  =""
 
+    def onLoadClassesFromRenderer(self, layer):
+        cs = ClassificationScheme.fromMapLayer(layer)
+        if isinstance(cs, ClassificationScheme):
+            self.mScheme.insertClasses(cs[:])
 
+    def onLoadClassesFromField(self, layer, field):
+
+        if field is None:
+            raise NotImplementedError()
+
+        cs = ClassificationScheme.fromUniqueFieldValues(layer, field)
+        if isinstance(cs, ClassificationScheme):
+            self.mScheme.insertClasses(cs[:])
+        pass
 
     def onLoadClasses(self, mode:str):
         """
@@ -1477,6 +1547,22 @@ class ClassificationSchemeWidget(QWidget, loadClassificationUI('classificationsc
         a.triggered.connect(lambda : self.onLoadClasses('textfile'))
 
 
+        parent = self.parent()
+        if isinstance(parent, ClassificationSchemeEditorConfigWidget):
+            layer = parent.layer()
+            idx = parent.field()
+
+            if isinstance(layer, QgsVectorLayer) and idx >= 0:
+                field = layer.fields().at(idx)
+                m.addSeparator()
+                a = m.addAction('Unique values "{}"'.format(field.name()))
+                a.triggered.connect(lambda _, lyr=layer, f=idx: self.onLoadClassesFromField(lyr, idx))
+
+                if isinstance(layer.renderer(), QgsCategorizedSymbolRenderer):
+                    a = m.addAction('Current Symbols'.format(layer.name()))
+                    a.triggered.connect(lambda _, lyr=layer: self.onLoadClassesFromRenderer(lyr))
+
+
         self.btnLoadClasses.setMenu(m)
 
         self.actionRemoveClasses.triggered.connect(self.removeSelectedClasses)
@@ -1502,7 +1588,7 @@ class ClassificationSchemeWidget(QWidget, loadClassificationUI('classificationsc
 
     def onClipboard(self, *args):
         mimeData = QApplication.clipboard().mimeData()
-        b = isinstance(mimeData, QMimeData) and MIMEDATA_KEY_TEXT in mimeData.formats()
+        b = isinstance(mimeData, QMimeData) and (MIMEDATA_KEY_TEXT in mimeData.formats() or MIMEDATA_KEY_QGIS_STYLE in mimeData.formats())
         self.actionPasteClasses.setEnabled(b)
 
 
@@ -1695,16 +1781,23 @@ class ClassificationSchemeEditorConfigWidget(QgsEditorConfigWidget):
     def setConfig(self, config:dict):
         self.mLastConfig = config
         cs = classSchemeFromConfig(config)
+        cs.setName(self.layer().fields()[self.field()].name())
         self.mSchemeWidget.setClassificationScheme(cs)
 
     def resetClassificationScheme(self):
         self.setConfig(self.mLastConfig)
 
 def classSchemeToConfig(classScheme:ClassificationScheme)->dict:
+    """Converts a ClassificationScheme into a dictionary that can be used in an QgsEditorWidgetSetup"""
     config = {'classes': classScheme.json()}
     return config
 
 def classSchemeFromConfig(conf:dict)->ClassificationScheme:
+    """
+    Converts a configuration dictionary into a ClassificationScheme.
+    :param conf: dict
+    :return: ClassificationScheme
+    """
     cs = None
     if 'classes' in conf.keys():
         cs = ClassificationScheme.fromJson(conf['classes'])
@@ -1799,7 +1892,7 @@ class ClassificationSchemeWidgetFactory(QgsEditorWidgetFactory):
         assert isinstance(field, QgsField)
         if re.search('(int|float|double|text|string)', field.typeName(), re.I):
             if re.search('class', field.name(), re.I):
-                return 10
+                return 5 # should we return 10 for showing specialized support?
             else:
                 return 5
         else:

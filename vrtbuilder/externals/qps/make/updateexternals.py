@@ -115,8 +115,8 @@ def updateRemote(remoteInfo:RemoteInfo):
         print('Update {}'.format(remoteInfo))
         assert isinstance(remoteInfo, RemoteInfo)
         remote = REPO.remote(remoteInfo.key)
-        print('Fetch {}...'.format(remoteInfo.remotePath()))
-        remote.fetch(remoteInfo.remotePath())
+        print('Fetch {}...'.format(remoteInfo.remoteBranch))
+        remote.fetch(remoteInfo.remoteBranch)
         files = REPO.git.execute(
             ['git', 'ls-tree', '--name-only', '-r', 'HEAD', remoteInfo.prefixLocal]).split()
         if len(files) > 0:
@@ -167,7 +167,7 @@ def updateRemoteLocations(locationsToUpdate:list):
 
     for id in locationsToUpdate:
         assert isinstance(id, str)
-        assert id in REMOTEINFOS.keys()
+        assert id in REMOTEINFOS.keys(), 'Unknown remote location key "{}"'.format(id)
 
     # check existing remotes
     print('Remotes:')
