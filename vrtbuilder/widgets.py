@@ -1024,6 +1024,7 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         self.mQgsFileWidget.fileChanged.connect(self.onOutputPathChanged)
 
         self.buttonBox.button(QDialogButtonBox.Save).clicked.connect(self.saveFile)
+        self.buttonBox.button(QDialogButtonBox.Close).clicked.connect(self.close)
         self.mVRTRaster = VRTRaster()
 
         #self.vrtRaster.sigSourceBandInserted.connect(self.resetMap)
@@ -1072,8 +1073,6 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
             
     def initActions(self):
 
-        # extents
-        self.cbBoundsFromSourceFiles.clicked.connect(self.frameExtent.setDisabled)
 
 
         self.btnCopyResolution.setDefaultAction(self.actionCopyResolution)
@@ -1206,6 +1205,11 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
 
         self.actionLoadVRT.triggered.connect(onLoadVRT)
 
+
+        # extents
+        self.cbBoundsFromSourceFiles.clicked.connect(self.onUseAutomaticExtent)
+        self.cbBoundsFromSourceFiles.setChecked(True)
+        self.onUseAutomaticExtent(True)
 
 
     def onInMemoryOutputTriggered(self, b):
@@ -1451,6 +1455,15 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         self.bntCopyGrid.setMenu(menuCopyGrid)
         self.btnAlignGrid.setMenu(menuAlignGrid)
 
+    def onUseAutomaticExtent(self, auto:bool):
+
+        for a in [self.actionSelectSpatialExtent, self.actionCopyExtent, self.actionCopyGrid]:
+            a.setDisabled(auto)
+
+        for w in [self.tbBoundsXMin, self.tbBoundsXMax, self.tbBoundsYMin, self.tbBoundsYMax, self.sbRasterWidth, self.sbRasterHeight]:
+            w.setDisabled(auto)
+
+
 
     def calculateGrid(self, changedResolution:bool=False, changedExtent:bool=False, changedCrs:bool=False, changedSize:bool=False):
 
@@ -1640,10 +1653,10 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         dsDst = None
         if self.cbAddToMap.isChecked():
             self.sigRasterCreated.emit(path)
-            lyr = QgsRasterLayer(path)
-            self.tmpLyr = lyr
-            self.addSourceFile(path)
-            QgsProject.instance().addMapLayer(lyr)
+            #lyr = QgsRasterLayer(path)
+            #self.tmpLyr = lyr
+            #self.addSourceFile(path)
+            #QgsProject.instance().addMapLayer(lyr)
 
 
         self.saveSettings()

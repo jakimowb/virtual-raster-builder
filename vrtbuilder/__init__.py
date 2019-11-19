@@ -31,7 +31,7 @@ DIR_UI = os.path.join(DIR, 'ui')
 DIR_EXAMPLEDATA = os.path.join(DIR_REPO, 'exampledata')
 PATH_CHANGELOG = os.path.join(DIR_REPO, 'CHANGELOG')
 
-VERSION = '0.6' #subversion will be set automatically
+VERSION = '0.7' #subversion will be set automatically
 LICENSE = 'GNU GPL-3'
 TITLE = 'Virtual Raster Builder'
 DESCRIPTION = 'A QGIS Plugin to create GDAL Virtual Raster (VRT) files by drag and drop.'
