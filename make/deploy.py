@@ -278,14 +278,16 @@ def build():
         # 3. Deploy = write the data to the new plugin folder
         pb_tool.deploy_files(pathCfg, DIR_DEPLOY, quick=True, confirm=False)
 
+
+
         # 4. As long as we can not specify in the pb_tool.cfg which file types are not to deploy,
         # we need to remove them afterwards.
         # issue: https://github.com/g-sherman/plugin_build_tool/issues/5
         print('Remove files...')
 
         if True:
-            # delete help folder
-            shutil.rmtree(os.path.join(dirPlugin, *['help']), ignore_errors=True)
+            # delete help folder, it's too large
+            shutil.rmtree(os.path.join(dirPlugin, *['doc']), ignore_errors=True)
         for f in file_search(DIR_DEPLOY, re.compile('(svg|pyc)$'), recursive=True):
             os.remove(f)
         for d in file_search(DIR_DEPLOY, '__pycache__', directories=True, recursive=True):
@@ -312,6 +314,7 @@ def build():
 
     # copy CHANGELOG to doc/source/changelog.rst
     updateSphinxChangelog()
+
 
     # 5. create a zip
     print('Create zipfile...')
