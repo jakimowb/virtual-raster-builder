@@ -7,60 +7,60 @@
 .. Substitutions (for p in os.listdir(r'D:\Repositories\QGIS_Plugins\virtual-raster-builder\doc\source\img'): print('.. |{}| image:: img/{}'.format(p,p)))
 
 .. |mActionAddRasterLayer.png| image:: img/mActionAddRasterLayer.png
-                                :height: 1em
-                                :width: 1em
+                                :height: 1.2em
+                                :width: 1.2em
 .. |mActionAddVirtualRaster.png| image:: img/mActionAddVirtualRaster.png
-                                :height: 1em
-                                :width: 1em
+                                :height: 1.2em
+                                :width: 1.2em
 .. |mActionCollapseTree.png| image:: img/mActionCollapseTree.png
-                                :height: 1em
-                                :width: 1em
+                                :height: 1.2em
+                                :width: 1.2em
 .. |mActionExpandTree.png| image:: img/mActionExpandTree.png
-                                :height: 1em
-                                :width: 1em
+                                :height: 1.2em
+                                :width: 1.2em
 .. |mActionImportFromRegistry.png| image:: img/mActionImportFromRegistry.png
-                                :height: 1em
-                                :width: 1em
+                                :height: 1.2em
+                                :width: 1.2em
 .. |mActionImportRaster.png| image:: img/mActionImportRaster.png
-                                :height: 1em
-                                :width: 1em
+                                :height: 1.2em
+                                :width: 1.2em
 .. |mActionImportVirtualRaster.png| image:: img/mActionImportVirtualRaster.png
-                                :height: 1em
-                                :width: 1em
+                                :height: 1.2em
+                                :width: 1.2em
 .. |mActionNewVirtualLayer.png| image:: img/mActionNewVirtualLayer.png
-                                :height: 1em
-                                :width: 1em
+                                :height: 1.2em
+                                :width: 1.2em
 .. |mActionPan.png| image:: img/mActionPan.png
-                                :height: 1em
-                                :width: 1em
+                                :height: 1.2em
+                                :width: 1.2em
 .. |mActionRemoveRasterLayer.png| image:: img/mActionRemoveRasterLayer.png
-                                :height: 1em
-                                :width: 1em
+                                :height: 1.2em
+                                :width: 1.2em
 .. |mActionRemoveVirtualRaster.png| image:: img/mActionRemoveVirtualRaster.png
-                                :height: 1em
-                                :width: 1em
+                                :height: 1.2em
+                                :width: 1.2em
 .. |mActionSelect.png| image:: img/mActionSelect.png
-                                :height: 1em
-                                :width: 1em
+                                :height: 1.2em
+                                :width: 1.2em
 .. |mActionZoomFullExtent.png| image:: img/mActionZoomFullExtent.png
-                                :height: 1em
-                                :width: 1em
+                                :height: 1.2em
+                                :width: 1.2em
 .. |mActionZoomIn.png| image:: img/mActionZoomIn.png
-                                :height: 1em
-                                :width: 1em
+                                :height: 1.2em
+                                :width: 1.2em
 .. |mActionZoomOut.png| image:: img/mActionZoomOut.png
-                                :height: 1em
-                                :width: 1em
+                                :height: 1.2em
+                                :width: 1.2em
 .. |mIconRaster.png| image:: img/mIconRaster.png
 .. |mIconVirtualRaster.png| image:: img/mIconVirtualRaster.png
-                                :height: 1em
-                                :width: 1em
+                                :height: 1.2em
+                                :width: 1.2em
 .. |mOptionMosaikFiles.png| image:: img/mOptionMosaikFiles.png
-                                :height: 1em
-                                :width: 1em
+                                :height: 1.2em
+                                :width: 1.2em
 .. |mOptionStackFiles.png| image:: img/mOptionStackFiles.png
-                                :height: 1em
-                                :width: 1em
+                                :height: 1.2em
+                                :width: 1.2em
 
 About
 -----
