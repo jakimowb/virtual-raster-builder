@@ -62,14 +62,11 @@
                                 :height: 1em
                                 :width: 1em
 
+About
+-----
 
-Virtual Raster Builder Documentation
-=======================================
-
-The Virtual Raster Builder helps to define GDAL Virtual Raster (VRT) files by drag and drop.
+The Virtual Raster Builder is a QGIS Plugin to define GDAL Virtual Raster (VRT) files by drag and drop.
 It helps to create a new raster image by stacking, mosaiking, spatial- oder band-subsetting.
-
-
 
 
 Usage
