@@ -28,8 +28,8 @@ Other features:
 - selection of input image bands within tree view or preview map canvas
 
 
-A short help how to use the Virtual Raster Bulder is given here [here](vrtbuilder/help.md).
 
+A short help how to use the Virtual Raster Bulder is given here [here](doc/source/index.rst).
 # Licence and Use #
 
 The Virtual Raster Builder is licenced under the [GPL-3 Licence](LICENSE.txt).

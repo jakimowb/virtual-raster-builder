@@ -1,6 +1,9 @@
 0.7 2019-11-19:
-   * fixed `#17 <https://bitbucket.org/jakimowb/eo-time-series-viewer/issues/17>`_ -
-   * fixed `#18 <https://bitbucket.org/jakimowb/eo-time-series-viewer/issues/18>`_ - output raster size in px can be now set to values larger 99px
+   * widgets to specify the output extent will be disable if auto-extent is enabled
+   * output raster size in px can be now set to values larger 99px (`#18 <https://bitbucket.org/jakimowb/eo-time-series-viewer/issues/18>`_)
+   * spatial extent can be selected from QGIS map canvas (`#17 <https://bitbucket.org/jakimowb/eo-time-series-viewer/issues/17>`_)
+   * selected tree-view rows now have a yellow background (`#15 <https://bitbucket.org/jakimowb/eo-time-series-viewer/issues/15>`_)
+   * removed error when clicking on empty VRT band (`#14 <https://bitbucket.org/jakimowb/eo-time-series-viewer/issues/14>`_)
 
 0.6 2019-06-04:
     * preview window shows extent of VRT raster sources

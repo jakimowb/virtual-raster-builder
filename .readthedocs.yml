@@ -1,19 +1,21 @@
 # .readthedocs.yml
-name: VRT Builder
-type: sphinx
+# Read the Docs configuration file
+# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
 
-build:
-  image: latest
+# Required:
+version: 2
 
-python:
-  version: 3.6
-  pip_install: true
-  setup_py_install: false
 
+sphinx:
+  configuration: doc/source/conf.py
 
 formats:
   - htmlzip
-  - epub
-  - pdf
 
-requirements_file:  requirements.txt
+python:
+  version: 3.7
+  install:
+    - requirements:  doc/source/requirements.txt
+    - method: pip
+
+
