@@ -19,10 +19,13 @@
 
 import os, sys, fnmatch, site, re, importlib
 
-from osgeo import gdal, ogr
-from qgis.core import *
-from qgis.gui import *
-from qgis.PyQt.QtCore import *
+# skip imports when on RTD, as we can not install the full QGIS environment as required
+# https://docs.readthedocs.io/en/stable/builds.html
+if not os.environ.get('READTHEDOCS') in ['True', 'TRUE', True]:
+    from osgeo import gdal, ogr
+    from qgis.core import *
+    from qgis.gui import *
+    from qgis.PyQt.QtCore import *
 
 
 DIR = os.path.dirname(__file__)
