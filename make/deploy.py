@@ -252,6 +252,7 @@ def build():
     MD.mTracker = vrtbuilder.ISSUE_TRACKER
     MD.mHomepage = vrtbuilder.HOMEPAGE
     MD.mRepository = vrtbuilder.REPOSITORY
+
     MD.mQgisMinimumVersion = QGIS_MIN
     MD.mQgisMaximumVersion = QGIS_MAX
     MD.mAuthor = vrtbuilder.AUTHOR

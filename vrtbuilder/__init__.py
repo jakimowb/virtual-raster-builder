@@ -39,6 +39,7 @@ LICENSE = 'GNU GPL-3'
 TITLE = 'Virtual Raster Builder'
 DESCRIPTION = 'A QGIS Plugin to create GDAL Virtual Raster (VRT) files by drag and drop.'
 HOMEPAGE = 'https://bitbucket.org/jakimowb/virtual-raster-builder'
+DOCUMENTATION = 'https://virtual-raster-builder.readthedocs.io/en/latest/'
 
 REPOSITORY = 'https://bitbucket.org/jakimowb/virtual-raster-builder'
 ISSUE_TRACKER = 'https://bitbucket.org/jakimowb/virtual-raster-builder/issues'

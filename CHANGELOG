@@ -1,4 +1,5 @@
-0.7 2019-11-19:
+0.7 2019-11-20:
+   * documentation now online on https://virtual-raster-builder.readthedocs.io/en/latest/
    * widgets to specify the output extent will be disable if auto-extent is enabled
    * output raster size in px can be now set to values larger 99px (#18)
    * spatial extent can be selected from QGIS map canvas (#17)

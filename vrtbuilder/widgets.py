@@ -172,7 +172,7 @@ class VRTRasterBandNode(TreeNode):
         for src in self.mVirtualBand:
             self.onSourceInserted(src)
 
-    def onSourceInserted(self, inputSource):
+    def onSourceInserted(self, inputSource:VRTRasterInputSourceBand):
         assert isinstance(inputSource, VRTRasterInputSourceBand)
         assert inputSource.virtualBand() == self.mVirtualBand
         i = self.mVirtualBand.mSources.index(inputSource)
@@ -180,7 +180,7 @@ class VRTRasterBandNode(TreeNode):
         node = VRTRasterInputSourceBandNode(self, inputSource)
         self.nodeBands.insertChildNodes(i, node)
 
-    def onSourceRemoved(self, row, inputSource):
+    def onSourceRemoved(self, row:int, inputSource:VRTRasterInputSourceBand):
         assert isinstance(inputSource, VRTRasterInputSourceBand)
 
         node = self.nodeBands.childNodes()[row]
@@ -381,8 +381,11 @@ class SourceRasterFilterModel(QSortFilterProxyModel):
             return True
 
         if isinstance(node, SourceRasterFileNode):
-            pattern = reg.pattern().replace(':', '')
+            pattern = re.sub(r':\d*$', '', reg.pattern())
             reg.setPattern(pattern)
+
+        if isinstance(node, SourceRasterBandNode):
+            s = ""
 
         return reg.indexIn(s0) >= 0 or reg.indexIn(s1) >= 0
 
@@ -956,28 +959,11 @@ class VRTBuilderWidget(QFrame, loadUi('vrtbuilder.ui')):
         self.mMapCanvases = []
         self.mMapCanvases.append(self.previewMap)
 
-        jp = os.path.join
-        dn = os.path.dirname
+        # show online documentation
+        from vrtbuilder import DOCUMENTATION
+        urlDocumentation = QUrl(DOCUMENTATION)
+        self.webView.load(urlDocumentation)
 
-
-
-        #self.tabWidgetSettings.removeTab(2)
-        thisDir = dn(__file__)
-        pathHTML = [jp(thisDir, '../doc/build/html/index.html'),
-                    jp(thisDir, '../help/index.html')]
-
-        pathHTML = [p for p in pathHTML if os.path.exists(p)]
-        if len(pathHTML) > 0:
-            self.tabHelp.setVisible(True)
-
-            pathHTML = pathHTML[0]
-            #print(pathHTML)
-            self.webView.load(QUrl.fromLocalFile(QFileInfo(pathHTML).absoluteFilePath()))
-
-        else:
-            self.tabHelp.setVisible(False)
-            info = 'Unable to find help index.html'
-            QgsApplication.instance().messageLog().logMessage(info)
 
         self.mSourceFileModel = SourceRasterModel(parent=self.treeViewSourceFiles)
         self.mSourceFileModel.sigSourcesRemoved.connect(self.buildButtonMenus)
