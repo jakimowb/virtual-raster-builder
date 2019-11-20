@@ -129,8 +129,8 @@ Button                            Action
     * GeoTIFF (`*.tif`)
     * ENVI Raster Image (`*.bsq` band sequential (default), `*.bil` band interleave by line, `*.bip` band interleave by pixel)
 
-4. Save File
-............
+4. Save Virtual Raster
+......................
 
 Save the new file as `GDAL Virtual Raster (VRT) <https://gdal.org/drivers/raster/vrt.html>`_.
 
@@ -150,8 +150,8 @@ QGIS Plugin Repository  https://plugins.qgis.org/plugins/vrtbuilderplugin/
 
 
 
-Licence and Use
----------------
+Licence
+-------
 
 The Virtual Raster Builder is licenced under the `GPL-3 Licence <https://www.gnu.org/licenses/gpl-3.0.html>`_.
 
