@@ -79,33 +79,39 @@ Usage
 
 Add potential raster sources to the list of source files:
 
-===============================  ================================================
-Button                           Action
-===============================  ================================================
-|mActionAddRasterLayer.png|      Add source raster
-|mActionRemoveRasterLayer.png|   Remove source raster
-|mActionImportFromRegistry.png|  Load source raster files that are known to QGIS
-|mActionExpandTree.png|          expand source file tree node(s)
-|mActionCollapseTree.png|        collapse source file tree node(s)
-===============================  ================================================
+.. table::
+    :widths: 1 7
+
+    ===============================  ================================================
+    Button                           Action
+    ===============================  ================================================
+    |mActionAddRasterLayer.png|      Add source raster
+    |mActionRemoveRasterLayer.png|   Remove source raster
+    |mActionImportFromRegistry.png|  Load source raster files that are known to QGIS
+    |mActionExpandTree.png|          Expand source file tree node(s)
+    |mActionCollapseTree.png|        Collapse source file tree node(s)
+    ===============================  ================================================
 
 2. Specify VRT structure
 ........................
 
 Specify the VRT structure by drag and drop of source bands
 
-================================  ===========================================
-Button                            Action
-================================  ===========================================
-|mActionAddVirtualRaster.png|     Add virtual band
-|mActionRemoveVirtualRaster.png|  Remove virtual band
-|mActionImportVirtualRaster.png|  Import virtual bands from existing VRT file
-|mActionExpandTree.png|           Expand VRT tree node(s)
-|mActionCollapseTree.png|         Collapse VRT tree node(s)
---------------------------------  -------------------------------------------
-|mOptionStackFiles.png|           Drop bands as band stack (default)
-|mOptionMosaikFiles.png|          Drop bands as band mosaik
-================================  ===========================================
+.. table::
+    :widths: 1 7
+
+    ================================  ===========================================
+    Button                            Action
+    ================================  ===========================================
+    |mActionAddVirtualRaster.png|     Add virtual band
+    |mActionRemoveVirtualRaster.png|  Remove virtual band
+    |mActionImportVirtualRaster.png|  Import virtual bands from existing VRT file
+    |mActionExpandTree.png|           Expand VRT tree node(s)
+    |mActionCollapseTree.png|         Collapse VRT tree node(s)
+    --------------------------------  -------------------------------------------
+    |mOptionStackFiles.png|           Drop bands as band stack (default)
+    |mOptionMosaikFiles.png|          Drop bands as band mosaik
+    ================================  ===========================================
 
 
 * search for source bands using wildcard (`band`or regular expression (checkbox `.*`).
@@ -140,12 +146,14 @@ afterwards using `gdal.Translate <http://gdal.org/python/osgeo.gdal-module.html#
 Links
 -----
 
-======================  ===========================================
-Source Code             https://bitbucket.org/jakimowb/virtual-raster-builder
-Online Documentation    https://virtual-raster-builder.readthedocs.io/en/latest/
-Issue Tracker           https://bitbucket.org/jakimowb/virtual-raster-builder/issues
-QGIS Plugin Repository  https://plugins.qgis.org/plugins/vrtbuilderplugin/
-======================  ===========================================
+.. table::
+
+    ======================  ===========================================
+    Source Code             https://bitbucket.org/jakimowb/virtual-raster-builder
+    Online Documentation    https://virtual-raster-builder.readthedocs.io/en/latest/
+    Issue Tracker           https://bitbucket.org/jakimowb/virtual-raster-builder/issues
+    QGIS Plugin Repository  https://plugins.qgis.org/plugins/vrtbuilderplugin/
+    ======================  ===========================================
 
 
 
