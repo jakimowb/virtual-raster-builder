@@ -12,6 +12,7 @@ vrtbuilder/ui/resources.py
 vrtbuilder/externals/qps/qpsresources.py
 qgisresources/
 qgisresources/*
+*_rc.py
 
 # Untrack compiled files
 *.aux.xml
