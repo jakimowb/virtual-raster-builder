@@ -946,7 +946,7 @@ class VRTBuilderWidget(QMainWindow):
     def __init__(self, parent=None):
         super(VRTBuilderWidget, self).__init__(parent)
 
-        loadUi(DIR_UI / 'vrtbuilder2.ui', self)
+        loadUi(DIR_UI / 'vrtbuilder.ui', self)
         # self.webView.setUrl(QUrl('help.html'))
         title = self.windowTitle()
         self.setWindowIcon(QIcon(':/vrtbuilder/mActionNewVirtualLayer.svg'))
@@ -954,17 +954,19 @@ class VRTBuilderWidget(QMainWindow):
             title = '{} {}'.format(title, __version__)
             self.setWindowTitle(title)
 
-
         self.sBar = QgsStatusBar()
+        self.sBar.setParentStatusBar(self.statusBar())
+        self.statusBar().addPermanentWidget(self.sBar, 1)
+        self.statusBar().setStyleSheet("QStatusBar::item {border: none;}")
+
+        self.buttonBox.button(QDialogButtonBox.Save).clicked.connect(self.saveFile)
+        self.buttonBox.button(QDialogButtonBox.Close).clicked.connect(self.close)
+
         self.progressBar = QProgressBar()
-
         self.sBar.addPermanentWidget(self.progressBar, QgsStatusBar.AnchorLeft)
-
-
+        self.sBar.addPermanentWidget(self.buttonBox)
         self.mMapCanvases = []
         self.mMapCanvases.append(self.previewMap)
-
-
 
         self.mSourceFileModel = SourceRasterModel(parent=self.treeViewSourceFiles)
         self.mSourceFileModel.sigSourcesRemoved.connect(self.buildButtonMenus)
@@ -1000,8 +1002,6 @@ class VRTBuilderWidget(QMainWindow):
         self.mQgsFileWidget.setStorageMode(QgsFileWidget.SaveFile)
         self.mQgsFileWidget.fileChanged.connect(self.validateInputs)
 
-        self.buttonBox.button(QDialogButtonBox.Save).clicked.connect(self.saveFile)
-        self.buttonBox.button(QDialogButtonBox.Close).clicked.connect(self.close)
         self.mVRTRaster = VRTRaster()
 
         # self.vrtRaster.sigSourceBandInserted.connect(self.resetMap)
@@ -1614,7 +1614,7 @@ class VRTBuilderWidget(QMainWindow):
             options = gdal.TranslateOptions(format=str(drv), creationOptions=co,
                                             callback=self._saveFileCallback, callback_data=path)
 
-            self.sBar.showMessage('Save {}...'.format(path))
+            self.sBar.showMessage('Save {}...'.format(path), 2000)
             dsDst = gdal.Translate(path, pathVrt, options=options)
             self.fullProgress()
 
@@ -1622,12 +1622,12 @@ class VRTBuilderWidget(QMainWindow):
             pathVrt = path
             self.sBar.clearMessage()
             dsDst = self.mVRTRaster.saveVRT(pathVrt)
-            self.sBar.showMessage('{} saved'.format(pathVrt))
+            self.sBar.showMessage('{} saved'.format(pathVrt), 2000)
             self.fullProgress()
         if isinstance(dsDst, gdal.Dataset):
-            self.sBar.showMessage('{} saved'.format(path))
+            self.sBar.showMessage('{} saved'.format(path), 2000)
         else:
-            self.sBar.showMessage('Failed to save {}!'.format(path))
+            self.sBar.showMessage('Failed to save {}!'.format(path), 2000)
 
         dsDst = None
         if self.cbAddToMap.isChecked():
@@ -1641,7 +1641,7 @@ class VRTBuilderWidget(QMainWindow):
 
     def fullProgress(self):
         self.progressBar.setValue(100)
-        QTimer.singleShot(1000, lambda: self.progressBar.setValue(0))
+        QTimer.singleShot(2000, lambda: self.progressBar.setValue(0))
 
     def onSrcModelSelectionChanged(self, selected, deselected):
 

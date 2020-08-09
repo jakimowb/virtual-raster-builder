@@ -48,10 +48,10 @@ class VRTBuilderPlugin(object):
 
         # init main UI
         import vrtbuilder
-        from vrtbuilder.ui import resources
-        resources.qInitResources()
+        from vrtbuilder.ui import vrtbuilderresources_rc
+        vrtbuilderresources_rc.qInitResources()
 
-        from vrtbuilder import TITLE, PATH_ICON
+        from vrtbuilder import TITLE
 
         icon = QIcon(':/vrtbuilder/mActionNewVirtualLayer.svg')
         self.action = QAction(icon, TITLE, self.iface)

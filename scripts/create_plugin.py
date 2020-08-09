@@ -60,6 +60,7 @@ MD.mQgisMinimumVersion = '3.14'
 MD.mEmail = 'benjamin.jakimow@geo.hu-berlin.de'
 
 PLUGIN_DIR_NAME = 'vrtbuilderplugin'
+
 ########## End of config section
 
 def scantree(path, pattern=re.compile('.$')) -> typing.Iterator[pathlib.Path]:
@@ -76,7 +77,7 @@ def scantree(path, pattern=re.compile('.$')) -> typing.Iterator[pathlib.Path]:
             yield pathlib.Path(entry.path)
 
 
-def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources: bool = False):
+def create_plugin(include_testdata: bool = False, include_qgisresources: bool = False):
 
     DIR_REPO = pathlib.Path(__file__).resolve().parents[1]
     assert (DIR_REPO / '.git').is_dir()
@@ -107,7 +108,7 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
     MD.mVersion = BUILD_NAME
     MD.writeMetadataTxt(PATH_METADATAFILE)
 
-    #1. (re)-compile all enmapbox resource files
+    # 1. (re)-compile all enmapbox resource files
 
     from scripts.compile_resourcefiles import compileVRTBuilderResources
     compileVRTBuilderResources()
@@ -128,13 +129,13 @@ def create_enmapbox_plugin(include_testdata: bool = False, include_qgisresources
         os.makedirs(fileDst.parent, exist_ok=True)
         shutil.copy(fileSrc, fileDst.parent)
 
-    #update metadata version
+    # update metadata version
 
     f = open(DIR_REPO / 'vrtbuilder' / '__init__.py')
     lines = f.read()
     f.close()
     lines = re.sub(r'(__version__\W*=\W*)([^\n]+)', r'__version__ = "{}"\n'.format(BUILD_NAME), lines)
-    f = open(PLUGIN_DIR / '__init__.py', 'w')
+    f = open(PLUGIN_DIR / 'vrtbuilder' / '__init__.py', 'w')
     f.write(lines)
     f.flush()
     f.close()
@@ -252,6 +253,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    create_enmapbox_plugin(include_testdata=args.testdata, include_qgisresources=args.qgisresources)
+    create_plugin(include_testdata=args.testdata, include_qgisresources=args.qgisresources)
     exit()
 

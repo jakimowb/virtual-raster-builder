@@ -147,7 +147,6 @@ class VRTBuilderTests(TestCase):
         self.assertTrue(extent2 == QgsRectangle(40, 220, 310, 610))
         self.assertTrue(extent3 == QgsRectangle(40, 220, 310, 610))
 
-
     def test_VRTRasterInputSourceBand(self):
 
         bands1 = VRTRasterInputSourceBand.fromRasterLayer(Landsat8_East_tif)
@@ -204,7 +203,6 @@ class VRTBuilderTests(TestCase):
             self.assertTrue('<PixelOffset>8' in xml)
             self.assertTrue('<LineOffset>1416' in xml)
             self.assertTrue('<ByteOrder>LSB' in xml)
-
 
     def test_gui(self):
         from exampledata import Landsat8_West_tif
@@ -295,8 +293,6 @@ class VRTBuilderTests(TestCase):
 
         self.showGui(GUI)
 
-
-
     def test_vrtRasterReprojections(self):
 
         VRT = VRTRaster()
@@ -385,7 +381,6 @@ class VRTBuilderTests(TestCase):
         gdal.Unlink(path)
 
         print('\n'.join(vsiFiles()))
-
 
     def test_init(self):
 

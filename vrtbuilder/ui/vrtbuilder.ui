@@ -53,16 +53,16 @@
          <number>2</number>
         </property>
         <property name="leftMargin">
-         <number>0</number>
+         <number>2</number>
         </property>
         <property name="topMargin">
-         <number>0</number>
+         <number>2</number>
         </property>
         <property name="rightMargin">
-         <number>0</number>
+         <number>2</number>
         </property>
         <property name="bottomMargin">
-         <number>0</number>
+         <number>2</number>
         </property>
         <item>
          <widget class="QGroupBox" name="groupBox">
@@ -562,7 +562,7 @@
            <bool>true</bool>
           </property>
           <property name="currentIndex">
-           <number>0</number>
+           <number>1</number>
           </property>
           <widget class="QWidget" name="tabSrcFiles">
            <property name="autoFillBackground">
@@ -790,7 +790,7 @@
                  <x>0</x>
                  <y>0</y>
                  <width>630</width>
-                 <height>605</height>
+                 <height>577</height>
                 </rect>
                </property>
                <layout class="QGridLayout" name="gridLayout_2">
@@ -1302,13 +1302,6 @@
                   </layout>
                  </widget>
                 </item>
-                <item row="25" column="1">
-                 <widget class="QDialogButtonBox" name="buttonBox">
-                  <property name="standardButtons">
-                   <set>QDialogButtonBox::Close|QDialogButtonBox::Save</set>
-                  </property>
-                 </widget>
-                </item>
                 <item row="24" column="0" colspan="2">
                  <widget class="QgsCollapsibleGroupBox" name="mGrpBoxOutput">
                   <property name="minimumSize">
@@ -1556,6 +1549,13 @@
         </item>
        </layout>
       </widget>
+     </widget>
+    </item>
+    <item>
+     <widget class="QDialogButtonBox" name="buttonBox">
+      <property name="standardButtons">
+       <set>QDialogButtonBox::Close|QDialogButtonBox::Save</set>
+      </property>
      </widget>
     </item>
    </layout>
