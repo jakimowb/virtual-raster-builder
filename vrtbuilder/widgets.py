@@ -19,6 +19,7 @@
 
 from collections import OrderedDict
 import pickle
+import webbrowser
 from .externals.qps.maptools import SpatialExtentMapTool
 from .externals.qps.utils import *
 from .models import TreeModel, TreeNode
@@ -35,7 +36,7 @@ from qgis.gui import QgsMapCanvas, QgsFileWidget, QgsRubberBand, QgisInterface, 
 
 from .virtualrasters import *
 
-from vrtbuilder import DIR_UI, __version__
+from vrtbuilder import DIR_UI, __version__, URL_REPOSITORY, URL_ISSUETRACKER, URL_HOMEPAGE
 
 
 def settings() -> QSettings:
@@ -1148,8 +1149,9 @@ class VRTBuilderWidget(QMainWindow):
 
         self.btnLoadVRT.setDefaultAction(self.actionLoadVRT)
 
-        self.btnAbout.setIcon(self.style().standardIcon(QStyle.SP_MessageBoxInformation))
-        self.btnAbout.clicked.connect(lambda: AboutWidget(self).exec_())
+        self.actionAbout.triggered.connect(lambda: AboutWidget(self).exec_())
+        self.actionDocumentation.triggered.connect(lambda: webbrowser.open(URL_HOMEPAGE))
+        self.actionIssueTracker.triggered.connect(lambda : webbrowser.open(URL_ISSUETRACKER))
 
         self.crsSelectionWidget.setMessage('Set VRT CRS')
         self.crsSelectionWidget.crsChanged.connect(self.mVRTRaster.setCrs)

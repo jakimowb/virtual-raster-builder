@@ -66,6 +66,9 @@ PATH_ICON = os.path.join(DIR_UI, 'mActionNewVirtualLayer.png')
 __version__ = '0.8'
 
 URL_QGIS_RESOURCES = r'https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip'
+URL_HOMEPAGE = 'https://virtual-raster-builder.readthedocs.io'
+URL_ISSUETRACKER = 'https://bitbucket.org/jakimowb/virtual-raster-builder/issues'
+URL_REPOSITORY = 'https://bitbucket.org/jakimowb/virtual-raster-builder'
 
 MAPLAYER_STORES = [QgsProject.instance()]
 

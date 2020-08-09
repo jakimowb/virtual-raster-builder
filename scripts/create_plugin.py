@@ -45,6 +45,8 @@ CHECK_COMMITS = False
 
 ########## Config Section
 
+
+
 MD = QGISMetadataFileWriter()
 MD.mName = 'Virtual Raster Builder'
 MD.mDescription = 'A QGIS Plugin to create GDAL Virtual Raster (VRT) files by drag and drop.'
@@ -52,10 +54,10 @@ MD.mTags = ['Raster']
 MD.mCategory = 'Analysis'
 MD.mAuthor = 'Benjamin Jakimow, Geomatics Lab, Humboldt-Universität zu Berlin'
 MD.mIcon = 'vrtbuilder/icon.png'
-MD.mHomepage = 'https://bitbucket.org/jakimowb/virtual-raster-builder'
+MD.mHomepage = vrtbuilder.URL_HOMEPAGE
 MD.mAbout = 'The EnMAP-Box is designed to process and visualize hyperspectral remote sensing data, and particularly developed to handle EnMAP products.'
-MD.mTracker = 'https://bitbucket.org/jakimowb/virtual-raster-builder/issues'
-MD.mRepository = 'https://bitbucket.org/jakimowb/virtual-raster-builder'
+MD.mTracker = vrtbuilder.URL_ISSUETRACKER
+MD.mRepository = vrtbuilder.URL_REPOSITORY
 MD.mQgisMinimumVersion = '3.14'
 MD.mEmail = 'benjamin.jakimow@geo.hu-berlin.de'
 
