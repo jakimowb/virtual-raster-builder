@@ -12,35 +12,21 @@ __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
-import unittest, tempfile, os
-import numpy as np
-from vrtbuilder.tests import initQgisApplication, TestObjects
-from qgis.core import QgsRectangle
-
-
-QGIS_APP = initQgisApplication()
-
-SHOW_GUI = False and os.environ.get('CI') is None
-
-from vrtbuilder.widgets import *
-from vrtbuilder.virtualrasters import *
-from vrtbuilder.utils import *
+import unittest
+import tempfile
 from exampledata import Landsat8_West_tif, Landsat8_East_tif, RapidEye_tif, Sentinel2_East_tif, Sentinel2_West_tif
+from qgis.core import QgsRectangle
+from vrtbuilder.externals.qps.testing import TestCase, TestObjects
+from vrtbuilder import DIR_UI
+from vrtbuilder.widgets import *
 
+class VRTBuilderTests(TestCase):
 
-from qgis.utils import iface
-assert isinstance(iface, QgisInterface)
+    @classmethod
+    def setUpClass(cls, resources=[]) -> None:
 
-
-import vrtbuilder
-vrtbuilder.initResources()
-
-qgisMapCanvas = iface.mapCanvas()
-assert isinstance(qgisMapCanvas, QgsMapCanvas)
-qgisMapCanvas.setDestinationCrs(QgsCoordinateReferenceSystem('EPSG:4326'))
-qgisMapCanvas.setExtent(QgsRectangle(-90, -90, 90, 90))
-
-class VRTBuilderTests(unittest.TestCase):
+        resources.append(DIR_UI / 'vrtbuilderresources_rc.py')
+        super().setUpClass(resources=resources)
 
     def test_vsi_support(self):
 
@@ -105,7 +91,7 @@ class VRTBuilderTests(unittest.TestCase):
         self.assertTrue(ext == None)
         band1 = VRT[0]
         self.assertIsInstance(band1, VRTRasterBand)
-        band1.addSource(VRTRasterInputSourceBand(Landsat8_East_tif, 0))
+        band1.addSource(VRTRasterInputSourceBand(Landsat8_East_tif.as_posix(), 0))
         ext = VRT.extent()
         res = VRT.resolution()
         crs = VRT.crs()
@@ -115,7 +101,8 @@ class VRTBuilderTests(unittest.TestCase):
 
         #align to other raster grid
         pt = QgsPointXY(ext.xMinimum() - 5, ext.yMaximum() + 3.5)
-        lyr = toRasterLayer(RapidEye_tif)
+
+        lyr = qgsRasterLayer(RapidEye_tif)
         self.assertIsInstance(lyr, QgsRasterLayer)
         self.assertTrue(lyr.crs() != VRT.crs())
         VRT.alignToRasterGrid(RapidEye_tif)
@@ -124,9 +111,9 @@ class VRTBuilderTests(unittest.TestCase):
         self.assertTrue(VRT.resolution() == res)
 
     def test_vrtRasterMetadata(self):
-        ds = gdal.Open(Landsat8_East_tif)
+        ds = gdal.Open(Landsat8_East_tif.as_posix())
         self.assertIsInstance(ds, gdal.Dataset)
-        lyr = toRasterLayer(ds)
+        lyr = qgsRasterLayer(ds)
         self.assertIsInstance(lyr, QgsRasterLayer)
         VRT = VRTRaster()
         VRT.addFilesAsStack([Landsat8_East_tif, Sentinel2_West_tif])
@@ -175,11 +162,11 @@ class VRTBuilderTests(unittest.TestCase):
             self.assertIsInstance(b2, VRTRasterInputSourceBand)
             self.assertTrue(b2.name() in b1.name())
 
-
     def test_describeRaw(self):
         from exampledata import speclib as pathESL
+        pathESL = pathESL.as_posix()
+        pathHDR = pathESL.replace('.sli', '.hdr')
 
-        pathHDR= pathESL.replace('.sli', '.hdr')
         f = open(pathHDR, 'r', encoding='utf-8')
         lines = f.read()
         f.close()
@@ -219,26 +206,15 @@ class VRTBuilderTests(unittest.TestCase):
             self.assertTrue('<ByteOrder>LSB' in xml)
 
 
-        #this should look like a spectrum
-        if SHOW_GUI:
-
-            yVals = arr[32,:]
-            import pyqtgraph as pg
-            #this should look like a vegetation spectrum
-            pw = pg.plot(yVals, pen='r')  # plot x vs y in red
-            r = QMessageBox.question(None, 'Test', 'Does this look like a vegetation spectrum?')
-            self.assertTrue(r == QMessageBox.Yes, 'Did not look like a vegetation spectrum')
-
-        s  =""
-
-
     def test_gui(self):
         from exampledata import Landsat8_West_tif
         reg = QgsProject.instance()
         reg.addMapLayer(TestObjects.createVectorLayer(QgsWkbTypes.PolygonGeometry))
         reg.addMapLayer(TestObjects.createVectorLayer(QgsWkbTypes.LineGeometry))
         reg.addMapLayer(TestObjects.createVectorLayer(QgsWkbTypes.PointGeometry))
-        lyr = QgsRasterLayer(Landsat8_West_tif)
+        lyr = QgsRasterLayer(Landsat8_West_tif.as_posix())
+        self.assertIsInstance(lyr, QgsRasterLayer)
+        self.assertTrue(lyr.width() > 0)
         reg.addMapLayer(lyr)
         GUI = VRTBuilderWidget()
         self.assertIsInstance(GUI, VRTBuilderWidget)
@@ -246,7 +222,7 @@ class VRTBuilderTests(unittest.TestCase):
         GUI.loadSrcFromMapLayerRegistry()
         self.assertTrue(len(GUI.mSourceFileModel), 1)
         files = GUI.mSourceFileModel.rasterSources()
-        self.assertTrue(Landsat8_West_tif in files)
+        self.assertTrue(Landsat8_West_tif.as_posix() in files)
 
         self.assertIsInstance(GUI.mSourceFileModel.rootNode(), TreeNode)
         child1 = GUI.mSourceFileModel.rootNode().childNodes()[0]
@@ -317,16 +293,12 @@ class VRTBuilderTests(unittest.TestCase):
                 self.assertIsInstance(extent, QgsRectangle)
                 self.assertIsInstance(crs, QgsCoordinateReferenceSystem)
 
+        self.showGui(GUI)
 
-
-        if SHOW_GUI:
-            QGIS_APP.exec_()
 
 
     def test_vrtRasterReprojections(self):
 
-        ds1 = TestObjects.inMemoryImage(1000, 2000, 1, crs='EPSG:32633')
-        ds2 = TestObjects.inMemoryImage(1000, 2000, 1, crs='EPSG:32633')
         VRT = VRTRaster()
         vb1 = VRTRasterBand()
         vb2 = VRTRasterBand()
@@ -417,20 +389,16 @@ class VRTBuilderTests(unittest.TestCase):
 
     def test_init(self):
 
-        dsMEM = TestObjects.inMemoryImage(100, 20, 3)
+        dsMEM = TestObjects.createRasterDataset(100, 20, 3)
         self.assertIsInstance(dsMEM, gdal.Dataset)
 
 
-        sources = [Landsat8_East_tif, gdal.Open(Landsat8_East_tif), QgsRasterLayer(Landsat8_East_tif), dsMEM, dsMEM.GetFileList()[0]]
+        sources = [Landsat8_East_tif, gdal.Open(Landsat8_East_tif.as_posix()),
+                   QgsRasterLayer(Landsat8_East_tif.as_posix()),
+                   dsMEM,
+                   dsMEM.GetFileList()[0]]
         for s in sources:
-            self.assertIsInstance(toRasterLayer(s), QgsRasterLayer)
-
-        sources = ['foo', None, 234, 42.1]
-        for s in sources:
-            self.assertEqual(toRasterLayer(s), None)
-
-        pass
-
+            self.assertIsInstance(qgsRasterLayer(s), QgsRasterLayer)
 
 
 if __name__ == "__main__":

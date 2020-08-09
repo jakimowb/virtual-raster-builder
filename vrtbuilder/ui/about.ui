@@ -20,7 +20,7 @@
    <string>About</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="resources.qrc">
+   <iconset resource="vrtbuilderresources.qrc">
     <normaloff>:/vrtbuilder/mActionNewVirtualLayer.svg</normaloff>:/vrtbuilder/mActionNewVirtualLayer.svg</iconset>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
@@ -68,7 +68,7 @@
         <string/>
        </property>
        <property name="pixmap">
-        <pixmap resource="resources.qrc">:/vrtbuilder/mActionNewVirtualLayer.svg</pixmap>
+        <pixmap resource="vrtbuilderresources.qrc">:/vrtbuilder/mActionNewVirtualLayer.svg</pixmap>
        </property>
        <property name="scaledContents">
         <bool>true</bool>
@@ -224,7 +224,7 @@
         <string/>
        </property>
        <property name="pixmap">
-        <pixmap resource="resources.qrc">:/vrtbuilder/logo_gfz.png</pixmap>
+        <pixmap resource="vrtbuilderresources.qrc">:/vrtbuilder/logo_gfz.png</pixmap>
        </property>
        <property name="scaledContents">
         <bool>true</bool>
@@ -258,7 +258,7 @@
         <string/>
        </property>
        <property name="pixmap">
-        <pixmap resource="resources.qrc">:/vrtbuilder/logo_dlr.png</pixmap>
+        <pixmap resource="vrtbuilderresources.qrc">:/vrtbuilder/logo_dlr.png</pixmap>
        </property>
        <property name="scaledContents">
         <bool>true</bool>
@@ -283,7 +283,7 @@
         <string/>
        </property>
        <property name="pixmap">
-        <pixmap resource="resources.qrc">:/vrtbuilder/logo_hu-berlin.png</pixmap>
+        <pixmap resource="vrtbuilderresources.qrc">:/vrtbuilder/logo_hu-berlin.png</pixmap>
        </property>
        <property name="scaledContents">
         <bool>true</bool>
@@ -314,7 +314,7 @@
   </layout>
  </widget>
  <resources>
-  <include location="resources.qrc"/>
+  <include location="vrtbuilderresources.qrc"/>
  </resources>
  <connections>
   <connection>

@@ -71,8 +71,8 @@ class RemoteInfo(object):
         assert uri.endswith('.git')
         self.uri = uri
         self.key = key if key is not None else os.path.splitext(os.path.basename(self.uri))[0]
-        assert prefixLocal is not ''
-        assert prefixRemote is not ''
+        assert prefixLocal != ''
+        assert prefixRemote != ''
         self.prefixLocal = self.key if prefixLocal is None else prefixLocal
         self.prefixRemote = prefixRemote
         self.remoteBranch = remoteBranch
@@ -167,7 +167,8 @@ def updateRemoteLocations(locationsToUpdate:list):
 
     for id in locationsToUpdate:
         assert isinstance(id, str)
-        assert id in REMOTEINFOS.keys(), 'Unknown remote location key "{}"'.format(id)
+        assert id in REMOTEINFOS.keys(), \
+            f'Unknown remote location key "{id}". Valid keys are: {", ".join(REMOTEINFOS.keys())}'
 
     # check existing remotes
     print('Remotes:')

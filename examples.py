@@ -21,9 +21,10 @@ import os
 from vrtbuilder.virtualrasters import VRTRaster
 from vrtbuilder.widgets import VRTBuilderWidget
 from vrtbuilder import DIR_EXAMPLEDATA
-from vrtbuilder.utils import initQgisApplication, file_search
+from vrtbuilder.externals.qps.testing import start_app
+from vrtbuilder.externals.qps.utils import file_search
 
-qgsApp = initQgisApplication()
+qgsApp = start_app()
 from vrtbuilder.widgets import VRTBuilderWidget
 
 W = VRTBuilderWidget(None)

@@ -1,27 +1,36 @@
 # -*- coding: utf-8 -*-
 """
-/***************************************************************************
-                              EO Time Series Viewer
-                              -------------------
-        begin                : 2015-08-20
-        git sha              : $Format:%H$
-        copyright            : (C) 2017 by HU-Berlin
-        email                : benjamin.jakimow@geo.hu-berlin.de
- ***************************************************************************/
+***************************************************************************
+    <file name> - <short description>
+    -----------------------------------------------------------------------
+    begin                : 2019-01-11
+    copyright            : (C) 2020 Benjamin Jakimow
+    email                : benjamin.jakimow@geo.hu-berlin.de
 
-/***************************************************************************
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- ***************************************************************************/
+***************************************************************************
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or
+    (at your option) any later version.
+                                                                                                                                                 *
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this software. If not, see <http://www.gnu.org/licenses/>.
+***************************************************************************
 """
 # noinspection PyPep8Naming
 
-import os, json, sys
-from ..externals.pyqtgraph.graphicsItems.ScatterPlotItem import drawSymbol
+import os, json, sys, enum
+
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtWidgets import *
+from ..externals.pyqtgraph.graphicsItems.ScatterPlotItem import drawSymbol, renderSymbol
+from ..externals.pyqtgraph.graphicsItems.PlotDataItem import PlotDataItem
 from ..utils import *
 from ..models import OptionListModel, Option, currentComboBoxValue, setCurrentComboBoxValue
 from ..externals import pyqtgraph as pg
@@ -29,6 +38,7 @@ from ..externals import pyqtgraph as pg
 DEBUG = False
 
 MODULE_IMPORT_PATH = None
+XMLTAG_PLOTSTYLENODE = 'PlotStyle'
 
 for name, module in sys.modules.items():
     if hasattr(module, '__file__') and module.__file__ == __file__:
@@ -41,32 +51,132 @@ def log(msg: str):
         QgsMessageLog.logMessage(msg, 'plotstyling.py')
 
 
-MARKERSYMBOLS = [Option('o', u'Circle'),
-                 Option('t', u'Triangle Down'),
-                 Option('t1', u'Triangle Up'),
-                 Option('t2', u'Triangle Right'),
-                 Option('t3', u'Triangle Left'),
-                 Option('p', u'Pentagon'),
-                 Option('h', u'Hexagon'),
-                 Option('s', u'Star'),
-                 Option('+', u'Plus'),
-                 Option('d', u'Diamond'),
-                 Option(None, u'No Symbol')
-                 ]
+def pens_equal(p1, p2):
 
-MARKERSYMBOLS2QGIS_SYMBOLS = dict()
-for o in MARKERSYMBOLS:
-    name = o.name()
-    name = name.replace(' ', '_')
-    name = name.lower()
-    MARKERSYMBOLS2QGIS_SYMBOLS[o.value()] = name
+    assert isinstance(p1, QPen)
+    assert isinstance(p2, QPen)
+    if p1 == p2:
+        return True
+    elif p1.brush() != p2.brush():
+        return False
+    elif p1.capStyle() != p2.capStyle():
+        return False
+    elif p1.color() != p2.color():
+        return False
+    elif p1.dashPattern() != p2.dashPattern():
+        return False
+    elif p1.dashOffset() != p2.dashOffset():
+        return False
+    elif p1.isCosmetic() != p2.isCosmetic():
+        return False
+    elif p1.isSolid() != p2.isSolid():
+        return False
+    elif p1.joinStyle() != p2.joinStyle():
+        return False
+    elif p1.miterLimit() != p2.miterLimit():
+        return False
+    elif p1.style() != p2.style():
+        return False
+    elif p1.width() != p2.width():
+        return False
+    elif p1.widthF() != p2.widthF():
+        return False
+    else:
+        # it is totally unclear why the inital p1 == p2 returns False!!!
+        return True
 
-PENSTYLES = [Option(Qt.SolidLine, '___'),
-             Option(Qt.DashLine, '_ _ _'),
-             Option(Qt.DotLine, '. . .'),
-             Option(Qt.DashDotLine, '_ .'),
-             Option(Qt.DashDotDotLine, '_ . .'),
-             Option(Qt.NoPen, 'No Pen')]
+class MarkerSymbol(enum.Enum):
+    
+    Circle = 'o'
+    Triangle_Down = 't'
+    Triangle_Up = 't1'
+    Triangle_Right = 't2'
+    Triangle_Left = 't3'
+    Pentagon = 'p'
+    Hexagon = 'h'
+    Star = 's'
+    Plus = '+'
+    Diamond = 'd'
+    No_Symbol = None
+
+    @staticmethod
+    def decode(input):
+        """
+        Tries to match a MarkerSymbol with any input
+        :param input: any
+        :return: MarkerSymbol
+        """
+        if input == 'Triangle':
+            return MarkerSymbol.Triangle_Down
+
+        if isinstance(input, MarkerSymbol):
+            return input
+
+        if isinstance(input, str):
+            input = str(input).replace(' ', '_')
+
+        for s in MarkerSymbol:
+            if input in [s.value, s.name, str(s.value)]:
+                return s
+
+        raise Exception('Unable to decode MarkerSymbol from "{}"'.format(input))
+
+    @staticmethod
+    def icon(symbol):
+        symbol = MarkerSymbol.decode(symbol)
+        assert isinstance(symbol, MarkerSymbol)
+        #print('render {}'.format(symbol.value))
+        pen = QPen(Qt.SolidLine)
+        pen.setColor(QColor('black'))
+        pen.setWidth(0)
+        image = renderSymbol(symbol.value, 10, pen, Qt.NoBrush)
+        return QIcon(QPixmap.fromImage(image))
+
+    @staticmethod
+    def encode(symbol) -> str:
+        """
+        Returns a readable name for the marker symbol, e.g. 'Circle'
+        :param value: bool, if True, returns a string like '---' instead 'Line'
+        :return: str
+        """
+        assert isinstance(symbol, MarkerSymbol)
+        if symbol in [None, 'None']:
+            symbol = MarkerSymbol.No_Symbol
+        elif isinstance(symbol, str):
+            for s in MarkerSymbol:
+                if symbol == s.value or symbol.replace(' ', '_') == s.name:
+                    symbol = s
+                    break
+
+        assert isinstance(symbol, MarkerSymbol), 'cannot encode {} into MarkerSymbol'.format(symbol)
+        return symbol.name.replace('_', ' ')
+
+class MarkerSymbolComboBox(QComboBox):
+
+    def __init__(self, *args, **kwds):
+        super(MarkerSymbolComboBox, self).__init__(*args, **kwds)
+        for symbol in MarkerSymbol:
+            icon = MarkerSymbol.icon(symbol)
+            text = MarkerSymbol.encode(symbol)
+            self.addItem(icon, text, userData=symbol)
+
+    def markerSymbol(self) -> MarkerSymbol:
+        return self.currentData(role=Qt.UserRole)
+
+    def markerSymbolString(self) -> str:
+        return self.markerSymbol().value
+
+    def setMarkerSymbol(self, symbol):
+        symbol = MarkerSymbol.decode(symbol)
+        for i in range(self.count()):
+            if self.itemData(i, role=Qt.UserRole) == symbol:
+                self.setCurrentIndex(i)
+                return symbol
+        s = ""
+
+    def iconForMarkerSymbol(self) -> QIcon():
+        return MarkerSymbol.icon(self.markerSymbol())
+
 
 
 def brush2tuple(brush: QBrush) -> tuple:
@@ -191,35 +301,191 @@ class PlotStyle(QObject):
     """
     sigUpdated = pyqtSignal()
 
+    @staticmethod
+    def fromPlotDataItem(pdi: PlotDataItem):
+        """
+        Reads a PlotDataItems' styling
+        :param pdi: PlotDataItem
+        """
+
+        ps = PlotStyle()
+        ps.setLinePen(pg.mkPen(pdi.opts['pen']))
+        ps.setMarkerSymbol(pdi.opts['symbol'])
+        ps.setMarkerBrush(pg.mkBrush(pdi.opts['symbolBrush']))
+        ps.setMarkerPen(pg.mkPen(pdi.opts['symbolPen']))
+        ps.markerSize = pdi.opts['symbolSize']
+        ps.setVisibility(pdi.isVisible())
+        return ps
+
     def __init__(self, **kwds):
         plotStyle = kwds.get('plotStyle')
-        if plotStyle: kwds.pop('plotStyle')
+        if plotStyle:
+            kwds.pop('plotStyle')
         super(PlotStyle, self).__init__()
 
-        self.markerSymbol = MARKERSYMBOLS[0].mValue
-        self.markerSize = 5
-        self.markerBrush = QBrush()
+        self.markerSymbol: str = MarkerSymbol.Circle.value
+        self.markerSize: int = 5
+        self.markerBrush: QBrush = QBrush()
         self.markerBrush.setColor(Qt.green)
         self.markerBrush.setStyle(Qt.SolidPattern)
 
-        self.backgroundColor = QColor(Qt.black)
+        self.backgroundColor: QColor = QColor(Qt.black)
 
-        self.markerPen = QPen()
+        self.markerPen: QPen = QPen()
         self.markerPen.setCosmetic(True)
         self.markerPen.setStyle(Qt.NoPen)
         self.markerPen.setColor(Qt.white)
         self.markerPen.setWidthF(0)
 
-        self.linePen = QPen()
+        self.linePen: QPen = QPen()
         self.linePen.setCosmetic(True)
         self.linePen.setStyle(Qt.NoPen)
         self.linePen.setWidthF(0)
         self.linePen.setColor(QColor(74, 75, 75))
 
-        self.mIsVisible = True
+        self.mIsVisible: bool = True
 
         if plotStyle:
             self.copyFrom(plotStyle)
+    
+    def setMarkerSymbol(self, symbol):
+        """
+        Sets the marker type
+        :param symbol:
+        :type symbol:
+        :return:
+        :rtype:
+        """
+        self.markerSymbol = MarkerSymbol.decode(symbol).value
+
+    def setMarkerPen(self, *pen):
+        self.markerPen = QPen(*pen)
+
+    def setLinePen(self, *pen):
+        self.linePen = QPen(*pen)
+
+    def setMarkerBrush(self, *brush):
+        self.markerBrush = QBrush(*brush)
+
+    def setMarkerColor(self, *color: QColor):
+        """
+        Sets the marker symbol color
+        :param color:
+        :type color:
+        :return:
+        :rtype:
+        """
+        self.markerBrush.setColor(QColor(*color))
+
+    def markerColor(self) -> QColor:
+        """
+        Returns the marker symbol color
+        :return:
+        :rtype:
+        """
+        self.markerBrush.color()
+
+    def setMarkerLinecolor(self, *color: QColor):
+        """
+        Sets the marker symbols line color
+        :return:
+        """
+        self.markerPen.setColor(QColor(*color))
+        
+    def markerLineColor(self) -> QColor:
+        """
+        Returns the marker symbol line color
+        :return: QColor
+        """
+        return self.markerPen.color()
+
+    def lineWidth(self) -> int:
+        """
+        Returns the line width in px
+        """
+        return self.linePen.width()
+
+    def setLineWidth(self, width: int):
+        """
+        Sets the profile's line in px
+        :param width: line width in px
+        """
+        self.linePen.setWidth(width)
+
+    def lineColor(self) -> QColor:
+        """
+        Returns the line color
+        :return: QColor
+        """
+        return self.linePen.color()
+
+    def setBackgroundColor(self, *color):
+        self.backgroundColor = QColor(*color)
+
+    def setLineColor(self, *color: QColor):
+        """
+        Sets the line color
+        :param color: QColor
+        """
+        self.linePen.setColor(QColor(*color))
+
+    def apply(self, pdi: PlotDataItem, updateItem: bool=True):
+        """
+        Applies this PlotStyle to a PlotDataItem by setting
+        the line pen (line type, line color) and the marker/symbol (marker/symbol type,
+        marker/symbol pen line and color, marker/symbol brush)
+        :param pdi: PlotDataItem
+        :param updateItem: if True, will update the PlotDataItem
+        :type updateItem:
+        :return:
+        :rtype:
+        """
+
+        assert isinstance(pdi, PlotDataItem)
+
+        pdi.opts['pen'] = pg.mkPen(self.linePen)
+        pdi.opts['symbol'] = self.markerSymbol
+        pdi.opts['symbolPen'] = pg.mkPen(self.markerPen)
+        pdi.opts['symbolBrush'] = pg.mkBrush(self.markerBrush)
+        pdi.opts['symbolSize'] = self.markerSize
+
+        pdi.setVisible(self.mIsVisible)
+        if updateItem:
+            pdi.updateItems()
+
+    def writeXml(self, node:QDomElement, doc:QDomDocument) -> bool:
+        """
+        Writes the PlotStyle to a QDomNode
+        :param node:
+        :param doc:
+        :return:
+        """
+        plotStyleNode = doc.createElement(XMLTAG_PLOTSTYLENODE)
+        cdata = doc.createCDATASection(self.json().replace('\n',''))
+        plotStyleNode.appendChild(cdata)
+        node.appendChild(plotStyleNode)
+
+        return True
+
+
+    @staticmethod
+    def readXml(node:QDomElement, *args):
+        """
+        Reads the PlotStyle from a QDomElement (XML node)
+        :param self:
+        :param node:
+        :param args:
+        :return:
+        """
+        if not node.nodeName() == XMLTAG_PLOTSTYLENODE:
+            node = node.firstChildElement(XMLTAG_PLOTSTYLENODE)
+        if node.isNull():
+            return None
+
+        cdata = node.firstChild()
+        assert cdata.isCDATASection()
+        return PlotStyle.fromJSON(cdata.nodeValue())
+
 
     @staticmethod
     def fromJSON(jsonString: str):
@@ -265,7 +531,6 @@ class PlotStyle(QObject):
         :param kwds:
         :return: PlotStyle
         """
-
         return PlotStyleDialog.getPlotStyle(*args, **kwds)
 
     def json(self) -> str:
@@ -280,7 +545,7 @@ class PlotStyle(QObject):
         style['linePen'] = pen2tuple(self.linePen)
         style['isVisible'] = self.mIsVisible
         style['backgroundColor'] = QgsSymbolLayerUtils.encodeColor(self.backgroundColor)
-        dump = json.dumps(style, sort_keys=True, indent=0, separators=(',', ':'))
+        dump = json.dumps(style, sort_keys=True, indent=-1, separators=(',', ':'), )
         # log('END json()')
         return dump
 
@@ -311,6 +576,14 @@ class PlotStyle(QObject):
         :return: bool
         """
         return self.mIsVisible
+
+    def __copy__(self):
+        style = PlotStyle()
+        style.copyFrom(self)
+        return style
+
+    def clone(self):
+        return copy.copy(self)
 
     def copyFrom(self, plotStyle):
         """
@@ -362,44 +635,36 @@ class PlotStyle(QObject):
         # p.drawLine(x1,y1,x2,y2)
 
         p.drawLine(2, h - 2, hw, hh)
-        p.drawLine(hw, hh, w - 2, h * 0.3)
+        p.drawLine(hw, hh, w - 2, int(h * 0.3))
 
         p.translate(pm.width() / 2, pm.height() / 2)
         drawSymbol(p, self.markerSymbol, self.markerSize, self.markerPen, self.markerBrush)
         p.end()
         return pm
 
-    def __ne__(self, other):
-        return not self.__eq__(other)
+    def __hash__(self):
+        return hash(id(self))
 
     def __eq__(self, other):
         if not isinstance(other, PlotStyle):
             return False
-        for k in self.__dict__.keys():
-            if not self.__dict__[k] == other.__dict__[k]:
-                # bugfix if two pens are the same but pen1 != pen2
-                if isinstance(self.__dict__[k], QPen):
-                    p1, p2 = self.__dict__[k], other.__dict__[k]
-                    assert isinstance(p1, QPen)
-                    assert isinstance(p2, QPen)
+        for k in ['markerSymbol',
+                  'markerSize',
+                  'markerBrush',
+                  'backgroundColor',
+                  'markerPen',
+                  'linePen',
+                  'mIsVisible']:
+            if self.__dict__[k] != other.__dict__[k]:
 
-                    if p1.brush() != p2.brush(): return False
-                    if p1.capStyle() != p2.capStyle(): return False
-                    if p1.color() != p2.color(): return False
-                    if p1.dashPattern() != p2.dashPattern(): return False
-                    if p1.dashOffset() != p2.dashOffset(): return False
-                    if p1.isCosmetic() != p2.isCosmetic(): return False
-                    if p1.isSolid() != p2.isSolid(): return False
-                    if p1.joinStyle() != p2.joinStyle(): return False
-                    if p1.miterLimit() != p2.miterLimit(): return False
-                    if p1.style() != p2.style(): return False
-                    if p1.width() != p2.width(): return False
-                    if p1.widthF() != p2.widthF(): return False
-                    s = ""
-
-                else:
-
-                    return False
+                a = self.__dict__[k]
+                b = other.__dict__[k]
+                if a != b:
+                    if isinstance(a, QPen):
+                        if not pens_equal(a, b):
+                            return False
+                    else:
+                        return False
         return True
 
     def __reduce_ex__(self, protocol):
@@ -431,12 +696,16 @@ class PlotStyle(QObject):
         self.__dict__.update(state)
 
 
-class PlotStyleWidget(QWidget, loadUI('plotstylewidget.ui')):
+class PlotStyleWidget(QWidget):
     sigPlotStyleChanged = pyqtSignal(PlotStyle)
 
-    def __init__(self, title='<#>', parent=None, x=None, y=None):
+    def __init__(self, title='<#>', parent=None, x=None, y=None, plotStyle:PlotStyle=PlotStyle()):
         super(PlotStyleWidget, self).__init__(parent)
-        self.setupUi(self)
+
+        ui_file = pathlib.Path(__file__).parent / 'plotstylewidget.ui'
+        assert ui_file.is_file()
+        loadUi(ui_file, self)
+
         assert isinstance(self.plotWidget, pg.PlotWidget)
 
         self.mBlockUpdates = False
@@ -461,12 +730,9 @@ class PlotStyleWidget(QWidget, loadUI('plotstylewidget.ui')):
         self.legend.setParentItem(self.plotDataItem.topLevelItem())  # Note we do NOT call plt.addItem in this case
         self.legend.hide()
 
-        self.mMarkerSymbolModel = OptionListModel(options=MARKERSYMBOLS)
-        self.cbMarkerSymbol.setModel(self.mMarkerSymbolModel)
-        self.mPenAndLineStyleModel = OptionListModel(options=PENSTYLES)
-        self.cbMarkerPenStyle.setModel(self.mPenAndLineStyleModel)
-        self.cbLinePenStyle.setModel(self.mPenAndLineStyleModel)
-
+        assert isinstance(self.cbLinePenStyle, QgsPenStyleComboBox)
+        assert isinstance(self.cbMarkerPenStyle, QgsPenStyleComboBox)
+        assert isinstance(self.cbMarkerSymbol, MarkerSymbolComboBox)
         # connect signals
         self.btnMarkerBrushColor.colorChanged.connect(self.refreshPreview)
         self.btnMarkerPenColor.colorChanged.connect(self.refreshPreview)
@@ -487,7 +753,7 @@ class PlotStyleWidget(QWidget, loadUI('plotstylewidget.ui')):
         self.sbLinePenWidth.valueChanged.connect(self.refreshPreview)
         self.mLastPlotStyle = None
         self.cbIsVisible.toggled.connect(self.refreshPreview)
-        self.setPlotStyle(PlotStyle())
+        self.setPlotStyle(plotStyle)
         self.refreshPreview()
 
     def toggleWidgetEnabled(self, cb: QComboBox, widgets: list):
@@ -502,11 +768,21 @@ class PlotStyleWidget(QWidget, loadUI('plotstylewidget.ui')):
             assert isinstance(w, QWidget)
             w.setEnabled(enabled)
 
+    def setPreviewVisible(self, b:bool):
+        """
+        Sets the visibility of the preview window.
+        :param b:
+        :type b:
+        """
+        assert isinstance(b, bool)
+        self.plotWidget.setVisible(b)
+
+
     def refreshPreview(self, *args):
         if not self.mBlockUpdates:
             # log(': REFRESH NOW')
             style = self.plotStyle()
-
+            assert isinstance(style, PlotStyle)
             # todo: set style to style preview
             pi = self.plotDataItem
             pi.setSymbol(style.markerSymbol)
@@ -526,22 +802,18 @@ class PlotStyleWidget(QWidget, loadUI('plotstylewidget.ui')):
         self.mLastPlotStyle = style
         self.mBlockUpdates = True
         self.sbMarkerSize.setValue(style.markerSize)
-        # self._setComboBoxToValue(self.cbMarkerSymbol, style.markerSymbol)
-        setCurrentComboBoxValue(self.cbMarkerSymbol, style.markerSymbol)
+        self.cbMarkerSymbol.setMarkerSymbol(style.markerSymbol)
 
         assert isinstance(style.markerPen, QPen)
         assert isinstance(style.markerBrush, QBrush)
         assert isinstance(style.linePen, QPen)
 
         self.btnMarkerPenColor.setColor(style.markerPen.color())
-        # self._setComboBoxToValue(self.cbMarkerPenStyle, style.markerPen.style())
-        setCurrentComboBoxValue(self.cbMarkerPenStyle, style.markerPen.style())
+        self.cbMarkerPenStyle.setPenStyle(style.markerPen.style())
         self.sbMarkerPenWidth.setValue(style.markerPen.width())
         self.btnMarkerBrushColor.setColor(style.markerBrush.color())
-
         self.btnLinePenColor.setColor(style.linePen.color())
-        # self._setComboBoxToValue(self.cbLinePenStyle, style.linePen.style())
-        setCurrentComboBoxValue(self.cbLinePenStyle, style.linePen.style())
+        self.cbLinePenStyle.setPenStyle(style.linePen.style())
         self.sbLinePenWidth.setValue(style.linePen.width())
         self.cbIsVisible.setChecked(style.isVisible())
         self.mBlockUpdates = False
@@ -558,24 +830,18 @@ class PlotStyleWidget(QWidget, loadUI('plotstylewidget.ui')):
 
         # read plotstyle values from widgets
         style.markerSize = self.sbMarkerSize.value()
-        symbol = currentComboBoxValue(self.cbMarkerSymbol)
-        style.markerSymbol = symbol
+        style.setMarkerSymbol(self.cbMarkerSymbol.markerSymbol())
         assert isinstance(style.markerPen, QPen)
         assert isinstance(style.markerBrush, QBrush)
         assert isinstance(style.linePen, QPen)
 
         style.markerPen.setColor(self.btnMarkerPenColor.color())
         style.markerPen.setWidth(self.sbMarkerPenWidth.value())
-        style.markerPen.setStyle(currentComboBoxValue(self.cbMarkerPenStyle))
-
+        style.markerPen.setStyle(self.cbMarkerPenStyle.penStyle())
         style.markerBrush.setColor(self.btnMarkerBrushColor.color())
-
-        # style.linePen = pg.mkPen(color=self.btnLinePenColor.color(),
-        #                         width=self.sbLinePenWidth.value(),
-        #                         style=currentComboBoxValue(self.cbLinePenStyle))
         style.linePen.setColor(self.btnLinePenColor.color())
         style.linePen.setWidth(self.sbLinePenWidth.value())
-        style.linePen.setStyle(currentComboBoxValue(self.cbLinePenStyle))
+        style.linePen.setStyle(self.cbLinePenStyle.penStyle())
         style.setVisibility(self.cbIsVisible.isChecked())
         return style
 
@@ -592,8 +858,8 @@ class PlotStyleButton(QToolButton):
         # self.clicked.connect(self.showDialog)
         # self.setPlotStyle(PlotStyle())
         self._updateIcon()
-
-        self.mMenu = QMenu()
+        self.setMinimumSize(5, 5)
+        self.mMenu = QMenu(parent=self)
         self.mMenu.triggered.connect(self.onAboutToShowMenu)
         # self.mWidget = PlotStyleWidget()
         self.mDialog = PlotStyleDialog()
@@ -658,7 +924,7 @@ class PlotStyleButton(QToolButton):
             s = self.mInitialButtonSize
             s = self.sizeHint()
             # s = QSize()
-            icon = self.mPlotStyle.createIcon(self.mInitialButtonSize)
+            icon = self.mPlotStyle.createIcon(self.size())
             self.setIcon(icon)
         self.update()
 
