@@ -1532,9 +1532,7 @@ class VRTBuilderWidget(QMainWindow):
         assert isinstance(_settings, QSettings)
         from os.path import expanduser
         self.mQgsFileWidget.setFilePath(_settings.value('PATH_SAVE', os.path.join(expanduser('~'), 'output.vrt')))
-
         self.cbBoundsFromSourceFiles.setChecked(bool(_settings.value('AUTOMATIC_BOUNDS', True)))
-        s = ""
 
     def resetMap(self, *args):
 

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>861</width>
-    <height>588</height>
+    <height>742</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -773,8 +773,8 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>546</width>
-                 <height>472</height>
+                 <width>548</width>
+                 <height>626</height>
                 </rect>
                </property>
                <layout class="QGridLayout" name="gridLayout_2">
@@ -1816,10 +1816,10 @@
      <normaloff>:/vrtbuilder/mActionImportFromRegistry.svg</normaloff>:/vrtbuilder/mActionImportFromRegistry.svg</iconset>
    </property>
    <property name="text">
-    <string>Load registered raster layers</string>
+    <string>Load Raster Layers</string>
    </property>
    <property name="toolTip">
-    <string>Adds all raster images know to the QGIS Layer Registry</string>
+    <string>Adds all raster layers know to QGIS</string>
    </property>
   </action>
  </widget>
