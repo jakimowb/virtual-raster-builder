@@ -1091,38 +1091,15 @@ class VRTBuilderWidget(QMainWindow):
         self.cbResampling.clear()
         self.cbResampling.setModel(RESAMPLE_ALGS)
 
-        def onAddSourceFiles(*args):
 
-            files, filer = QFileDialog.getOpenFileNames(self, "Open raster images", directory='')
-            if len(files) > 0:
-                self.addSourceFiles(files)
+        self.btnAddFromRegistry.setDefaultAction(self.actionAddFromRegistry)
+        self.actionAddFromRegistry.triggered.connect(self.loadSrcFromMapLayerRegistry)
+        self.btnAddSrcFiles.setDefaultAction(self.actionAddSourceFiles)
 
-        self.btnAddFromRegistry.clicked.connect(self.loadSrcFromMapLayerRegistry)
-        self.btnAddSrcFiles.clicked.connect(onAddSourceFiles)
+        self.actionAddSourceFiles.triggered.connect(self.onAddSourceFiles)
         self.btnRemoveSrcFiles.setDefaultAction(self.actionRemoveSourceFiles)
 
-        def onRemoveSelectedSourceFiles():
-            sm = self.treeViewSourceFiles.selectionModel()
-            m = self.treeViewSourceFiles.model()
-            assert isinstance(m, SourceRasterFilterModel)
-
-            to_remove = []
-            rows = sm.selectedRows()
-            for rowIdx in rows:
-                node = m.data(rowIdx, Qt.UserRole)
-                if isinstance(node, SourceRasterFileNode):
-                    to_remove.append(node.mPath)
-                elif isinstance(node, TreeNode) and isinstance(node.parentNode(), SourceRasterFileNode):
-                    to_remove.append(node.parentNode().mPath)
-                else:
-                    s = ""
-
-            if len(to_remove) > 0:
-                self.mSourceFileModel.removeFiles(to_remove)
-
-            # self.sourceFileModel.removeFiles(    [n.mPath for n in self.selectedSourceFileNodes()]
-
-        self.actionRemoveSourceFiles.triggered.connect(onRemoveSelectedSourceFiles)
+        self.actionRemoveSourceFiles.triggered.connect(self.onRemoveSelectedSourceFiles)
 
         self.cbResampling.currentIndexChanged.connect(lambda:
                                                       self.mVRTRaster.setResamplingAlg(
@@ -1170,19 +1147,48 @@ class VRTBuilderWidget(QMainWindow):
 
         self.btnSelectFeature.setDefaultAction(self.actionSelectSourceLayer)
 
-        def onLoadVRT(*args):
-            fn, filer = QFileDialog.getOpenFileName(self, "Open VRT file", filter='GDAL Virtual Raster (*.vrt)',
-                                                    directory='')
-
-            if len(fn) > 0:
-                self.loadVRT(fn)
-
-        self.actionLoadVRT.triggered.connect(onLoadVRT)
+        self.actionLoadVRT.triggered.connect(self.onLoadVRT)
 
         # extents
         self.cbBoundsFromSourceFiles.clicked.connect(self.onUseAutomaticExtent)
         self.cbBoundsFromSourceFiles.setChecked(True)
         self.onUseAutomaticExtent(True)
+
+    def onLoadVRT(self, *args):
+        fn, filer = QFileDialog.getOpenFileName(self, "Open VRT file", filter='GDAL Virtual Raster (*.vrt)',
+                                                directory='')
+
+        if len(fn) > 0:
+            self.loadVRT(fn)
+
+
+    def onAddSourceFiles(self, *args):
+
+        files, filer = QFileDialog.getOpenFileNames(self, "Open raster images", directory='')
+        if len(files) > 0:
+            self.addSourceFiles(files)
+
+    def onRemoveSelectedSourceFiles(self, *args):
+        sm = self.treeViewSourceFiles.selectionModel()
+        m = self.treeViewSourceFiles.model()
+        assert isinstance(m, SourceRasterFilterModel)
+
+        to_remove = []
+        rows = sm.selectedRows()
+        for rowIdx in rows:
+            node = m.data(rowIdx, Qt.UserRole)
+            if isinstance(node, SourceRasterFileNode):
+                to_remove.append(node.mPath)
+            elif isinstance(node, TreeNode) and isinstance(node.parentNode(), SourceRasterFileNode):
+                to_remove.append(node.parentNode().mPath)
+            else:
+                s = ""
+
+        if len(to_remove) > 0:
+            self.mSourceFileModel.removeFiles(to_remove)
+
+        # self.sourceFileModel.removeFiles(    [n.mPath for n in self.selectedSourceFileNodes()]
+
 
     def onInMemoryOutputTriggered(self, b):
         if b:
@@ -1294,7 +1300,6 @@ class VRTBuilderWidget(QMainWindow):
             self.mSourceFileProxyModel.setFilterRegExp(text)
         else:
             self.mSourceFileProxyModel.setFilterWildcard(text)
-
         pass
 
     @pyqtSlot(SpatialExtent)
@@ -1306,6 +1311,7 @@ class VRTBuilderWidget(QMainWindow):
         """
         assert isinstance(spatialExtent, SpatialExtent)
 
+        assert isinstance(spatialExtent, SpatialExtent), 'Got {} instead SpatialExtent'.format(str(spatialExtent))
         if not isinstance(self.mVRTRaster.crs(), QgsCoordinateReferenceSystem):
             self.mVRTRaster.setCrs(spatialExtent.crs())
         spatialExtent = spatialExtent.toCrs(self.mVRTRaster.crs())
@@ -1556,7 +1562,7 @@ class VRTBuilderWidget(QMainWindow):
         for idx in selected:
             self.treeViewVRT.expand(idx)
 
-    def loadSrcFromMapLayerRegistry(self):
+    def loadSrcFromMapLayerRegistry(self, *args):
         # reg = QgsMapLayerRegistry.instance()
 
         sources = set(

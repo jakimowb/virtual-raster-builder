@@ -546,7 +546,7 @@
            <bool>true</bool>
           </property>
           <property name="currentIndex">
-           <number>1</number>
+           <number>0</number>
           </property>
           <widget class="QWidget" name="tabSrcFiles">
            <property name="autoFillBackground">
@@ -1574,6 +1574,7 @@
     </property>
     <addaction name="actionAddSourceFiles"/>
     <addaction name="actionRemoveSourceFiles"/>
+    <addaction name="actionAddFromRegistry"/>
     <addaction name="actionLoadVRT"/>
     <addaction name="separator"/>
     <addaction name="actionAddVirtualBand"/>
@@ -1807,6 +1808,18 @@
    </property>
    <property name="toolTip">
     <string>Opens the issue tracker to report bugs, recommendations and feature requests.</string>
+   </property>
+  </action>
+  <action name="actionAddFromRegistry">
+   <property name="icon">
+    <iconset resource="vrtbuilderresources.qrc">
+     <normaloff>:/vrtbuilder/mActionImportFromRegistry.svg</normaloff>:/vrtbuilder/mActionImportFromRegistry.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Load registered raster layers</string>
+   </property>
+   <property name="toolTip">
+    <string>Adds all raster images know to the QGIS Layer Registry</string>
    </property>
   </action>
  </widget>
