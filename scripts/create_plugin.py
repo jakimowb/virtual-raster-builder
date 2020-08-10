@@ -45,8 +45,6 @@ CHECK_COMMITS = False
 
 ########## Config Section
 
-
-
 MD = QGISMetadataFileWriter()
 MD.mName = 'Virtual Raster Builder'
 MD.mDescription = 'A QGIS Plugin to create GDAL Virtual Raster (VRT) files by drag and drop.'
