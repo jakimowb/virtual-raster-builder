@@ -1251,7 +1251,7 @@ class VRTBuilderWidget(QMainWindow):
             elif name == 'SELECT_EXTENT':
 
                 mapTool = SpatialExtentMapTool(canvas)
-                mapTool.sigSpatialExtentSelected.connect(self.setExtent)
+                mapTool.sigSpatialExtentSelected[QgsCoordinateReferenceSystem, QgsRectangle].connect(self.onSetSpatialExtent)
 
             elif name == 'COPY_RESOLUTION':
                 mapTool = MapToolIdentifySource(canvas, QgsMapToolIdentify.RasterLayer)
@@ -1283,6 +1283,10 @@ class VRTBuilderWidget(QMainWindow):
                 canvas.setMapTool(mapTool)
                 self.mMapTools.append(mapTool)
 
+    @pyqtSlot(QgsCoordinateReferenceSystem, QgsRectangle)
+    def onSetSpatialExtent(self, crs: QgsCoordinateReferenceSystem, rect: QgsRectangle):
+        self.setExtent(SpatialExtent(crs, rect))
+
     def onSourceFileFilterChanged(self, text):
 
         useRegex = self.cbSourceFileFilterRegex.isChecked()
@@ -1293,6 +1297,7 @@ class VRTBuilderWidget(QMainWindow):
 
         pass
 
+    @pyqtSlot(SpatialExtent)
     def setExtent(self, spatialExtent: SpatialExtent):
         """
         Sets the boundaries of destination raster image
