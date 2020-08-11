@@ -480,7 +480,7 @@ class VRTRasterInputSourceBand(object):
         :return: QgsRasterLayer
         """
         lyr = QgsRasterLayer(self.source(), self.name(), 'gdal')
-        # todo: set render to this specific band
+        # todo: set renderer to this specific band
 
         return lyr
 
@@ -1197,7 +1197,8 @@ class VRTRaster(QObject):
     def saveVRT(self, pathVRT) -> gdal.Dataset:
         """
         Save the VRT to path.
-        If source images need to be warped to the final CRS warped VRT image will be created in a folder <directory>/<basename>+<warpedImageFolder>/
+        If source images need to be warped to the final CRS warped VRT image will be created in a folder
+        <directory>/<basename>+<warpedImageFolder>/
 
         :param pathVRT: str, path of final VRT.
         :param warpedImageFolder: basename of folder that is created
