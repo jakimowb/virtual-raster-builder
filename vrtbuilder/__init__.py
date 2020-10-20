@@ -29,14 +29,15 @@ if not os.environ.get('READTHEDOCS') in ['True', 'TRUE', True]:
     from qgis.PyQt.QtCore import *
     from qgis.core import QgsProject, QgsVectorLayer, QgsRasterLayer, QgsMapLayer, QgsMapLayerStore
 
+__version__ = '0.8'  # subversion will be set automatically
+VERSION = __version__
 
 DIR = pathlib.Path(__file__).parent
 DIR_REPO = DIR.parent
 DIR_UI = DIR / 'ui'
 DIR_EXAMPLEDATA = DIR_REPO / 'exampledata'
 PATH_CHANGELOG = DIR_REPO / 'CHANGELOG'
-
-__version__ = '0.8' # subversion will be set automatically
+PATH_ICON = os.path.join(DIR_UI, 'mActionNewVirtualLayer.png')
 LICENSE = 'GNU GPL-3'
 TITLE = 'Virtual Raster Builder'
 DESCRIPTION = 'A QGIS Plugin to create GDAL Virtual Raster (VRT) files by drag and drop.'
@@ -45,8 +46,8 @@ DOCUMENTATION = 'https://virtual-raster-builder.readthedocs.io/en/latest/'
 
 REPOSITORY = 'https://bitbucket.org/jakimowb/virtual-raster-builder'
 ISSUE_TRACKER = 'https://bitbucket.org/jakimowb/virtual-raster-builder/issues'
-AUTHOR= 'Benjamin Jakimow'
-MAIL= 'benjamin.jakimow@geo.hu-berlin.de'
+AUTHOR = 'Benjamin Jakimow'
+MAIL = 'benjamin.jakimow@geo.hu-berlin.de'
 ABOUT = """
 The VRT Builder is a plugin to create GDAL Virtual Raster (VRT) files by drag and drop. 
 It helps to create new images by stacking or mosaicing of source image bands, as well as to 
@@ -59,16 +60,9 @@ The EnMAP-Box project is part of the EnMAP Core Science Team activities (www.enm
 German Aerospace Center (DLR) and granted by the Federal Ministry of 
 Economic Affairs and Energy (BMWi, grant no. 50EE1529).
 """
-
-
-PATH_ICON = os.path.join(DIR_UI, 'mActionNewVirtualLayer.png')
-
-__version__ = '0.8'
-
 URL_QGIS_RESOURCES = r'https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip'
 URL_HOMEPAGE = 'https://virtual-raster-builder.readthedocs.io'
 URL_ISSUETRACKER = 'https://bitbucket.org/jakimowb/virtual-raster-builder/issues'
 URL_REPOSITORY = 'https://bitbucket.org/jakimowb/virtual-raster-builder'
 
 MAPLAYER_STORES = [QgsProject.instance()]
-
