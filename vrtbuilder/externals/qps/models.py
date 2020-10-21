@@ -24,20 +24,14 @@
     along with this software. If not, see <http://www.gnu.org/licenses/>.
 ***************************************************************************
 """
-
-
-import os, pickle, copy, enum
-
-from collections import OrderedDict
-
-from qgis.core import *
-from qgis.gui import *
-
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-
-from osgeo import gdal, osr
+import warnings
+import copy
+import enum
+import typing
+from qgis.PyQt.QtCore import QModelIndex, QAbstractItemModel, QAbstractListModel, \
+    pyqtSignal, Qt, QObject, QAbstractListModel
+from qgis.PyQt.QtWidgets import QComboBox, QTreeView
+from qgis.PyQt.QtGui import QIcon
 
 
 def currentComboBoxValue(comboBox):
@@ -48,6 +42,7 @@ def currentComboBoxValue(comboBox):
         return o.mValue
     else:
         return comboBox.currentData()
+
 
 def setCurrentComboBoxValue(comboBox, value):
     """
@@ -125,7 +120,6 @@ class Option(object):
             return other.mValue == self.mValue
 
 
-
 class OptionListModel(QAbstractListModel):
     def __init__(self, options=None, parent=None):
         super(OptionListModel, self).__init__(parent)
@@ -148,6 +142,7 @@ class OptionListModel(QAbstractListModel):
         self.insertOptions(options)
 
     sigOptionsInserted = pyqtSignal(list)
+
     def insertOptions(self, options, i=None):
         if options is None:
             return
@@ -173,7 +168,6 @@ class OptionListModel(QAbstractListModel):
 
             self.sigOptionsInserted.emit(options)
 
-
     def o2o(self, value):
         if not isinstance(value, Option):
             value = Option(value, '{}'.format(value))
@@ -192,6 +186,7 @@ class OptionListModel(QAbstractListModel):
         return [o.mValue for o in self.options()]
 
     sigOptionsRemoved = pyqtSignal(list)
+
     def removeOptions(self, options):
         """
         Removes a list of options from this Options list.
@@ -237,15 +232,11 @@ class OptionListModel(QAbstractListModel):
                 break
         return idx
 
-
     def optionNames(self):
         return [o.mName for o in self.mOptions]
 
     def optionValues(self):
         return [o.mValue for o in self.mOptions]
-
-
-
 
     def data(self, index, role=Qt.DisplayRole):
         if not index.isValid():
@@ -264,13 +255,11 @@ class OptionListModel(QAbstractListModel):
         elif role == Qt.DecorationRole:
             result = option.mIcon
         elif role == Qt.UserRole:
-            result =  option
+            result = option
         return result
 
 
-
 class TreeNode(QObject):
-
     sigWillAddChildren = pyqtSignal(QObject, int, int)
     sigAddedChildren = pyqtSignal(QObject, int, int)
     sigWillRemoveChildren = pyqtSignal(QObject, int, int)
@@ -278,21 +267,26 @@ class TreeNode(QObject):
     sigUpdated = pyqtSignal(QObject)
     sigExpandedChanged = pyqtSignal(QObject, bool)
 
-    def __init__(self, parentNode, name=None, value=None, values=None, icon=None, toolTip:str=None, statusTip:str=None, **kwds):
-        super(TreeNode, self).__init__()
-        QObject.__init__(self)
+    def __init__(self,
+                 name: str = None,
+                 value: any = None,
+                 values=None,
+                 icon: QIcon = None,
+                 toolTip: str = None,
+                 statusTip: str = None,
+                 **kwds):
 
-        self.mParentNode = parentNode
+        super().__init__()
 
-        self.mChildren = []
-        self.mName = name
-        self.mValues = []
-        self.mIcon = None
-        self.mToolTip = None
-        self.mCheckState = Qt.Unchecked
-        self.mCheckable = False
-        self.mStatusTip = ''
-        self.mExpanded = False
+        self.mChildren: typing.List[TreeNode] = []
+        self.mName: str = name
+        self.mValues: list = []
+        self.mIcon: QIcon = None
+        self.mToolTip: str = None
+        self.mCheckState: Qt.CheckState = Qt.Unchecked
+        self.mCheckable: bool = False
+        self.mStatusTip: str = ''
+        self.mExpanded: bool = False
 
         if name:
             self.setName(name)
@@ -302,18 +296,11 @@ class TreeNode(QObject):
             self.setIcon(icon)
         if toolTip:
             self.setToolTip(toolTip)
-
         if statusTip:
             self.setStatusTip(statusTip)
 
         if values is not None:
             self.setValues(values)
-
-        if isinstance(parentNode, TreeNode):
-            parentNode.appendChildNodes([self])
-
-        s = ""
-
 
     def __iter__(self):
         return iter(self.mChildren)
@@ -321,8 +308,13 @@ class TreeNode(QObject):
     def __len__(self):
         return len(self.mChildren)
 
+    def __contains__(self, item):
+        return item in self.mChildren
 
-    def setExpanded(self, expanded:bool):
+    def __getitem__(self, slice):
+        return self.mChildren[slice]
+
+    def setExpanded(self, expanded: bool):
         """
         Expands the node
         :param expanded:
@@ -338,7 +330,7 @@ class TreeNode(QObject):
     def expanded(self) -> bool:
         return self.mExpanded == True
 
-    def setStatusTip(self, statusTip:str):
+    def setStatusTip(self, statusTip: str):
         """
         Sets the nodes's status tip to the string specified by statusTip.
         :param statusTip: str
@@ -366,10 +358,9 @@ class TreeNode(QObject):
     def isCheckable(self) -> bool:
         return self.mCheckable == True
 
-    def setCheckable(self, b:bool):
+    def setCheckable(self, b: bool):
         assert isinstance(b, bool)
         self.mCheckable = b
-
 
     def clone(self, parent=None):
 
@@ -384,38 +375,42 @@ class TreeNode(QObject):
             childNode.clone(parent=n)
         return n
 
-
-
-    def nodeIndex(self):
-        return self.mParentNode.mChildren.index(self)
+    def nodeIndex(self) -> int:
+        p = self.parent()
+        if isinstance(p, TreeNode):
+            return p.mChildren.index(self)
+        else:
+            None
 
     def next(self):
-        i = self.nodeIndex()
-        if i < len(self.mChildren.mChildren):
-            return self.mParentNode.mChildren[i + 1]
-        else:
-            return None
+        p = self.parent()
+        if isinstance(p, TreeNode):
+            i = p.mChildren.index(self)
+            if i < len(p.mChildren)-1:
+                return p.mChildren[i+1]
+        return None
 
     def previous(self):
-        i = self.nodeIndex()
-        if i > 0:
-            return self.mParentNode.mChildren[i - 1]
-        else:
-            return None
+        p = self.parent()
+        if isinstance(p, TreeNode):
+            i = p.mChildren.index(self)
+            if i > 0:
+                return p.mChildren[i - 1]
+        return None
 
     def detach(self):
         """
         Detaches this TreeNode from its parent TreeNode
         :return:
         """
-        if isinstance(self.mParentNode, TreeNode):
-            self.mParentNode.mChildren.remove(self)
-            self.setParentNode(None)
+        p = self.parent()
+        if isinstance(p, TreeNode):
+            p.removeChildNode(self)
 
     def appendChildNodes(self, listOfChildNodes):
         self.insertChildNodes(len(self.mChildren), listOfChildNodes)
 
-    def insertChildNodes(self, index, listOfChildNodes):
+    def insertChildNodes(self, index: int, listOfChildNodes):
         assert index <= len(self.mChildren)
         if isinstance(listOfChildNodes, TreeNode):
             listOfChildNodes = [listOfChildNodes]
@@ -425,11 +420,9 @@ class TreeNode(QObject):
         l = len(listOfChildNodes)
         idxLast = index + l - 1
         self.sigWillAddChildren.emit(self, index, idxLast)
-        if not self.signalsBlocked():
-            self.sigWillAddChildren.emit(self, index, idxLast)
+
         for i, node in enumerate(listOfChildNodes):
             assert isinstance(node, TreeNode)
-            node.mParentNode = self
             # connect node signals
             node.sigWillAddChildren.connect(self.sigWillAddChildren)
             node.sigAddedChildren.connect(self.sigAddedChildren)
@@ -437,14 +430,10 @@ class TreeNode(QObject):
             node.sigRemovedChildren.connect(self.sigRemovedChildren)
             node.sigUpdated.connect(self.sigUpdated)
 
+            node.setParent(self)
             self.mChildren.insert(index + i, node)
-        import time
-        t0 = time.time()
 
         self.sigAddedChildren.emit(self, index, idxLast)
-        s = ""
-        if not self.signalsBlocked():
-            self.sigAddedChildren.emit(self, index, idxLast)
 
     def removeChildNode(self, node):
         assert node in self.mChildren
@@ -452,7 +441,6 @@ class TreeNode(QObject):
         self.removeChildNodes(i, 1)
 
     def removeChildNodes(self, row, count):
-
         if row < 0 or count <= 0:
             return False
 
@@ -464,12 +452,13 @@ class TreeNode(QObject):
         self.sigWillRemoveChildren.emit(self, row, rowLast)
         to_remove = self.childNodes()[row:rowLast + 1]
         for n in to_remove:
+            assert isinstance(n, TreeNode)
             self.mChildren.remove(n)
-            # n.mParent = None
+            n.setParent(None)
 
         self.sigRemovedChildren.emit(self, row, rowLast)
 
-    def setToolTip(self, toolTip:str):
+    def setToolTip(self, toolTip: str):
         """
         Sets the tooltip
         :param toolTip: str
@@ -483,22 +472,20 @@ class TreeNode(QObject):
         """
         return self.mToolTip
 
+    def setParentNode(self, node):
+        warnings.warn('Use setParent', DeprecationWarning)
+        self.setParent(node)
+
     def parentNode(self):
-        """
-        Returns the parent TreeNode that owns this TreeNode
-        :return: TreeNode
-        """
-        return self.mParentNode
+        warnings.warn('Use parent', DeprecationWarning)
+        return self.parent()
 
-    def setParentNode(self, treeNode):
-        """
-        :param treeNode:
-        :return:
-        """
-        assert isinstance(treeNode, TreeNode)
-        self.mParentNode = treeNode
+    def setParent(self, parentNode) -> None:
+        if parentNode is not None:
+            assert isinstance(parentNode, TreeNode)
+            super().setParent(parentNode)
 
-    def setIcon(self, icon:QIcon):
+    def setIcon(self, icon: QIcon):
         """
         Sets the TreeNode icon
         :param icon: QIcon
@@ -512,7 +499,7 @@ class TreeNode(QObject):
         """
         return self.mIcon
 
-    def setName(self, name:str):
+    def setName(self, name: str):
         """
         Sets the TreeNodes name
         :param name: str
@@ -539,7 +526,7 @@ class TreeNode(QObject):
         else:
             self.setValues([value])
 
-    def setValues(self, listOfValues:list):
+    def setValues(self, listOfValues: list):
         """
         Sets the values show by this TreeNode
         :param listOfValues: [list-of-values]
@@ -573,11 +560,9 @@ class TreeNode(QObject):
         else:
             return None
 
-
     def childCount(self) -> int:
         """Returns the number of child nones"""
         return len(self.mChildren)
-
 
     def childNodes(self) -> list:
         """
@@ -606,11 +591,17 @@ class TreeModel(QAbstractItemModel):
     """
     A QAbstractItemModel implementation to be used in QTreeViews
     """
+
     def __init__(self, parent=None, rootNode=None):
         super(TreeModel, self).__init__(parent)
 
         self.mColumnNames = ['Node', 'Value']
-        self.mRootNode = rootNode if isinstance(rootNode, TreeNode) else TreeNode(None)
+        self.mRootNode: TreeNode
+        if isinstance(rootNode, TreeNode):
+            self.mRootNode = rootNode
+        else:
+            self.mRootNode = TreeNode(name='<root node>')
+
         self.mRootNode.sigWillAddChildren.connect(self.onNodeWillAddChildren)
         self.mRootNode.sigAddedChildren.connect(self.onNodeAddedChildren)
         self.mRootNode.sigWillRemoveChildren.connect(self.onNodeWillRemoveChildren)
@@ -629,19 +620,20 @@ class TreeModel(QAbstractItemModel):
         """
         return self.mRootNode
 
-
-    def onNodeWillAddChildren(self, node, idx1, idxL):
+    def onNodeWillAddChildren(self, node: TreeNode, first: int, last: int):
         idxNode = self.node2idx(node)
-        self.beginInsertRows(idxNode, idx1, idxL)
+        assert idxNode.internalPointer() == node
+        if node != self.mRootNode:
+            assert self.data(idxNode, Qt.UserRole) == node
+        self.beginInsertRows(idxNode, first, last)
 
-    def onNodeAddedChildren(self, *args):
+    def onNodeAddedChildren(self, node: TreeNode, first: int, last: int):
         self.endInsertRows()
-        # for i in range(idx1, idxL+1):
+        s = ""
 
-
-    def onNodeWillRemoveChildren(self, node, idx1, idxL):
+    def onNodeWillRemoveChildren(self, node: TreeNode, first: int, last: int):
         idxNode = self.node2idx(node)
-        self.beginRemoveRows(idxNode, idx1, idxL)
+        self.beginRemoveRows(idxNode, first, last)
 
     def onNodeRemovedChildren(self, node, idx1, idxL):
         self.endRemoveRows()
@@ -650,21 +642,14 @@ class TreeModel(QAbstractItemModel):
         idxNode = self.node2idx(node)
         self.dataChanged.emit(idxNode, idxNode)
 
-
     def headerData(self, section, orientation, role):
         assert isinstance(section, int)
-
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
-
-            if len(self.mColumnNames) > section:
-                return self.mColumnNames[section]
-            else:
-                return ''
-
+            return self.mColumnNames[section]
         else:
             return None
 
-    def parent(self, index:QModelIndex) -> QModelIndex:
+    def parent(self, index: QModelIndex) -> QModelIndex:
         """
         Returns the parent index of a QModelIndex `index`
         :param index: QModelIndex
@@ -676,7 +661,7 @@ class TreeModel(QAbstractItemModel):
         if not isinstance(node, TreeNode):
             return QModelIndex()
 
-        parentNode = node.parentNode()
+        parentNode = node.parent()
         if not isinstance(parentNode, TreeNode):
             return QModelIndex()
 
@@ -687,27 +672,17 @@ class TreeModel(QAbstractItemModel):
         row = parentNode.mChildren.index(node)
         return self.createIndex(row, 0, parentNode)
 
-    def rowCount(self, index:QModelIndex) -> int:
+    def rowCount(self, index: QModelIndex = None) -> int:
         """
-        Return the row-count, i.e. number of child node for a TreeNode as index `index`.
+        Return the row-count, i.e. number of child node for a TreeNode at index `index`.
         :param index: QModelIndex
         :return: int
         """
-        if index is None:
+        if index in [None, QModelIndex()]:
             return len(self.rootNode().mChildren)
-        node = index.internalPointer()
-        if isinstance(node, TreeNode):
-            return node.childCount()
-        else:
-            return len(self.mRootNode)
-        if not index.isValid():
-            return 0
-        #assert isinstance(index, QModelIndex)
-        return index.internalPointer().childCount()
-
-        node = self.idx2node(index)
-        #node = index.internalPointer()
-        return len(node.mChildren) if isinstance(node, TreeNode) else 0
+        node: TreeNode = index.internalPointer()
+        assert isinstance(node, TreeNode)
+        return node.childCount()
 
     def hasChildren(self, index=QModelIndex()) -> bool:
         """
@@ -725,7 +700,7 @@ class TreeModel(QAbstractItemModel):
         """
         return self.mColumnNames[:]
 
-    def idx2columnName(self, index:QModelIndex) -> str:
+    def idx2columnName(self, index: QModelIndex) -> str:
         """
         Returns the column name related to a QModelIndex
         :param index: QModelIndex
@@ -736,7 +711,17 @@ class TreeModel(QAbstractItemModel):
         else:
             return self.mColumnNames[index.column()]
 
-    def columnCount(self, index= QModelIndex()) -> int:
+    def printModel(self, index:QModelIndex, prefix=''):
+        if index is None:
+            index = QModelIndex()
+        if isinstance(index, TreeNode):
+            index = self.node2idx(index)
+        print(f'{prefix} {self.data(index, role=Qt.DisplayRole)}')
+        for r in range(self.rowCount(index)):
+            idx = self.index(r, 0, parent=index)
+            self.printModel(idx, prefix=f'{prefix}-')
+
+    def columnCount(self, index=QModelIndex()) -> int:
         """
         Returns the number of columns
         :param index: QModelIndex
@@ -747,9 +732,7 @@ class TreeModel(QAbstractItemModel):
     def connectTreeView(self, treeView):
         self.mTreeView = treeView
 
-
-
-    def index(self, row:int, column:int, parent:QModelIndex=None) -> QModelIndex:
+    def index(self, row: int, column: int, parent: QModelIndex = None) -> QModelIndex:
         """
         Returns the QModelIndex
         :param row: int
@@ -758,19 +741,15 @@ class TreeModel(QAbstractItemModel):
         :return: QModelIndex
         """
         if parent is None:
+            parent = QModelIndex()
+        assert isinstance(parent, QModelIndex)
+        if not parent.isValid():
             parentNode = self.mRootNode
         else:
-            parentNode = self.idx2node(parent)
+            parentNode = parent.internalPointer()
+        assert isinstance(parentNode, TreeNode)
 
-        if row < 0 or row >= parentNode.childCount():
-            return QModelIndex()
-        if column < 0 or column >= len(self.mColumnNames):
-            return QModelIndex()
-
-        if isinstance(parentNode, TreeNode) and row < len(parentNode.mChildren):
-            return self.createIndex(row, column, parentNode.mChildren[row])
-        else:
-            return QModelIndex()
+        return self.createIndex(row, column, parentNode.mChildren[row])
 
     def findParentNode(self, node, parentNodeType) -> TreeNode:
         """
@@ -787,7 +766,7 @@ class TreeModel(QAbstractItemModel):
                 return None
             node = node.parentNode()
 
-    def indexes2nodes(self, indexes:list):
+    def indexes2nodes(self, indexes: list):
         """
         Returns the TreeNodes related to a list of QModelIndexes
         :param indexes: [list-of-QModelIndex]
@@ -801,7 +780,7 @@ class TreeModel(QAbstractItemModel):
                 nodes.append(n)
         return nodes
 
-    def nodes2indexes(self, nodes:list):
+    def nodes2indexes(self, nodes: list):
         """
         Converts a list of TreeNodes into the corresponding list of QModelIndexes
         Set indexes2nodes
@@ -809,7 +788,6 @@ class TreeModel(QAbstractItemModel):
         :return: [list-of-QModelIndex]
         """
         return [self.node2idx(n) for n in nodes]
-
 
     def expandNode(self, node, expand=True, recursive=True):
         assert isinstance(node, TreeNode)
@@ -821,8 +799,7 @@ class TreeModel(QAbstractItemModel):
                 for n in node.childNodes():
                     self.expandNode(n, expand=expand, recursive=recursive)
 
-
-    def idx2node(self, index:QModelIndex) -> TreeNode:
+    def idx2node(self, index: QModelIndex) -> TreeNode:
         """
         Returns the TreeNode related to an QModelIndex `index`.
         :param index: QModelIndex
@@ -838,25 +815,26 @@ class TreeModel(QAbstractItemModel):
             assert isinstance(node, TreeNode)
             return node
 
-    def node2idx(self, node:TreeNode) -> QModelIndex:
+    def node2idx(self, node: TreeNode) -> QModelIndex:
         """
         Returns a TreeNode's QModelIndex
         :param node: TreeNode
         :return: QModelIndex
         """
         assert isinstance(node, TreeNode)
+
         if node == self.mRootNode:
-            return QModelIndex()
             return self.createIndex(-1, -1, node)
         else:
-            parentNode = node.parentNode()
+            parentNode = node.parent()
             assert isinstance(parentNode, TreeNode)
-            if node not in parentNode.mChildren:
-                return QModelIndex()
-            r = parentNode.mChildren.index(node)
-            return self.createIndex(r, 0, node)
+            assert node in parentNode.mChildren
 
-    def data(self, index, role):
+            parentIndex = self.node2idx(parentNode)
+            row = parentNode.mChildren.index(node)
+            return self.index(row, 0, parent=parentIndex)
+
+    def data(self, index: QModelIndex, role=Qt.DisplayRole):
         """
 
         :param index: QModelIndex
@@ -864,18 +842,15 @@ class TreeModel(QAbstractItemModel):
         :return: object
         """
         assert isinstance(index, QModelIndex)
-        if not index.isValid():
+        node = index.internalPointer()
+        if not isinstance(node, TreeNode):
             return None
 
-        node = self.idx2node(index)
-        #node = self.idx2node(index)
-        node = index.internalPointer()
-        assert isinstance(node, TreeNode)
-        col = index.column()
         if role == Qt.UserRole:
             return node
 
         col = index.column()
+
         if col == 0:
             if role in [Qt.DisplayRole, Qt.EditRole]:
                 return node.name()
@@ -893,21 +868,21 @@ class TreeModel(QAbstractItemModel):
         if not index.isValid():
             return Qt.NoItemFlags
         node = self.idx2node(index)
-        #node = self.idx2node(index)
+        # node = self.idx2node(index)
         return Qt.ItemIsEnabled | Qt.ItemIsSelectable
-
 
 
 class TreeView(QTreeView):
     """
     A basic QAbstractItemView implementation to realize TreeModels.
     """
+
     def __init__(self, *args, **kwds):
         super(TreeView, self).__init__(*args, **kwds)
 
         self.mModel = None
 
-    def setModel(self, model:QAbstractItemModel):
+    def setModel(self, model: QAbstractItemModel):
         """
         Sets the TreeModel
         :param model: TreeModel
@@ -925,14 +900,13 @@ class TreeView(QTreeView):
             idx = self.model().index(row, 0)
             self.setColumnSpan(idx)
 
-    def onRowsInserted(self, parent:QModelIndex, first:int, last:int):
+    def onRowsInserted(self, parent: QModelIndex, first: int, last: int):
 
-        for row in range(first, last+1):
+        for row in range(first, last + 1):
             idx = self.model().index(row, 0, parent)
             self.setColumnSpan(idx)
 
-    def onDataChanged(self, tl:QModelIndex, br:QModelIndex, roles):
-
+    def onDataChanged(self, tl: QModelIndex, br: QModelIndex, roles):
 
         parent = tl.parent()
         for row in range(tl.row(), br.row() + 1):
@@ -940,7 +914,7 @@ class TreeView(QTreeView):
             self.setColumnSpan(idx)
         s = ""
 
-    def setColumnSpan(self, idx:QModelIndex):
+    def setColumnSpan(self, idx: QModelIndex):
         """
         Sets the column span for index `idx` and all child widgets
         :param idx:
@@ -975,8 +949,6 @@ class TreeView(QTreeView):
 
         return None
 
-
-
     def selectedNodes(self) -> list:
         """
         Returns all selected TreeNodes
@@ -988,4 +960,3 @@ class TreeView(QTreeView):
             if isinstance(node, TreeNode) and node not in nodes:
                 nodes.append(node)
         return nodes
-
