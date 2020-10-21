@@ -166,6 +166,55 @@ class VRTBuilderTests(TestCase):
             self.assertIsInstance(b2, VRTRasterInputSourceBand)
             self.assertTrue(b2.name() in b1.name())
 
+
+    def test_core_models(self):
+
+        tv = QTreeView()
+        model = TreeModel()
+
+        nodeCnt = 0
+        lastNode = model.rootNode()
+        def addNode(*args):
+            nonlocal nodeCnt, lastNode
+            nodeCnt += 1
+            node = TreeNode(name=f'Node {nodeCnt}')
+            node.setValues([nodeCnt, 'B'])
+            lastNode.appendChildNodes(node)
+            lastNode = node
+
+        def removeNode(*args):
+            nonlocal lastNode
+            sm = tv.selectionModel()
+
+            nodes = [idx.data(Qt.UserRole) for idx in sm.selectedIndexes()]
+            nodes = [n for n in nodes if isinstance(n, TreeNode)]
+            for n in nodes:
+                idx = model.node2idx(n)
+                if idx.isValid():
+                    n.parentNode().removeChildNodes(n)
+
+            lastNode = model.rootNode()
+
+        w = QWidget()
+        btnAdd = QPushButton('Add Node')
+        btnAdd.clicked.connect(addNode)
+
+        btnRemove = QPushButton('Remove selected')
+        btnRemove.clicked.connect(removeNode)
+
+        tv.setModel(model)
+
+        l = QHBoxLayout()
+        l.addWidget(btnAdd)
+        l.addWidget(btnRemove)
+        l2 = QVBoxLayout()
+        l2.addLayout(l)
+        l2.addWidget(tv)
+        w.setLayout(l2)
+
+        btnAdd.click()
+        self.showGui(w)
+
     def test_describeRaw(self):
         from exampledata import speclib as pathESL
         pathESL = pathESL.as_posix()

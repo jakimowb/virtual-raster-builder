@@ -83,7 +83,7 @@
           <string>n+</string>
          </property>
          <property name="icon">
-          <iconset resource="../../../QGIS/images/images.qrc">
+          <iconset>
            <normaloff>:/images/themes/default/mActionExpandTree.svg</normaloff>:/images/themes/default/mActionExpandTree.svg</iconset>
          </property>
          <property name="autoRaise">
@@ -100,7 +100,7 @@
           <string>n-</string>
          </property>
          <property name="icon">
-          <iconset resource="../../../QGIS/images/images.qrc">
+          <iconset>
            <normaloff>:/images/themes/default/mActionCollapseTree.svg</normaloff>:/images/themes/default/mActionCollapseTree.svg</iconset>
          </property>
          <property name="autoRaise">
@@ -160,7 +160,7 @@
        <enum>QAbstractItemView::ExtendedSelection</enum>
       </property>
       <property name="headerHidden">
-       <bool>true</bool>
+       <bool>false</bool>
       </property>
       <attribute name="headerShowSortIndicator" stdset="0">
        <bool>true</bool>
@@ -299,7 +299,7 @@
      <x>0</x>
      <y>0</y>
      <width>968</width>
-     <height>26</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuSources">
@@ -402,7 +402,7 @@
           <string>n+</string>
          </property>
          <property name="icon">
-          <iconset resource="../../../QGIS/images/images.qrc">
+          <iconset>
            <normaloff>:/images/themes/default/mActionExpandTree.svg</normaloff>:/images/themes/default/mActionExpandTree.svg</iconset>
          </property>
          <property name="autoRaise">
@@ -419,7 +419,7 @@
           <string>n-</string>
          </property>
          <property name="icon">
-          <iconset resource="../../../QGIS/images/images.qrc">
+          <iconset>
            <normaloff>:/images/themes/default/mActionCollapseTree.svg</normaloff>:/images/themes/default/mActionCollapseTree.svg</iconset>
          </property>
          <property name="autoRaise">
@@ -457,6 +457,9 @@
        </property>
        <property name="selectionMode">
         <enum>QAbstractItemView::ExtendedSelection</enum>
+       </property>
+       <property name="rootIsDecorated">
+        <bool>false</bool>
        </property>
        <attribute name="headerCascadingSectionResizes">
         <bool>true</bool>
@@ -1235,7 +1238,7 @@
           <string>...</string>
          </property>
          <property name="icon">
-          <iconset resource="../../../QGIS/images/images.qrc">
+          <iconset>
            <normaloff>:/images/themes/default/mActionZoomIn.svg</normaloff>:/images/themes/default/mActionZoomIn.svg</iconset>
          </property>
          <property name="autoRaise">
@@ -1249,7 +1252,7 @@
           <string>...</string>
          </property>
          <property name="icon">
-          <iconset resource="../../../QGIS/images/images.qrc">
+          <iconset>
            <normaloff>:/images/themes/default/mActionZoomOut.svg</normaloff>:/images/themes/default/mActionZoomOut.svg</iconset>
          </property>
          <property name="autoRaise">
@@ -1263,7 +1266,7 @@
           <string>...</string>
          </property>
          <property name="icon">
-          <iconset resource="../../../QGIS/images/images.qrc">
+          <iconset>
            <normaloff>:/images/themes/default/mActionZoomFullExtent.svg</normaloff>:/images/themes/default/mActionZoomFullExtent.svg</iconset>
          </property>
          <property name="autoRaise">
@@ -1277,7 +1280,7 @@
           <string>...</string>
          </property>
          <property name="icon">
-          <iconset resource="../../../QGIS/images/images.qrc">
+          <iconset>
            <normaloff>:/images/themes/default/mActionPan.svg</normaloff>:/images/themes/default/mActionPan.svg</iconset>
          </property>
          <property name="autoRaise">
@@ -1468,7 +1471,7 @@
   </action>
   <action name="actionPan">
    <property name="icon">
-    <iconset resource="../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionPan.svg</normaloff>:/images/themes/default/mActionPan.svg</iconset>
    </property>
    <property name="text">
@@ -1480,7 +1483,7 @@
   </action>
   <action name="actionZoomIn">
    <property name="icon">
-    <iconset resource="../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionZoomIn.svg</normaloff>:/images/themes/default/mActionZoomIn.svg</iconset>
    </property>
    <property name="text">
@@ -1492,7 +1495,7 @@
   </action>
   <action name="actionZoomOut">
    <property name="icon">
-    <iconset resource="../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionZoomOut.svg</normaloff>:/images/themes/default/mActionZoomOut.svg</iconset>
    </property>
    <property name="text">
@@ -1504,7 +1507,7 @@
   </action>
   <action name="actionZoomFullExtent">
    <property name="icon">
-    <iconset resource="../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionZoomFullExtent.svg</normaloff>:/images/themes/default/mActionZoomFullExtent.svg</iconset>
    </property>
    <property name="text">
@@ -1525,7 +1528,7 @@
   </action>
   <action name="actionSaveVRT">
    <property name="icon">
-    <iconset resource="../../../QGIS/images/images.qrc">
+    <iconset>
      <normaloff>:/images/themes/default/mActionFileSave.svg</normaloff>:/images/themes/default/mActionFileSave.svg</iconset>
    </property>
    <property name="text">
@@ -1593,14 +1596,8 @@
    </property>
   </action>
   <zorder>dockSources</zorder>
-  <zorder>dockWidget</zorder>
-  <zorder>dockWidget_2</zorder>
-  <zorder>dockStructure</zorder>
   <zorder>dockOutput</zorder>
-  <zorder>dockWidget_4</zorder>
-  <zorder>dockWidget_3</zorder>
   <zorder>dockPreview</zorder>
-  <zorder>dockWidget_6</zorder>
  </widget>
  <customwidgets>
   <customwidget>
