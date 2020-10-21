@@ -13,12 +13,18 @@ __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
 import unittest
+import xmlrunner
 import tempfile
+import numpy as np
 from exampledata import Landsat8_West_tif, Landsat8_East_tif, RapidEye_tif, Sentinel2_East_tif, Sentinel2_West_tif
-from qgis.core import QgsRectangle
+from qgis.core import QgsRectangle, QgsRasterLayer, QgsPointXY, QgsCoordinateReferenceSystem, QgsProject, \
+    QgsWkbTypes, QgsMapLayer
+from qgis.gui import QgsMapCanvas, QgsMapTool
 from vrtbuilder.externals.qps.testing import TestCase, TestObjects
 from vrtbuilder import DIR_UI
+from vrtbuilder.virtualrasters import alignRectangleToGrid, alignPointToGrid, describeRawFile, read_vsimem
 from vrtbuilder.widgets import *
+
 
 class VRTBuilderTests(TestCase):
 
@@ -63,7 +69,7 @@ class VRTBuilderTests(TestCase):
 
         tmpDir = tempfile.mkdtemp()
 
-        #1. create an empty VRT
+        # 1. create an empty VRT
         VRT = VRTRaster()
         vb1 = VRTRasterBand()
         vb2 = VRTRasterBand()
@@ -81,8 +87,7 @@ class VRTBuilderTests(TestCase):
 
             for _ in range(n):
                 VRT.addVirtualBand(VRTRasterBand())
-            path =  os.path.join(tmpDir, 'testEmptyVRT.vrt')
-
+            path = os.path.join(tmpDir, 'testEmptyVRT.vrt')
 
             self.assertRaises(Exception, VRT.saveVRT, path)
             continue
@@ -99,7 +104,7 @@ class VRTBuilderTests(TestCase):
         self.assertIsInstance(res, QSizeF)
         self.assertIsInstance(crs, QgsCoordinateReferenceSystem)
 
-        #align to other raster grid
+        # align to other raster grid
         pt = QgsPointXY(ext.xMinimum() - 5, ext.yMaximum() + 3.5)
 
         lyr = qgsRasterLayer(RapidEye_tif)
@@ -120,18 +125,18 @@ class VRTBuilderTests(TestCase):
 
     def test_alignExtent(self):
 
-        pxSize = QSizeF(30,30)
+        pxSize = QSizeF(30, 30)
         extent = QgsRectangle(30, 210, 300, 600)
         refPoint1 = QgsPointXY(-300, -300)
         refPoint2 = QgsPointXY(10, 10)
         refPoint3 = QgsPointXY(-20, -20)
         refPoint4 = QgsPointXY(20, 20)
-        point = QgsPointXY(8,15)
+        point = QgsPointXY(8, 15)
         pt1 = alignPointToGrid(pxSize, refPoint1, point)
-        pt2 = alignPointToGrid(pxSize, refPoint1, QgsPointXY(16,16))
+        pt2 = alignPointToGrid(pxSize, refPoint1, QgsPointXY(16, 16))
         self.assertIsInstance(pt1, QgsPointXY)
-        self.assertEqual(pt1, QgsPointXY(0,0))
-        self.assertEqual(pt2, QgsPointXY(30,30))
+        self.assertEqual(pt1, QgsPointXY(0, 0))
+        self.assertEqual(pt2, QgsPointXY(30, 30))
 
         extent1, px1 = alignRectangleToGrid(pxSize, refPoint1, extent)
         extent2, px2 = alignRectangleToGrid(pxSize, refPoint2, extent)
@@ -177,7 +182,7 @@ class VRTBuilderTests(TestCase):
         bo = int(re.search(r'byte order[ ]*=[ ]*(?P<n>\d+)', lines).group('n'))
         byteOrder = 'MSB' if bo != 0 else 'LSB'
 
-        assert dt == 5 #float
+        assert dt == 5  # float
         eType = gdal.GDT_Float64
         tmpDir = tempfile.gettempdir()
         pathVRT1 = os.path.join(tmpDir, 'vrtRawfile.vrt')
@@ -203,6 +208,13 @@ class VRTBuilderTests(TestCase):
             self.assertTrue('<PixelOffset>8' in xml)
             self.assertTrue('<LineOffset>1416' in xml)
             self.assertTrue('<ByteOrder>LSB' in xml)
+
+    def test_gui_empty(self):
+        GUI = VRTBuilderWidget()
+        reg = QgsProject.instance()
+        reg.addMapLayer(TestObjects.createRasterLayer())
+        GUI.loadSrcFromMapLayerRegistry()
+        self.showGui(GUI)
 
     def test_gui(self):
         from exampledata import Landsat8_West_tif
@@ -243,50 +255,76 @@ class VRTBuilderTests(TestCase):
         GUI.mVRTRasterTreeModel.dropMimeData(mimeData, Qt.CopyAction, 0, 0, QModelIndex())
         self.assertTrue(len(GUI.mVRTRaster) == 1)
 
-        #make a mouse click on the map canvas to select something
+        # make a mouse click on the map canvas to select something
         size = GUI.previewMap.size()
-        point = QPointF(0.5 * size.width(), 0.5*size.height())
-        event = QMouseEvent(QEvent.MouseButtonPress, point, Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
+        pointCenter = QPointF(0.5 * size.width(), 0.5 * size.height())
+        pointLeft = QPointF(0.3 * size.width(), 0.3 * size.height())
+        event = QMouseEvent(QEvent.MouseButtonPress, pointCenter, Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
         GUI.previewMap.mousePressEvent(event)
 
-        #load more source files
+        # load more source files
         sources = [Landsat8_East_tif, Landsat8_West_tif, Sentinel2_West_tif, Sentinel2_East_tif]
         GUI.addSourceFiles(sources)
         self.assertTrue(len(GUI.mSourceFileModel.rasterSources()) == len(sources))
 
+        canvas = QgsMapCanvas()
+        lyrR = TestObjects.createRasterLayer()
+        canvas.setLayers([lyrR])
+        canvas.mapSettings().setDestinationCrs(lyrR.crs())
+        canvas.zoomToFullExtent()
+        pointCenter = QPointF(0.5 * canvas.size().width(), 0.5 * canvas.size().height())
+        pointLeft = QPointF(0.3 * canvas.size().width(), 0.3 * canvas.size().height())
+        GUI.sigAboutCreateCurrentMapTools.connect(lambda *args, g=GUI, c=canvas: g.createCurrentMapTool(c))
+        # test map tools
+        for name in VRTBuilderMapTools:
+            GUI.setCurrentMapTool(name)
 
-        #test map tools
-        for name in ['COPY_EXTENT', 'COPY_GRID', 'ALIGN_GRID', 'COPY_RESOLUTION']:
-            GUI.activateMapTool(name)
-            canvas = GUI.previewMap
             self.assertIsInstance(canvas, QgsMapCanvas)
             mapTool = canvas.mapTool()
             self.assertIsInstance(mapTool, QgsMapTool)
+            self.assertTrue(mapTool in GUI.mMapToolInstances)
+            self.assertTrue(len(GUI.mMapToolInstances) == 2)
 
             layer = None
             extent = None
             crs = None
 
-            if isinstance(mapTool, MapToolIdentifySource):
-                def onIdentified(lyr):
-                    nonlocal layer
-                    layer = lyr
-                mapTool.sigMapLayerIdentified.connect(onIdentified)
-            elif isinstance(mapTool, MapToolSpatialExtent):
-                def onIdentified(e, c):
-                    nonlocal extent, crs
-                    extent = e
-                    crs = c
-                mapTool.sigSpatialExtentSelected.connect(onIdentified)
+            def onLayerIdentified(lyr):
+                nonlocal layer
+                layer = lyr
 
-            event = QMouseEvent(QEvent.MouseButtonPress, point, Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
-            GUI.previewMap.mousePressEvent(event)
+            def onExtentSelected(c, rect):
+                nonlocal extent, crs
+                extent = rect
+                crs = c
+
+            if isinstance(mapTool, MapToolIdentifySource):
+
+                mapTool.sigMapLayerIdentified.connect(onLayerIdentified)
+
+            elif isinstance(mapTool, SpatialExtentMapTool):
+
+                mapTool.sigSpatialExtentSelected.connect(onExtentSelected)
+
+            # simulate a mouse click
+            event = QMouseEvent(QEvent.MouseButtonPress, pointCenter, Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
+            canvas.mousePressEvent(event)
+            #QApplication.processEvents()
+
+            if isinstance(mapTool, SpatialExtentMapTool):
+                # simulate drawing a rectangle
+                event = QMouseEvent(QEvent.MouseMove, pointLeft, Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
+                canvas.mouseMoveEvent(event)
+
+                event = QMouseEvent(QEvent.MouseButtonRelease, pointLeft, Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
+                canvas.mouseReleaseEvent(event)
+                #QApplication.processEvents()
 
             if isinstance(mapTool, MapToolIdentifySource):
 
                 self.assertIsInstance(layer, QgsMapLayer)
 
-            elif isinstance(mapTool, MapToolSpatialExtent):
+            elif isinstance(mapTool, SpatialExtentMapTool):
 
                 self.assertIsInstance(extent, QgsRectangle)
                 self.assertIsInstance(crs, QgsCoordinateReferenceSystem)
@@ -315,10 +353,9 @@ class VRTBuilderTests(TestCase):
                                          ul1.y() - size1.height() * res1.height()))
 
         if False:
-            #change coordinate system
+            # change coordinate system
             crs2 = QgsCoordinateReferenceSystem('EPSG:32721')
             VRT.setCrs(crs2)
-
 
             res2 = VRT.resolution()
             size2 = VRT.size()
@@ -331,7 +368,6 @@ class VRTBuilderTests(TestCase):
             lr2 = VRT.lr()
 
             self.assertTrue(ul2.y() > 0, msg='UTM South Y coordinate should be positive.')
-
 
             self.assertNotEqual(ul1, ul2)
             self.assertNotEqual(lr1, lr2)
@@ -359,8 +395,7 @@ class VRTBuilderTests(TestCase):
             ds1 = None
             gdal.Unlink(path)
 
-
-        #convert to degree
+        # convert to degree
         crs3 = QgsCoordinateReferenceSystem('EPSG:4326')
         VRT.setCrs(crs3)
         res3 = VRT.resolution()
@@ -380,13 +415,12 @@ class VRTBuilderTests(TestCase):
         ds1 = None
         gdal.Unlink(path)
 
-        print('\n'.join(vsiFiles()))
+
 
     def test_init(self):
 
         dsMEM = TestObjects.createRasterDataset(100, 20, 3)
         self.assertIsInstance(dsMEM, gdal.Dataset)
-
 
         sources = [Landsat8_East_tif, gdal.Open(Landsat8_East_tif.as_posix()),
                    QgsRasterLayer(Landsat8_East_tif.as_posix()),
@@ -397,8 +431,4 @@ class VRTBuilderTests(TestCase):
 
 
 if __name__ == "__main__":
-
-    unittest.main()
-
-
-
+    unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)

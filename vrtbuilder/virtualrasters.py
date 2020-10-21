@@ -24,15 +24,18 @@ import re
 import sys
 import typing
 import uuid
+import pathlib
 from xml.etree import ElementTree
-from vrtbuilder.externals.qps.utils import *
-from PyQt5.QtCore import *
 from osgeo import gdal, osr
-
+from PyQt5.QtCore import QObject, pyqtSignal, QSize, QSizeF, QPoint
 from qgis.core import QgsRasterLayer, QgsCoordinateReferenceSystem, QgsRectangle, QgsCoordinateTransform, \
     QgsPointXY, QgsPoint
 
-from vrtbuilder.models import Option, OptionListModel
+from vrtbuilder.externals.qps.utils import qgsRasterLayer, gdalDataset
+from vrtbuilder.externals.qps.models import Option, OptionListModel
+
+
+
 
 # lookup GDAL Data Type and its size in bytes
 LUT_GDT_SIZE = {gdal.GDT_Byte: 1,
@@ -92,7 +95,7 @@ for GRAkey in [k for k in list(gdal.__dict__.keys()) if k.startswith('GRA_')]:
     GRA = gdal.__dict__[GRAkey]
     GRA_Name = GRAkey[4:]
 
-    option = Option(GRA, GRA_Name, tooltip=GRA_tooltips.get(GRA_Name))
+    option = Option(GRA, GRA_Name, toolTip=GRA_tooltips.get(GRA_Name))
     RESAMPLE_ALGS.addOption(option)
 
 

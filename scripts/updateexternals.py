@@ -1,19 +1,19 @@
-
 import os, sys, re, shutil, zipfile, datetime
 from vrtbuilder.externals.qps.make import updateexternals
 from vrtbuilder.externals.qps.make.updateexternals import RemoteInfo, updateRemoteLocations
 from vrtbuilder import DIR_REPO
 
-import git # install with: pip install gitpython
+import git  # install with: pip install gitpython
 
 updateexternals.setProjectRepository(DIR_REPO)
 
 RemoteInfo.create(r'https://bitbucket.org/jakimowb/qgispluginsupport.git',
                   key='qps',
-                  #prefixLocal='site-packages/qps',
+                  # prefixLocal='site-packages/qps',
                   prefixLocal='vrtbuilder/externals/qps',
                   prefixRemote=r'qps',
                   remoteBranch='develop')
+
 
 def updateRemotes(remoteLocations):
     """
@@ -25,8 +25,8 @@ def updateRemotes(remoteLocations):
         remoteLocations = [remoteLocations]
     updateexternals.updateRemoteLocations(remoteLocations)
 
-def run():
 
+def run():
     updateRemotes('qps')
 
 
@@ -41,6 +41,7 @@ if __name__ == "__main__":
     if 'qps' in to_update:
         path = os.path.join(DIR_REPO, r'vrtbuilder/externals/qps/qpsresources.qrc')
         from scripts.compile_resourcefiles import compileVRTBuilderResources
+
         compileVRTBuilderResources()
 
     exit()

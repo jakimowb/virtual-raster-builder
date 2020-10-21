@@ -20,13 +20,12 @@
 """
 # noinspection PyPep8Naming
 
-import os, site
-from qgis.gui import *
-from qgis.core import *
-from qgis.PyQt.QtCore import *
-from qgis.PyQt.QtGui import *
-from qgis.PyQt.QtWidgets import *
+import os
+import site
 
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QAction
+from qgis.gui import QgisInterface
 
 class VRTBuilderPlugin(object):
 
@@ -34,12 +33,6 @@ class VRTBuilderPlugin(object):
         self.iface = iface
         assert isinstance(iface, QgisInterface)
         self.vrtBuilder = None
-        """
-        import console.console as CONSOLE
-        if CONSOLE._console is None:
-            CONSOLE._console = CONSOLE.PythonConsole(iface.mainWindow())
-            QTimer.singleShot(0, CONSOLE._console.activate)
-        """
 
     def initGui(self):
 
@@ -47,31 +40,25 @@ class VRTBuilderPlugin(object):
         site.addsitedir(DIR_REPO)
 
         # init main UI
-        import vrtbuilder
         from vrtbuilder.ui import vrtbuilderresources_rc
         vrtbuilderresources_rc.qInitResources()
 
         from vrtbuilder import TITLE
 
         icon = QIcon(':/vrtbuilder/mActionNewVirtualLayer.svg')
+
         self.action = QAction(icon, TITLE, self.iface)
         self.action.triggered.connect(self.run)
         self.iface.addToolBarIcon(self.action)
-        #self.iface.addRasterToolBarIcon(self.action)
+
+        self.iface.addPluginToRasterMenu(self.action.text(), self.action)
 
     def run(self):
         from vrtbuilder.widgets import VRTBuilderWidget
         self.vrtBuilder = VRTBuilderWidget()
-        if isinstance(self.iface, QgisInterface):
-            mapCanvas = self.iface.mapCanvas()
-            if isinstance(mapCanvas, QgsMapCanvas):
-                self.vrtBuilder.registerMapCanvas(mapCanvas)
-            self.vrtBuilder.sigRasterCreated.connect(self.iface.addRasterLayer)
-
         self.vrtBuilder.show()
 
     def unload(self):
 
         self.iface.removeToolBarIcon(self.action)
-        #self.iface.removeRasterToolBarIcon(self.action)
-
+        self.iface.removePluginRasterMenu(self.action.text(), self.action)

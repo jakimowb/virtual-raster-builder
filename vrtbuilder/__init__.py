@@ -29,7 +29,7 @@ if not os.environ.get('READTHEDOCS') in ['True', 'TRUE', True]:
     from qgis.PyQt.QtCore import *
     from qgis.core import QgsProject, QgsVectorLayer, QgsRasterLayer, QgsMapLayer, QgsMapLayerStore
 
-__version__ = '0.8'  # subversion will be set automatically
+__version__ = '0.9'  # subversion will be set automatically
 VERSION = __version__
 
 DIR = pathlib.Path(__file__).parent
