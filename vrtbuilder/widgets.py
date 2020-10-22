@@ -42,7 +42,7 @@ from qgis.gui import QgsMapCanvas, QgsFileWidget, QgsRubberBand, QgisInterface, 
 
 from vrtbuilder import DIR_UI, __version__, URL_REPOSITORY, URL_ISSUETRACKER, URL_HOMEPAGE
 from .virtualrasters import VRTRaster, VRTRasterBand, VRTRasterInputSourceBand, RESAMPLE_ALGS, resolution
-from .externals.qps.utils import loadUi, SpatialExtent, SpatialPoint, qgsRasterLayer, qgsMapLayer
+from .externals.qps.utils import loadUi, SpatialExtent, SpatialPoint, qgsRasterLayer, qgsRasterLayers, qgsMapLayer
 from .externals.qps.maptools import MapTools
 
 
@@ -511,7 +511,8 @@ class SourceRasterModel(TreeModel):
         assert isinstance(rasterSources, list)
         existingSources = self.rasterSources()
 
-        newLayers = [qgsRasterLayer(s) for s in rasterSources]
+        newLayers = qgsRasterLayers(rasterSources)
+
         newLayers = [l for l in newLayers if isinstance(l, QgsRasterLayer) and
                      pathlib.Path(l.source()).as_posix() not in existingSources]
 
@@ -1153,7 +1154,7 @@ class VRTBuilderWidget(QMainWindow):
         self.mQgsFileWidget.setStorageMode(QgsFileWidget.SaveFile)
         self.mQgsFileWidget.fileChanged.connect(self.validateInputs)
 
-        self.mVRTRaster = VRTRaster()
+        self.mVRTRaster = VRTRaster(self)
 
         # self.vrtRaster.sigSourceBandInserted.connect(self.resetMap)
         # self.vrtRaster.sigSourceRasterAdded.connect(self.resetMap)

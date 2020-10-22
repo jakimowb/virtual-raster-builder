@@ -35,6 +35,10 @@ class VRTBuilderTests(TestCase):
         resources.append(DIR_UI / 'vrtbuilderresources_rc.py')
         super().setUpClass(resources=resources)
 
+    def test_subdataset(self):
+
+        s = ""
+
     def test_vsi_support(self):
 
         VRT = VRTRaster()
