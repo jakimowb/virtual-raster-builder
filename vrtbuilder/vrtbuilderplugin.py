@@ -26,7 +26,7 @@ import site
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 from qgis.core import QgsRasterLayer, QgsProject
-from qgis.gui import QgisInterface
+from qgis.gui import QgisInterface, QgsMapCanvas
 
 
 class VRTBuilderPlugin(object):
@@ -45,19 +45,22 @@ class VRTBuilderPlugin(object):
         vrtbuilderresources_rc.qInitResources()
 
         from vrtbuilder import TITLE
-
+        from vrtbuilder.widgets import VRTBuilderWidget
         icon = QIcon(':/vrtbuilder/mActionNewVirtualLayer.svg')
 
         self.action = QAction(icon, TITLE, self.iface)
         self.action.triggered.connect(self.run)
         self.iface.addToolBarIcon(self.action)
-
+        self.vrtBuilder: VRTBuilderWidget = None
         self.iface.addPluginToRasterMenu(self.action.text(), self.action)
 
     def run(self):
         from vrtbuilder.widgets import VRTBuilderWidget
-        self.vrtBuilder = VRTBuilderWidget()
-        self.vrtBuilder.sigRasterCreated[str, bool].connect(self.onRasterCreated)
+        if not isinstance(self.vrtBuilder, VRTBuilderWidget):
+            self.vrtBuilder = VRTBuilderWidget()
+            self.vrtBuilder.sigRasterCreated[str, bool].connect(self.onRasterCreated)
+            self.vrtBuilder.sigAboutCreateCurrentMapTools.connect(self.onSetWidgetMapTool)
+
         self.vrtBuilder.show()
 
     def onRasterCreated(self, source: str, open_in_qgis: bool):
@@ -65,6 +68,33 @@ class VRTBuilderPlugin(object):
             bn = os.path.basename(source)
             self.iface.addRasterLayer(source, baseName=bn)
 
+    def onSetWidgetMapTool(self):
+
+        from vrtbuilder.widgets import VRTBuilderWidget
+        w = self.vrtBuilder
+        if not isinstance(w, VRTBuilderWidget):
+            return
+        canvases = []
+        canvases.extend(self.iface.mapCanvases())
+
+        try:
+            # connect with other known plugins
+            from enmapbox import EnMAPBox
+            emb = EnMAPBox.instance()
+            if isinstance(emb, EnMAPBox):
+                canvases.extend(emb.mapCanvases())
+        except:
+            pass
+        canvases = set(canvases)
+
+        for mapCanvas in canvases:
+            assert isinstance(mapCanvas, QgsMapCanvas)
+            w.createCurrentMapTool(mapCanvas)
+
     def unload(self):
+        from vrtbuilder.widgets import VRTBuilderWidget
+        if isinstance(self.vrtBuilder, VRTBuilderWidget):
+            self.vrtBuilder.close()
+            self.vrtBuilder.setParent(None)
         self.iface.removeToolBarIcon(self.action)
         self.iface.removePluginRasterMenu(self.action.text(), self.action)
