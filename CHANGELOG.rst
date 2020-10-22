@@ -1,7 +1,8 @@
 0.9 2020-10-20
-   * changed main layout, now with toolbar and dock widget
-   * fixed map tool activation
-   * spatial extents can be selected from different map canvases
+   * main window got a toolbar and dock widgets
+   * improved tree models, e.g. to list raster sources
+   * can read multi-layer sources
+   * spatial extents can be selected from different map canvases, e.g QGIS or EnMAP-box
 
 0.8 2020-08-09:
    * fixed updating of VRT output extent
