@@ -12,6 +12,7 @@ __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
+import random
 import unittest
 import xmlrunner
 import tempfile
@@ -166,19 +167,20 @@ class VRTBuilderTests(TestCase):
             self.assertIsInstance(b2, VRTRasterInputSourceBand)
             self.assertTrue(b2.name() in b1.name())
 
-
     def test_core_models(self):
 
-        tv = QTreeView()
+        tv = TreeView()
         model = TreeModel()
-
+        # model.setColumnNames(['A','B','C','D','E'])
         nodeCnt = 0
         lastNode = model.rootNode()
+
         def addNode(*args):
             nonlocal nodeCnt, lastNode
             nodeCnt += 1
             node = TreeNode(name=f'Node {nodeCnt}')
-            node.setValues([nodeCnt, 'B'])
+            rvals = list(range(random.randrange(0, 5)))
+            node.setValues([nodeCnt] + rvals)
             lastNode.appendChildNodes(node)
             lastNode = node
 
@@ -358,7 +360,7 @@ class VRTBuilderTests(TestCase):
             # simulate a mouse click
             event = QMouseEvent(QEvent.MouseButtonPress, pointCenter, Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
             canvas.mousePressEvent(event)
-            #QApplication.processEvents()
+            # QApplication.processEvents()
 
             if isinstance(mapTool, SpatialExtentMapTool):
                 # simulate drawing a rectangle
@@ -367,7 +369,7 @@ class VRTBuilderTests(TestCase):
 
                 event = QMouseEvent(QEvent.MouseButtonRelease, pointLeft, Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
                 canvas.mouseReleaseEvent(event)
-                #QApplication.processEvents()
+                # QApplication.processEvents()
 
             if isinstance(mapTool, MapToolIdentifySource):
 
@@ -463,8 +465,6 @@ class VRTBuilderTests(TestCase):
 
         ds1 = None
         gdal.Unlink(path)
-
-
 
     def test_init(self):
 

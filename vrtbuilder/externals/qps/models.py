@@ -29,7 +29,7 @@ import copy
 import enum
 import typing
 from qgis.PyQt.QtCore import QModelIndex, QAbstractItemModel, QAbstractListModel, \
-    pyqtSignal, Qt, QObject, QAbstractListModel
+    pyqtSignal, Qt, QObject, QAbstractListModel, QSize
 from qgis.PyQt.QtWidgets import QComboBox, QTreeView
 from qgis.PyQt.QtGui import QIcon
 
@@ -265,7 +265,6 @@ class TreeNode(QObject):
     sigWillRemoveChildren = pyqtSignal(QObject, int, int)
     sigRemovedChildren = pyqtSignal(QObject, int, int)
     sigUpdated = pyqtSignal(QObject)
-    sigExpandedChanged = pyqtSignal(QObject, bool)
 
     def __init__(self,
                  name: str = None,
@@ -287,7 +286,6 @@ class TreeNode(QObject):
         self.mCheckState: Qt.CheckState = Qt.Unchecked
         self.mCheckable: bool = False
         self.mStatusTip: str = ''
-        self.mExpanded: bool = False
 
         if name:
             self.setName(name)
@@ -315,26 +313,21 @@ class TreeNode(QObject):
     def __getitem__(self, slice):
         return self.mChildren[slice]
 
+    def depth(self) -> int:
+        d = 0
+        parent = self.parentNode()
+        while isinstance(parent, TreeNode):
+            d += 1
+            parent = parent.parentNode()
+        return d
+
     def columnCount(self) -> int:
         """
         A node has at least one column for its name
         :return:
         :rtype:
         """
-        return max(1, len(self.mValues))
-
-    def setExpanded(self, expanded: bool):
-        """
-        Expands the node
-        :param expanded:
-        :return:
-        """
-        assert isinstance(expanded, bool)
-        b = self.mExpanded != expanded
-        self.mExpanded = expanded
-
-        if b and not self.signalsBlocked():
-            self.sigExpandedChanged.emit(self, self.mExpanded)
+        return len(self.mValues) + 1
 
     def expanded(self) -> bool:
         return self.mExpanded == True
@@ -414,7 +407,10 @@ class TreeNode(QObject):
         """
         p = self.parent()
         if isinstance(p, TreeNode):
-            p.removeChildNode(self)
+            p.removeChildNodes(self)
+
+    def hasChildren(self) -> bool:
+        return len(self.mChildren) > 0
 
     def appendChildNodes(self, child_nodes):
         self.insertChildNodes(len(self.mChildren), child_nodes)
@@ -443,6 +439,9 @@ class TreeNode(QObject):
             self.mChildren.insert(index + i, node)
 
         self.sigAddedChildren.emit(self, index, idxLast)
+
+    def removeAllChildNodes(self):
+        self.removeChildNodes(self.childNodes())
 
     def removeChildNodes(self, child_nodes):
         """
@@ -534,7 +533,7 @@ class TreeNode(QObject):
         Sets the TreeNodes name
         :param name: str
         """
-        self.mName = name
+        self.mName = str(name)
 
     def name(self) -> str:
         """
@@ -597,6 +596,21 @@ class TreeNode(QObject):
         """
         return self.mChildren[:]
 
+    def findParentNode(self, nodeType):
+        """
+        Returns the next upper TreeNode of type "nodeType"
+        :param nodeType:
+        :return: TreeNode of type "nodeType" or None
+        """
+
+        parent = self.parentNode()
+        if not isinstance(parent, TreeNode):
+            return None
+        elif isinstance(parent, nodeType):
+            return parent
+        else:
+            return parent.findParentNode(nodeType)
+
     def findChildNodes(self, type, recursive=True):
         """
         Returns a list of child nodes with node-type `type`.
@@ -627,7 +641,7 @@ class TreeModel(QAbstractItemModel):
         else:
             self.mRootNode = TreeNode(name='<root node>')
 
-        self.mRootNode.setValues(['Node', 'Value'])
+        self.mRootNode.setValues(['Name', 'Value'])
         self.mRootNode.sigWillAddChildren.connect(self.onNodeWillAddChildren)
         self.mRootNode.sigAddedChildren.connect(self.onNodeAddedChildren)
         self.mRootNode.sigWillRemoveChildren.connect(self.onNodeWillRemoveChildren)
@@ -657,7 +671,14 @@ class TreeModel(QAbstractItemModel):
 
     def onNodeAddedChildren(self, node: TreeNode, first: int, last: int):
         self.endInsertRows()
-        s = ""
+
+    def maxColumnCount(self, index: QModelIndex) -> int:
+        assert isinstance(index, QModelIndex)
+        cnt = self.columnCount(index)
+        for row in range(self.rowCount(index)):
+            idx = self.index(row, 0, index)
+            cnt = max(cnt, self.maxColumnCount(idx))
+        return cnt
 
     def onNodeWillRemoveChildren(self, node: TreeNode, first: int, last: int):
         idxNode = self.node2idx(node)
@@ -668,7 +689,7 @@ class TreeModel(QAbstractItemModel):
 
     def onNodeUpdated(self, node: TreeNode):
         idx = self.node2idx(node)
-        idx2 = self.createIndex(idx.row(), node.columnCount()-1)
+        idx2 = self.createIndex(idx.row(), node.columnCount() - 1)
         self.dataChanged.emit(idx, idx2)
 
     def headerData(self, section, orientation, role):
@@ -676,6 +697,8 @@ class TreeModel(QAbstractItemModel):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             if section < len(self.mRootNode.values()):
                 return self.mRootNode.values()[section]
+            else:
+                return f'Column {section + 1}'
         return None
 
     def parent(self, index: QModelIndex) -> QModelIndex:
@@ -699,6 +722,9 @@ class TreeModel(QAbstractItemModel):
         :param index: QModelIndex
         :return: int
         """
+        if parent is None:
+            parent = QModelIndex()
+
         if parent.column() > 0:
             return 0
         if not parent.isValid():
@@ -743,22 +769,29 @@ class TreeModel(QAbstractItemModel):
             idx = self.index(r, 0, parent=index)
             self.printModel(idx, prefix=f'{prefix}-')
 
-    def columnCount(self, parent:QModelIndex=None) -> int:
+    def span(self, idx) -> QSize():
+
+        return super(TreeModel, self).span(idx)
+
+    def columnCount(self, parent: QModelIndex = None) -> int:
         """
         Returns the number of columns
         :param index: QModelIndex
         :return:
         """
+        return len(self.mRootNode.values())
+
+        """
         if not isinstance(parent, QModelIndex):
             parent = QModelIndex()
-        if parent.isValid():
-            parentNode: TreeNode = parent.internalPointer()
-        else:
-            parentNode: TreeNode = self.mRootNode
+        if not parent.isValid():
+            return len(self.rootNode().values())
 
-        if parentNode.columnCount() > 2:
-            s = ""
+        parentNode: TreeNode = parent.internalPointer()
+        assert isinstance(parentNode, TreeNode)
+
         return parentNode.columnCount()
+        """
 
     def index(self, row: int, column: int, parent: QModelIndex = None) -> QModelIndex:
         """
@@ -781,7 +814,7 @@ class TreeModel(QAbstractItemModel):
         else:
             return QModelIndex()
 
-    def findParentNode(self, node, parentNodeType) -> TreeNode:
+    def findParentNode(self, node: TreeNode, nodeType) -> TreeNode:
         """
         finds the next parent TreeNode of type `parentNodeType`
         :param node: TreeNode
@@ -789,12 +822,7 @@ class TreeModel(QAbstractItemModel):
         :return: TreeNode instance
         """
         assert isinstance(node, TreeNode)
-        while True:
-            if isinstance(node, parentNodeType):
-                return node
-            if not isinstance(node.parentNode(), TreeNode):
-                return None
-            node = node.parentNode()
+        return node.findParentNode(nodeType)
 
     def indexes2nodes(self, indexes: list):
         """
@@ -901,12 +929,18 @@ class TreeModel(QAbstractItemModel):
             if role == Qt.ToolTipRole:
                 return node.toolTip()
         if col > 0:
+            # first column is for the node name, other columns are for node values
             i = col - 1
-            if len(node.values()) > 0:
-                s = ""
-            if role in [Qt.DisplayRole, Qt.EditRole] and len(node.values()) > 0:
-                return str(node.values()[i])
 
+            if len(node.values()) > i:
+
+                if role == Qt.DisplayRole:
+                    return str(node.values()[i])
+                if role == Qt.EditRole:
+                    return node.values()[i]
+                if role == Qt.ToolTipRole:
+                    tt = [f'{i + 1}: {v}' for i, v in enumerate(node.values())]
+                    return '\n'.join(tt)
         return None
 
     def flags(self, index):
@@ -924,14 +958,63 @@ class TreeView(QTreeView):
     def __init__(self, *args, **kwds):
         super(TreeView, self).__init__(*args, **kwds)
 
+        self.mAutoExpansionDepth: int = 1
         self.mModel = None
+        self.mNodeExpansion: typing.Dict[str, bool] = dict()
+
+    def setAutoExpansionDepth(self, depth: int):
+        """
+        Sets the depth until which new TreeNodes will be opened
+        0 = Top nodes not expanded
+        1 = Top nodes expanded
+        2 = Top and Subnodes expanded
+        :param depth: int
+        """
+        assert isinstance(depth, int)
+        self.mAutoExpansionDepth = depth
+
+    def updateNodeExpansion(self, restore: bool,
+                            index: QModelIndex = None, prefix='') -> typing.Dict[str, bool]:
+        """
+        Allows to save and restore the state of node expansion
+        :param restore: bool, set True to save the state, False to restore it
+        :param index: QModelIndex()
+        :param prefix: string to identify the parent nodes
+        :return: Dict[str, bool] that stores the node expansion states
+        """
+        assert isinstance(restore, bool)
+
+        if not isinstance(index, QModelIndex):
+            index = QModelIndex()
+        if False and not (restore or index.isValid()):
+            self.mNodeExpansion.clear()
+
+        model: QAbstractItemModel = self.model()
+        if isinstance(model, QAbstractItemModel):
+            rows = model.rowCount(index)
+            if rows > 0:
+                nodeName = f'{prefix}:{model.data(index, role=Qt.DisplayRole)}'
+
+                isExpanded = self.isExpanded(index)
+                if restore:
+                    # restore expansion state, if stored in mNodeExpansion
+                    self.setExpanded(index, self.mNodeExpansion.get(nodeName, isExpanded))
+                else:
+                    # save expansion state
+                    self.mNodeExpansion[nodeName] = isExpanded
+
+                for row in range(rows):
+                    idx = model.index(row, 0, index)
+                    self.updateNodeExpansion(restore, index=idx, prefix=nodeName)
+
+        return self.mNodeExpansion
 
     def setModel(self, model: QAbstractItemModel):
         """
         Sets the TreeModel
         :param model: TreeModel
         """
-        super(TreeView, self).setModel(model)
+        super().setModel(model)
 
         self.mModel = model
         if isinstance(self.mModel, QAbstractItemModel):
@@ -939,16 +1022,30 @@ class TreeView(QTreeView):
             self.mModel.dataChanged.connect(self.onDataChanged)
             self.mModel.rowsInserted.connect(self.onRowsInserted)
 
+        # update column spans
+        self.onModelReset()
+
+
     def onModelReset(self):
         for row in range(self.model().rowCount(QModelIndex())):
             idx = self.model().index(row, 0)
             self.setColumnSpan(idx)
+
+    def nodeDepth(self, index: QModelIndex) -> int:
+        if not index.isValid():
+            return 0
+        return 1 + self.nodeDepth(index.parent())
 
     def onRowsInserted(self, parent: QModelIndex, first: int, last: int):
 
         for row in range(first, last + 1):
             idx = self.model().index(row, 0, parent)
             self.setColumnSpan(idx)
+
+        level = self.nodeDepth(parent)
+        if level < self.mAutoExpansionDepth:
+            self.setExpanded(idx, True)
+            s = ""
 
     def onDataChanged(self, tl: QModelIndex, br: QModelIndex, roles):
 
@@ -963,6 +1060,31 @@ class TreeView(QTreeView):
         Sets the column span for index `idx` and all child widgets
         :param idx:
         :return:
+        """
+
+        assert isinstance(idx, QModelIndex)
+        if not idx.isValid():
+            return
+
+        colCnt = self.header().count()
+        #span: QSize = model.span(idx)
+        span: QSize = QSize(1, 1)
+        rightIdx = idx
+        while rightIdx.isValid() and rightIdx.column() < colCnt:
+            rightIdx = rightIdx.siblingAtColumn(rightIdx.column() + 1)
+            if rightIdx.data(Qt.DisplayRole) is None:
+                span.setWidth(span.width() + 1)
+            else:
+                break
+
+        if span.width() > 1:
+            self.setFirstColumnSpanned(idx.row(), idx.parent(), True)
+        for row in range(self.model().rowCount(idx)):
+            idx2 = self.model().index(row, 0, idx)
+            self.setColumnSpan(idx2)
+
+        return
+
         """
         assert isinstance(idx, QModelIndex)
         if not idx.isValid():
@@ -980,6 +1102,7 @@ class TreeView(QTreeView):
             for row in range(self.model().rowCount(idx)):
                 idx2 = self.model().index(row, 0, idx)
                 self.setColumnSpan(idx2)
+        """
 
     def selectedNode(self) -> TreeNode:
         """

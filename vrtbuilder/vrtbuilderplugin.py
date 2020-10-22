@@ -25,17 +25,18 @@ import site
 
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
+from qgis.core import QgsRasterLayer, QgsProject
 from qgis.gui import QgisInterface
+
 
 class VRTBuilderPlugin(object):
 
-    def __init__(self, iface):
-        self.iface = iface
+    def __init__(self, iface: QgisInterface):
+        self.iface: QgisInterface = iface
         assert isinstance(iface, QgisInterface)
         self.vrtBuilder = None
 
     def initGui(self):
-
         DIR_REPO = os.path.dirname(__file__)
         site.addsitedir(DIR_REPO)
 
@@ -56,9 +57,14 @@ class VRTBuilderPlugin(object):
     def run(self):
         from vrtbuilder.widgets import VRTBuilderWidget
         self.vrtBuilder = VRTBuilderWidget()
+        self.vrtBuilder.sigRasterCreated[str, bool].connect(self.onRasterCreated)
         self.vrtBuilder.show()
 
-    def unload(self):
+    def onRasterCreated(self, source: str, open_in_qgis: bool):
+        if open_in_qgis:
+            bn = os.path.basename(source)
+            self.iface.addRasterLayer(source, baseName=bn)
 
+    def unload(self):
         self.iface.removeToolBarIcon(self.action)
         self.iface.removePluginRasterMenu(self.action.text(), self.action)
