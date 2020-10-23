@@ -12,7 +12,8 @@
 pytest
 py
 pytest-cov
-
+xmlrunner
+gitpython
 recommonmark
 sphinx
 sphinx-argparse
