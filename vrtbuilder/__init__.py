@@ -49,16 +49,17 @@ ISSUE_TRACKER = 'https://bitbucket.org/jakimowb/virtual-raster-builder/issues'
 AUTHOR = 'Benjamin Jakimow'
 MAIL = 'benjamin.jakimow@geo.hu-berlin.de'
 ABOUT = """
-The VRT Builder is a plugin to create GDAL Virtual Raster (VRT) files by drag and drop. 
+<p>The VRT Builder is a plugin to create GDAL Virtual Raster (VRT) files by drag and drop. 
 It helps to create new images by stacking or mosaicing of source image bands, as well as to 
-describe band- and spatial subsets. 
+describe band- and spatial subsets. </p>
 
+<p>
 The VRT Builder is developed at Geographic Institute of Humboldt-Universität zu Berlin within the EnMAP-Box 
-project under contract of the German Research Centre for Geosciences (GFZ). 
+project under contract of the German Research Centre for Geosciences (GFZ). <br/>
 
 The EnMAP-Box project is part of the EnMAP Core Science Team activities (www.enmap.org), funded by the 
 German Aerospace Center (DLR) and granted by the Federal Ministry of 
-Economic Affairs and Energy (BMWi, grant no. 50EE1529).
+Economic Affairs and Energy (BMWi, grant no. 50EE1529).</p>
 """
 URL_QGIS_RESOURCES = r'https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip'
 URL_HOMEPAGE = 'https://virtual-raster-builder.readthedocs.io'
