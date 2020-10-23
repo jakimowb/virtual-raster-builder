@@ -1240,8 +1240,10 @@ class VRTBuilderWidget(QMainWindow):
             tb.textEdited.connect(lambda: self.calculateGrid(changedExtent=True))
             tb.setValidator(QDoubleValidator(-999999999999999999999.0, 999999999999999999999.0, 20))
 
-        self.sbResolutionX.valueChanged[float].connect(self.onResolutionValueChanged)
-        self.sbResolutionY.valueChanged[float].connect(self.onResolutionValueChanged)
+        self.sbResolutionX.valueChanged[float].connect(
+            lambda r, w=self.sbResolutionX: self.onResolutionValueChanged(w, r))
+        self.sbResolutionY.valueChanged[float].connect(
+            lambda r, w=self.sbResolutionX: self.onResolutionValueChanged(w, r))
 
         self.sbRasterWidth.valueChanged.connect(lambda: self.calculateGrid(changedSize=True))
         self.sbRasterHeight.valueChanged.connect(lambda: self.calculateGrid(changedSize=True))
@@ -1312,8 +1314,7 @@ class VRTBuilderWidget(QMainWindow):
         self.cbBoundsFromSourceFiles.setChecked(True)
         self.onUseAutomaticExtent(True)
 
-    def onResolutionValueChanged(self, value: float):
-        sender = QApplication.instance().sender()
+    def onResolutionValueChanged(self, sender: QWidget, value: float):
         if sender == self.sbResolutionX:
             if self.cbLinkResolutionXY.isChecked():
                 self.sbResolutionY.setValue(value)
