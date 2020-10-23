@@ -141,10 +141,12 @@ def sourceIcon(source) -> QIcon:
     else:
         return QIcon()
 
+
 class SourceRasterBandGroupNode(TreeNode):
 
     def __init__(self, *args, **kwds):
         super().__init__(*args, **kwds)
+
 
 class SourceRasterBandNode(TreeNode):
     def __init__(self, vrtRasterInputSourceBand: VRTRasterInputSourceBand):
@@ -155,7 +157,7 @@ class SourceRasterBandNode(TreeNode):
         b = self.mSrcBand.mBandIndex + 1
         self.setName(b)
 
-        #self.setName('{}:{}'.format(os.path.basename(self.mSrcBand.mSource), ))
+        # self.setName('{}:{}'.format(os.path.basename(self.mSrcBand.mSource), ))
         self.setValues([self.mSrcBand.mBandName])
         self.setToolTip('band {}:{}'.format(self.mSrcBand.mBandIndex + 1, self.mSrcBand.mSource))
 
@@ -233,6 +235,7 @@ class VRTRasterInputSourceBandNode(TreeNode):
         self.setValues(f'{path}:{b}')
         self.setToolTip(f'Band {b} from "{path}"'
                         )
+
     def sourceBand(self) -> VRTRasterInputSourceBand:
         return self.mSrc
 
@@ -359,11 +362,11 @@ class SourceRasterFileNode(TreeNode):
 
         crs: QgsCoordinateReferenceSystem = self.mRasterLayer.crs()
         authInfo = f'{crs.description()} {crs.authid()}'
-        #self.crsNode.setIcon(QIcon(':/images/themes/default/propertyicons/CRS.svg'))
+        # self.crsNode.setIcon(QIcon(':/images/themes/default/propertyicons/CRS.svg'))
         self.crsNode.setValues(authInfo)
         self.crsNode.setToolTip(crs.toWkt())
         self.bandNode = SourceRasterBandGroupNode(name='Bands')
-        #self.bandNode = TreeNode(name='Bands')
+        # self.bandNode = TreeNode(name='Bands')
         inputSourceNodes = []
         for b in range(self.mRasterLayer.bandCount()):
             bandName = self.mRasterLayer.bandName(b + 1)
@@ -440,7 +443,7 @@ class SourceRasterFilterModel(QSortFilterProxyModel):
     def canDropMimeData(self, data, action, row, column, parent):
         return self.sourceModel().canDropMimeData(data, action, row, column, parent)
 
-    def nodeNames(self, node:TreeNode) -> typing.List[str]:
+    def nodeNames(self, node: TreeNode) -> typing.List[str]:
         if not isinstance(node, (SourceRasterFileNode, SourceRasterBandNode)):
             return []
         else:
@@ -458,7 +461,7 @@ class SourceRasterFilterModel(QSortFilterProxyModel):
         if not isinstance(node, TreeNode):
             return False
 
-        #if isinstance(node.parentNode(), SourceRasterFileNode) and node == node.parentNode().bandNode:
+        # if isinstance(node.parentNode(), SourceRasterFileNode) and node == node.parentNode().bandNode:
         #   return True
 
         if not isinstance(node, (SourceRasterFileNode, SourceRasterBandNode)):
@@ -474,7 +477,6 @@ class SourceRasterFilterModel(QSortFilterProxyModel):
                         return True
         """
         return False
-
 
 
 class SourceRasterModel(TreeModel):
@@ -1080,7 +1082,7 @@ class AboutWidget(QDialog):
 
 
 class VRTBuilderWidget(QMainWindow):
-    sigRasterCreated = pyqtSignal([str],[str,bool])
+    sigRasterCreated = pyqtSignal([str], [str, bool])
     sigAboutCreateCurrentMapTools = pyqtSignal()
 
     def __init__(self, parent=None):
@@ -1200,9 +1202,9 @@ class VRTBuilderWidget(QMainWindow):
         self.sigAboutCreateCurrentMapTools.connect(lambda *args, c=self.previewMap:
                                                    self.createCurrentMapTool(c))
 
-    def onRowsInsertedTEST(self, parent:QModelIndex, first: int, last: int):
+    def onRowsInsertedTEST(self, parent: QModelIndex, first: int, last: int):
         topLeft = self.mSourceFileModel.index(first, 0, parent)
-        bottomRight = self.mSourceFileModel.index(last, self.mSourceFileModel.columnCount(parent)-1, parent)
+        bottomRight = self.mSourceFileModel.index(last, self.mSourceFileModel.columnCount(parent) - 1, parent)
         self.mSourceFileModel.dataChanged.emit(topLeft, bottomRight)
 
     def initActions(self):
@@ -1237,19 +1239,8 @@ class VRTBuilderWidget(QMainWindow):
             tb.textEdited.connect(lambda: self.calculateGrid(changedExtent=True))
             tb.setValidator(QDoubleValidator(-999999999999999999999.0, 999999999999999999999.0, 20))
 
-        def onResolutionValueChanged(value):
-            sender = QApplication.instance().sender()
-            if sender == self.sbResolutionX:
-                if self.cbLinkResolutionXY.isChecked():
-                    self.sbResolutionY.setValue(value)
-                    return
-            if sender == self.sbResolutionY:
-                pass
-
-            self.calculateGrid(changedResolution=True)
-
-        self.sbResolutionX.valueChanged[float].connect(onResolutionValueChanged)
-        self.sbResolutionY.valueChanged[float].connect(onResolutionValueChanged)
+        self.sbResolutionX.valueChanged[float].connect(self.onResolutionValueChanged)
+        self.sbResolutionY.valueChanged[float].connect(self.onResolutionValueChanged)
 
         self.sbRasterWidth.valueChanged.connect(lambda: self.calculateGrid(changedSize=True))
         self.sbRasterHeight.valueChanged.connect(lambda: self.calculateGrid(changedSize=True))
@@ -1319,6 +1310,17 @@ class VRTBuilderWidget(QMainWindow):
         self.cbBoundsFromSourceFiles.clicked.connect(self.onUseAutomaticExtent)
         self.cbBoundsFromSourceFiles.setChecked(True)
         self.onUseAutomaticExtent(True)
+
+    def onResolutionValueChanged(self, value: float):
+        sender = QApplication.instance().sender()
+        if sender == self.sbResolutionX:
+            if self.cbLinkResolutionXY.isChecked():
+                self.sbResolutionY.setValue(value)
+                return
+        if sender == self.sbResolutionY:
+            pass
+
+        self.calculateGrid(changedResolution=True)
 
     def onStackModelToggled(self, is_nested: bool):
 
@@ -1886,7 +1888,6 @@ class VRTBuilderWidget(QMainWindow):
             self.sbRasterHeight.setValue(size.height())
 
         self.resetMap()
-
 
     def mapReset(self):
 
