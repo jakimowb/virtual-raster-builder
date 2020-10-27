@@ -16,30 +16,20 @@
 *                                                                         *
 ***************************************************************************
 """
-import os
-
-from vrtbuilder import DIR_EXAMPLEDATA
-from vrtbuilder.utils import file_search
 
 
 class run():
-
     # add site-packages to sys.path as done by enmapboxplugin.py
 
-    from vrtbuilder.utils import initQgisApplication
-    qgsApp = initQgisApplication()
+    from vrtbuilder.externals.qps.testing import start_app
+    qgsApp = start_app()
     from vrtbuilder.widgets import VRTBuilderWidget
     W = VRTBuilderWidget(None)
-    from exampledata import landsat1, landsat2, landsat2_SAD, rapideye_west
-    W.addSourceFile(landsat1)
-    W.addSourceFile(landsat2)
-    W.addSourceFile(landsat2_SAD)
-    W.addSourceFile(rapideye_west)
     W.show()
 
-    #close QGIS
     qgsApp.exec_()
     qgsApp.exitQgis()
+
 
 if __name__ == '__main__':
     run()
