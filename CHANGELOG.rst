@@ -1,4 +1,5 @@
-0.9 2020-10-20
+0.9 2021-02-10
+   * fixed loading from VRt files (#23)
    * main window got a toolbar and dock widgets
    * improved tree models, e.g. to list raster sources
    * can read multi-layer sources
