@@ -11,5 +11,4 @@ pipelines:
         script: # Modify the commands below to build your repository.
           - python -m pip install -r requirements-dev.txt
           - python scripts/setuprepository.py
-          - python scripts/install_testdata.py
           - py.test --cov=vrtbuilder tests/ --cov-report term-missing tests

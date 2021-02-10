@@ -5,9 +5,13 @@ import zipfile
 import pathlib
 import io
 import argparse
-from vrtbuilder import DIR_REPO, URL_QGIS_RESOURCES
+import site
 
-DIR_REPO = pathlib.Path(DIR_REPO)
+URL_QGIS_RESOURCES = r'https://bitbucket.org/jakimowb/qgispluginsupport/downloads/qgisresources.zip'
+
+DIR_REPO = pathlib.Path(__file__).parents[1].resolve()
+site.addsitedir(DIR_REPO)
+
 
 def install_zipfile(url: str, localPath: pathlib.Path, zip_root: str = None):
     assert isinstance(localPath, pathlib.Path)
@@ -39,8 +43,9 @@ def install_zipfile(url: str, localPath: pathlib.Path, zip_root: str = None):
             with open(dst, "wb") as f:
                 f.write(z.read(src))
 
-    #z.extractall(path=localPath, members=to_extract)
+    # z.extractall(path=localPath, members=to_extract)
     del response
+
 
 def install_qgisresources():
     localpath = DIR_REPO / 'qgisresources'

@@ -10,7 +10,6 @@ import pathlib
 
 
 def setup_repository():
-
     DIR_REPO = pathlib.Path(__file__).parents[1].resolve()
     site.addsitedir(DIR_REPO)
 
@@ -23,6 +22,7 @@ def setup_repository():
     install_qgisresources()
 
     print('VRT Raster Builder repository setup finished')
+
 
 if __name__ == "__main__":
     print('setup repository')
