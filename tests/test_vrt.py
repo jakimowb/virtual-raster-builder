@@ -120,6 +120,43 @@ class VRTBuilderTests(TestCase):
         res = QSizeF(lyr.rasterUnitsPerPixelX(), lyr.rasterUnitsPerPixelY())
         self.assertTrue(VRT.resolution() == res)
 
+    def test_read_write_VRT(self):
+
+
+        lyrSrc1 = TestObjects.createRasterLayer(ns=10, nb=3)
+        lyrSrc2 = TestObjects.createRasterLayer(ns=20, nb=5)
+
+        TMP_DIR = self.createTestOutputDirectory()
+        os.makedirs(TMP_DIR, exist_ok=True)
+        PATH_VRT = TMP_DIR / 'test.vrt'
+        VRT = VRTRaster()
+        sourceBands1 = VRTRasterInputSourceBand.fromRasterLayer(lyrSrc1)
+        sourceBands2 = VRTRasterInputSourceBand.fromRasterLayer(lyrSrc2)
+
+        vBand1 = VRTRasterBand(name='Band1')
+        vBand1.addSource(sourceBands1[0])
+        vBand1.addSource(sourceBands2[0])
+
+        vBand2 = VRTRasterBand(name='Band2')
+        vBand2.addSource(sourceBands1[1])
+        vBand2.addSource(sourceBands2[1])
+
+        VRT.addVirtualBand(vBand1)
+        VRT.addVirtualBand(vBand2)
+
+        dsVRT = VRT.saveVRT(PATH_VRT)
+        self.assertIsInstance(dsVRT, gdal.Dataset)
+        self.assertTrue(dsVRT.RasterCount == 2)
+        self.assertTrue(dsVRT.GetDriver().ShortName == 'VRT')
+        self.assertTrue(VRT.size() == QSize(dsVRT.RasterXSize, dsVRT.RasterYSize))
+
+        # load *.vrt
+        VRT2 = VRTRaster()
+        VRT2.loadVRT(PATH_VRT)
+        self.assertEqual(VRT, VRT2)
+        s  = ""
+
+
     def test_vrtRasterMetadata(self):
         ds = gdal.Open(Landsat8_East_tif.as_posix())
         self.assertIsInstance(ds, gdal.Dataset)

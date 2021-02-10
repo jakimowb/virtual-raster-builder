@@ -605,6 +605,19 @@ class VRTRasterBand(QObject):
                 files.append(inputSourceBand.source())
         return files
 
+    def __eq__(self, other):
+        if not isinstance(other, VRTRasterBand):
+            return False
+
+        if len(self) != len(other):
+            return False
+
+        for A, B in zip(self[:], other[:]):
+            if A != B:
+                return False
+
+        return True
+
     def __repr__(self):
         infos = ['VirtualBand name="{}"'.format(self.mName)]
         for i, info in enumerate(self.mSources):
@@ -1170,10 +1183,12 @@ class VRTRaster(QObject):
         if pathVRT in [None, '']:
             return
 
+        pathVRT = pathlib.Path(pathVRT)
+
         if bandIndex is None:
             bandIndex = len(self.mBands)
 
-        ds = gdal.Open(pathVRT)
+        ds = gdal.Open(pathVRT.as_posix())
         assert isinstance(ds, gdal.Dataset)
         assert ds.GetDriver().GetDescription() == 'VRT'
 
@@ -1186,12 +1201,13 @@ class VRTRaster(QObject):
             for key, xml in srcBand.GetMetadata(str('vrt_sources')).items():
                 tree = ElementTree.fromstring(xml)
                 srcPath = tree.find('SourceFilename').text
-                srcBandIndex = int(tree.find('SourceBand').text)
+                srcBandIndex = int(tree.find('SourceBand').text) - 1
                 vrtBand.addSource(VRTRasterInputSourceBand(srcPath, srcBandIndex))
 
             if b == 0:
-                noData = vrtBand.GetNoDataValue()
-                self.setNoDataValue(noData)
+                noData = srcBand.GetNoDataValue()
+                if noData is not None:
+                    self.setNoDataValue(noData)
 
             self.insertVirtualBand(bandIndex, vrtBand)
 
@@ -1210,20 +1226,25 @@ class VRTRaster(QObject):
         """
         :param pathVRT: 
         :return:
+        
         """
+
         sources = self.sourceRaster()
         assert len(sources) >= 1, 'VRT needs to define at least 1 input source'
-        assert os.path.splitext(pathVRT)[-1].lower() == '.vrt'
+
+        pathVRT: pathlib.Path = pathlib.Path(pathVRT)
+
+        assert pathVRT.name.endswith('.vrt')
 
         srcPathLookup = dict()
         srcNodata = None
-        inMemory = pathVRT.startswith('/vsimem/')
+        inMemory = pathVRT.as_posix().startswith('/vsimem/')
 
         if inMemory:
             dirWarped = '/vsimem/'
             # gdal.Mkdir(dirWarped, 1)
         else:
-            dirWarped = os.path.join(os.path.splitext(pathVRT)[0] + '.WarpedImages')
+            dirWarped = pathVRT.parent / (os.path.splitext(pathVRT.name)[0] + '.WarpedImages')
             os.makedirs(dirWarped, exist_ok=True)
 
         dstExtent = self.extent()
@@ -1367,7 +1388,7 @@ class VRTRaster(QObject):
         # 2. build final VRT from scratch
         drvVRT = gdal.GetDriverByName('VRT')
         assert isinstance(drvVRT, gdal.Driver)
-        dsVRTDst = drvVRT.Create(pathVRT, ns, nl, 0, eType=eType)
+        dsVRTDst = drvVRT.Create(pathVRT.as_posix(), ns, nl, 0, eType=eType)
         assert isinstance(dsVRTDst, gdal.Dataset)
         # 2.1. set general properties
 
@@ -1397,10 +1418,26 @@ class VRTRaster(QObject):
         # dsVRTDst = None
 
         # check if we get what we like to get
-        dsCheck = gdal.Open(pathVRT)
+        dsCheck = gdal.Open(pathVRT.as_posix())
         assert isinstance(dsCheck, gdal.Dataset)
 
         return dsCheck
+
+    def __eq__(self, other):
+        if not isinstance(other, VRTRaster):
+            return False
+        if not (self.size() == other.size() and
+                self.crs() == other.crs() and
+                self.resolution() == other.resolution() and
+                self.noDataValue() == other.noDataValue() and
+                len(self) == len(other)):
+            return False
+        for bA, bB in zip(self[:], other[:]):
+            if bA != bB:
+                return False
+        return True
+
+
 
     def __repr__(self):
 
