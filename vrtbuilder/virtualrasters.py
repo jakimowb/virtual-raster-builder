@@ -34,9 +34,6 @@ from qgis.core import QgsRasterLayer, QgsCoordinateReferenceSystem, QgsRectangle
 from vrtbuilder.externals.qps.utils import qgsRasterLayer, gdalDataset
 from vrtbuilder.externals.qps.models import Option, OptionListModel
 
-
-
-
 # lookup GDAL Data Type and its size in bytes
 LUT_GDT_SIZE = {gdal.GDT_Byte: 1,
                 gdal.GDT_UInt16: 2,
@@ -75,7 +72,7 @@ GRA_tooltips = {
     'Med': 'median resampling, selects the median value of all non-NODATA contributing pixels.',
     'Q1': 'first quartile resampling, selects the first quartile value of all non-NODATA contributing pixels. ',
     'Q3': 'third quartile resampling, selects the third quartile value of all non-NODATA contributing pixels'
-    }
+}
 
 
 def vsiFiles() -> list:
@@ -379,7 +376,6 @@ class VRTRasterInputSourceBand(object):
         :param pathOrDataSet: str | gdal.Dataset
         :return: [list-of-VRTRasterInputSourceBand]
         """
-
         srcBands = []
         pathOrDataSet = gdalDataset(pathOrDataSet)
         if isinstance(pathOrDataSet, gdal.Dataset):
@@ -1436,8 +1432,6 @@ class VRTRaster(QObject):
             if bA != bB:
                 return False
         return True
-
-
 
     def __repr__(self):
 
