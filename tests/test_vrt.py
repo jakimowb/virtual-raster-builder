@@ -417,11 +417,10 @@ class VRTBuilderTests(TestCase):
                 # QApplication.processEvents()
 
             if isinstance(mapTool, MapToolIdentifySource):
-                if layer is None:
-                    print(sys.version)
-                    print(Qgis.QGIS_VERSION)
 
-                self.assertIsInstance(layer, QgsMapLayer)
+                info = f'python:{sys.version}\nQGIS:{Qgis.QGIS_VERSION}'
+
+                self.assertIsInstance(layer, QgsMapLayer, msg=info)
 
             elif isinstance(mapTool, SpatialExtentMapTool):
 
