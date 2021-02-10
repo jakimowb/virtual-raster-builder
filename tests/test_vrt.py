@@ -364,6 +364,7 @@ class VRTBuilderTests(TestCase):
 
         canvas = QgsMapCanvas()
         lyrR = TestObjects.createRasterLayer()
+        self.assertTrue(lyrR.isValid())
         canvas.setLayers([lyrR])
         canvas.mapSettings().setDestinationCrs(lyrR.crs())
         canvas.zoomToFullExtent()
@@ -394,11 +395,9 @@ class VRTBuilderTests(TestCase):
                 crs = c
 
             if isinstance(mapTool, MapToolIdentifySource):
-
                 mapTool.sigMapLayerIdentified.connect(onLayerIdentified)
 
             elif isinstance(mapTool, SpatialExtentMapTool):
-
                 mapTool.sigSpatialExtentSelected.connect(onExtentSelected)
 
             # simulate a mouse click
