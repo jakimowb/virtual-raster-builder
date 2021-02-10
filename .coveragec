@@ -1,0 +1,10 @@
+[run]
+include =
+    */vrtbuilder/*
+
+omit =
+    */externals/*
+
+
+
+

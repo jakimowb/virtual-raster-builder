@@ -9,11 +9,9 @@
 
 #requirements for developers
 # Required packages to run tests
-pytest
-py
-pytest-cov
-xmlrunner
 gitpython
+
+# for documentation
 recommonmark
 sphinx
 sphinx-argparse
@@ -21,3 +19,7 @@ sphinx-markdown
 sphinx-rtd-theme
 sphinx-autobuild
 
+# for unit testing
+coverage
+xmlrunner
+unittest-xml-reporting
