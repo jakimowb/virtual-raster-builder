@@ -12,5 +12,5 @@ pipelines:
           - python -m pip install -r requirements-dev.txt
           - python scripts/setuprepository.py
           - export CI=True
-          - python -m coverage run --rcfile=.coverage tests/test_vrt.py
+          - python -m coverage run --rcfile=.coveragec tests/test_vrt.py
           - python -m coverage report
