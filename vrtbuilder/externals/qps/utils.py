@@ -700,9 +700,12 @@ def gdalDataset(dataset: typing.Union[str,
     if isinstance(dataset, QgsRasterDataProvider):
         return gdalDataset(dataset.dataSourceUri())
     if isinstance(dataset, str):
-        dataset = gdal.Open(dataset, eAccess)
+        ds = gdal.Open(dataset, eAccess)
+        assert isinstance(ds, gdal.Dataset), f'Can not read {dataset} as gdal.Dataset'
+        return ds
+    else:
+        raise NotImplementedError(f'Can not open {dataset} as gdal.Dataset')
 
-    assert isinstance(dataset, gdal.Dataset), 'Can not read {} as gdal.Dataset'.format(dataset)
     return dataset
 
 
@@ -1342,7 +1345,7 @@ def days_per_year(year):
     1. If the year is evenly divisible by 4, go to step 2. Otherwise, False.
     2. If the year is evenly divisible by 100, go to step 3. Otherwise, False
     3. If the year is evenly divisible by 400, True Otherwise, False
-    
+
     """
     """
     Every year that is exactly divisible by four is a leap year, except for years that are exactly divisible by 100, 
@@ -1494,6 +1497,7 @@ def parseBadBandList(dataset) -> typing.List[int]:
     try:
         dataset = gdalDataset(dataset)
     except:
+        return None
         pass
 
     if not isinstance(dataset, gdal.Dataset):
@@ -1521,7 +1525,7 @@ def parseFWHM(dataset) -> typing.Tuple[np.ndarray]:
     try:
         dataset = gdalDataset(dataset)
     except:
-        pass
+        return None
 
     key_positions = [('fwhm', None),
                      ('fwhm', 'ENVI')]
@@ -1552,6 +1556,57 @@ def parseFWHM(dataset) -> typing.Tuple[np.ndarray]:
     return None
 
 
+def checkWavelength(key: str, values: str, expected: int = 1) -> np.ndarray:
+    wl: np.ndarray = None
+    if re.search(r'^(center[ _]*)?wavelengths?$', key, re.I):
+        # remove trailing / ending { } and whitespace
+        values = re.sub('[{}]', '', values).strip()
+        if ',' not in values:
+            sep = ' '
+        else:
+            sep = ','
+        try:
+            wl = np.asarray(values.split(sep), dtype=np.float)
+            if len(wl) != expected:
+                wl = None
+            # wl = np.fromstring(values, count=expected, sep=sep)
+        except ValueError as exV:
+            pass
+        except Exception as ex:
+            pass
+    return wl
+
+
+def checkWavelengthUnit(key: str, value: str) -> str:
+    wlu: str = None
+    value = value.strip()
+    if re.search(r'^wavelength[ _]?units?', key, re.I):
+        # metric length units
+        wlu = UnitLookup.baseUnit(value)
+
+        if wlu is not None:
+            return wlu
+
+        if re.search(r'^Wavenumber$', value, re.I):
+            wlu = '-'
+        elif re.search(r'^GHz$', value, re.I):
+            wlu = 'GHz'
+        elif re.search(r'^MHz$', value, re.I):
+            wlu = 'MHz'
+        # date / time units
+        elif re.search(r'^(Date|DTG|Date[_ ]?Time[_ ]?Group|Date[_ ]?Stamp|Time[_ ]?Stamp)$', value, re.I):
+            wlu = 'DateTime'
+        elif re.search(r'^Decimal[_ ]?Years?$', value, re.I):
+            wlu = 'DecimalYear'
+        elif re.search(r'^(Seconds?|s|secs?)$', value, re.I):
+            wlu = 's'
+        elif re.search(r'^Index$', value, re.I):
+            wlu = None
+        else:
+            wlu = None
+    return wlu
+
+
 def parseWavelength(dataset) -> typing.Tuple[np.ndarray, str]:
     """
     Returns the wavelength + wavelength unit of a raster
@@ -1559,115 +1614,99 @@ def parseWavelength(dataset) -> typing.Tuple[np.ndarray, str]:
     :return: (wl, wl_u) or (None, None), if not existing
     """
 
-    wl = None
-    wlu = None
+    def sort_domains(domains) -> typing.List[str]:
+        if not isinstance(domains, list):
+            domains = []
+        return sorted(domains, key=lambda n: n != ['ENVI'])
+
     try:
         dataset = gdalDataset(dataset)
-    except:
-        pass
-
-    def checkWavelengthUnit(key: str, value: str) -> str:
-        wlu = None
-        value = value.strip()
-        if re.search(r'wavelength[ _]?units?', key, re.I):
-            # metric length units
-            wlu = UnitLookup.baseUnit(value)
-
-            if wlu is not None:
-                return wlu
-
-            if re.search(r'^Wavenumber$', values, re.I):
-                wlu = '-'
-            elif re.search(r'^GHz$', values, re.I):
-                wlu = 'GHz'
-            elif re.search(r'^MHz$', values, re.I):
-                wlu = 'MHz'
-            # date / time units
-            elif re.search(r'^(Date|DTG|Date[_ ]?Time[_ ]?Group|Date[_ ]?Stamp|Time[_ ]?Stamp)$', values, re.I):
-                wlu = 'DateTime'
-            elif re.search(r'^Decimal[_ ]?Years?$', value, re.I):
-                wlu = 'DecimalYear'
-            elif re.search(r'^(Seconds?|s|secs?)$', values, re.I):
-                wlu = 's'
-            elif re.search(r'^Index$', values, re.I):
-                wlu = None
-            else:
-                wlu = None
-        return wlu
-
-    def checkWavelength(key: str, values: str):
-        wl = None
-        if re.search(r'wavelengths?$', key, re.I):
-            # remove trailing / ending { } and whitespace
-            values = re.sub('[{}]', '', values).strip()
-            if ',' not in values:
-                sep = ' '
-            else:
-                sep = ','
-            try:
-                wl = np.fromstring(values, count=dataset.RasterCount, sep=sep)
-            except ValueError as exV:
-                pass
-            except Exception as ex:
-                pass
-        return wl
+    except Exception:
+        return None, None
 
     if isinstance(dataset, gdal.Dataset):
         # 1. check on raster level
-        domains = dataset.GetMetadataDomainList()
-        if isinstance(domains, list):
-            for domain in domains:
-                # see http://www.harrisgeospatial.com/docs/ENVIHeaderFiles.html for supported wavelength units
+        for domain in sort_domains(dataset.GetMetadataDomainList()):
+            # see http://www.harrisgeospatial.com/docs/ENVIHeaderFiles.html for supported wavelength units
 
-                mdDict = dataset.GetMetadata_Dict(domain)
+            mdDict = dataset.GetMetadata_Dict(domain)
 
-                for key, values in mdDict.items():
-                    if wl is None:
-                        wl = checkWavelength(key, values)
-                    if wlu is None:
-                        wlu = checkWavelengthUnit(key, values)
-                    if wl is not None and wlu is not None:
-                        # domain-specific check
-                        if domain == 'FORCE' and wlu == 'DecimalYear':
-                            # make decimal-year values leap-year sensitive
-                            wl = convertDateUnit(datetime64(wl, dpy=365), 'DecimalYear')
-                        break
+            domainWLU: str = None
+            domainWL: np.ndarray = None
+            # search domain
+            for key, values in mdDict.items():
+                if domainWL is None:
+                    domainWL = checkWavelength(key, values, expected=dataset.RasterCount)
+                if domainWLU is None:
+                    domainWLU = checkWavelengthUnit(key, values)
 
-        if wl is not None and wlu is not None:
-            if len(wl) > dataset.RasterCount:
-                wl = wl[0:dataset.RasterCount]
-            return wl, wlu
+            if isinstance(domainWL, np.ndarray) and isinstance(domainWLU, str):
+                if domain == 'FORCE' and domainWLU == 'DecimalYear':
+                    # make decimal-year values leap-year sensitive
+                    domainWL = convertDateUnit(datetime64(domainWL, dpy=365), 'DecimalYear')
 
-        # 2. check on band level
-        wl = []
+                if len(domainWL) > dataset.RasterCount:
+                    domainWL = domainWL[0:dataset.RasterCount]
+
+                return domainWL, domainWLU
+
+        # 2. check on band level. collect wl from each single band
+        # first domain that defines wl and wlu is prototyp domain for all other bands
+
+        wl = []  # list of wavelength values
+        wlu: str = None  # wavelength unit string
+        wlDomain: str = None  # the domain in which the WL and WLU are defined
+        wlKey: str = None  # key that stores the wavelength value
+        wluKey: str = None  # key that stores the wavelength unit
+
         for b in range(dataset.RasterCount):
             band: gdal.Band = dataset.GetRasterBand(b + 1)
-            domains = band.GetMetadataDomainList()
-            if isinstance(domains, list):
-                for domain in domains:
+            if b == 0:
+                for domain in sort_domains(band.GetMetadataDomainList()):
                     # see http://www.harrisgeospatial.com/docs/ENVIHeaderFiles.html for supported wavelength units
+                    domainWL = domainWLU = None
+
                     mdDict = band.GetMetadata_Dict(domain)
-                    _wl = None
+
                     for key, values in mdDict.items():
-                        if wlu is None:
-                            wlu = checkWavelengthUnit(key, values)
-                        if _wl is None:
-                            _wl = checkWavelength(key, values)
-                    if wlu is not None:
-                        s = ""
-                    if wlu is not None and _wl is not None:
-                        wl.append(_wl[0])
-                        break
+                        if domainWLU is None:
+                            domainWLU = checkWavelengthUnit(key, values)
+                            if domainWLU:
+                                wluKey = key
+
+                        if domainWL is None:
+                            domainWL = checkWavelength(key, values, expected=1)
+                            if isinstance(domainWL, np.ndarray):
+                                wlKey = key
+
+                    if isinstance(domainWL, np.ndarray) and isinstance(domainWLU, str):
+                        wlDomain = domain
+                        wlu = domainWLU
+                        wl.append(domainWL[0])
+
+                if len(wl) == 0:
+                    # we did not found a WL + WLU for the 1st band. stop searching and return
+                    return None, None
+            else:
+                bandWLU = checkWavelengthUnit(wluKey, band.GetMetadataItem(wluKey, wlDomain))
+                bandWL = checkWavelength(wlKey, band.GetMetadataItem(wlKey, wlDomain), expected=1)
+
+                if bandWLU != wlu or bandWL is None:
+                    print(f'{dataset.GetDescription()}: inconsistent use of metadata key {wluKey} per band')
+                    return None, None
+                wl.append(bandWL[0])
 
         if len(wl) == 0:
-            wl = None
-        else:
-            wl = np.asarray(wl)
-            if domain == 'FORCE' and wlu == 'DecimalYear':
-                # make decimal-year values leap-year sensitive
-                wl = UnitLookup.convertDateUnit(datetime64(wl, dpy=365), 'DecimalYear')
+            return None, None
 
-    return wl, wlu
+        wl = np.asarray(wl)
+        if domain == 'FORCE' and wlu == 'DecimalYear':
+            # make decimal-year values leap-year sensitive
+            wl = UnitLookup.convertDateUnit(datetime64(wl, dpy=365), 'DecimalYear')
+
+        return wl, wlu
+    else:
+        return None, None
 
 
 class Singleton(type):
@@ -1917,8 +1956,10 @@ class SpatialPoint(QgsPointXY):
 
     @staticmethod
     def readXml(node: QDomNode):
-        wkt = node.firstChildElement('SpatialPointCrs').text()
-        crs = QgsCoordinateReferenceSystem(wkt)
+        node_crs = node.firstChildElement('SpatialPointCrs')
+        crs = QgsCoordinateReferenceSystem()
+        if not node_crs.isNull():
+            crs.readXml(node_crs)
         point = QgsGeometry.fromWkt(node.firstChildElement('SpatialPoint').text()).asPoint()
         return SpatialPoint(crs, point)
 
@@ -1984,10 +2025,7 @@ class SpatialPoint(QgsPointXY):
         node_geom = doc.createElement('SpatialPoint')
         node_geom.appendChild(doc.createTextNode(self.asWkt()))
         node_crs = doc.createElement('SpatialPointCrs')
-        if QgsCoordinateReferenceSystem(self.crs().authid()) == self.crs():
-            node_crs.appendChild(doc.createTextNode(self.crs().authid()))
-        else:
-            node_crs.appendChild(doc.createTextNode(self.crs().toWkt()))
+        self.crs().writeXml(node_crs, doc)
         node.appendChild(node_geom)
         node.appendChild(node_crs)
 
@@ -2110,8 +2148,10 @@ class SpatialExtent(QgsRectangle):
 
     @staticmethod
     def readXml(node: QDomNode):
-        wkt = node.firstChildElement('SpatialExtentCrs').text()
-        crs = QgsCoordinateReferenceSystem(wkt)
+        node_crs = node.firstChildElement('SpatialExtentCrs')
+        crs = QgsCoordinateReferenceSystem()
+        if not node_crs.isNull():
+            crs.readXml(node_crs)
         rectangle = QgsRectangle.fromWkt(node.firstChildElement('SpatialExtent').text())
         return SpatialExtent(crs, rectangle)
 
@@ -2176,10 +2216,11 @@ class SpatialExtent(QgsRectangle):
         node_geom = doc.createElement('SpatialExtent')
         node_geom.appendChild(doc.createTextNode(self.asWktPolygon()))
         node_crs = doc.createElement('SpatialExtentCrs')
-        if QgsCoordinateReferenceSystem(self.crs().authid()) == self.crs():
-            node_crs.appendChild(doc.createTextNode(self.crs().authid()))
-        else:
-            node_crs.appendChild(doc.createTextNode(self.crs().toWkt()))
+        self.crs().writeXml(node_crs, doc)
+        #if QgsCoordinateReferenceSystem(self.crs().authid()) == self.crs():
+        #    node_crs.appendChild(doc.createTextNode(self.crs().authid()))
+        #else:
+        #    node_crs.appendChild(doc.createTextNode(self.crs().toWkt()))
         node.appendChild(node_geom)
         node.appendChild(node_crs)
 

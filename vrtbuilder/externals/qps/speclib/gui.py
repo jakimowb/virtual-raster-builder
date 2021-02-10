@@ -413,9 +413,11 @@ class SpectralProfilePlotDataItem(PlotDataItem):
             try:
                 x = self.mXValueConversionFunction(self.mInitialDataX, self)
                 y = self.mYValueConversionFunction(self.mInitialDataY, self)
-                if isinstance(x, (list, np.ndarray)) and isinstance(y, (list, np.ndarray)) and len(x) > 0 and len(
+                if isinstance(x, (list, np.ndarray)) and \
+                        isinstance(y, (list, np.ndarray)) and len(x) > 0 and len(
                         y) > 0:
                     success = True
+
             except Exception as ex:
                 print(ex)
                 pass
@@ -425,6 +427,8 @@ class SpectralProfilePlotDataItem(PlotDataItem):
             if True:
                 # handle failed removal of NaN
                 # see https://github.com/pyqtgraph/pyqtgraph/issues/1057
+
+                # 1. convert to numpy arrays
                 if not isinstance(y, np.ndarray):
                     y = np.asarray(y, dtype=np.float)
                 if not isinstance(x, np.ndarray):
@@ -442,9 +446,18 @@ class SpectralProfilePlotDataItem(PlotDataItem):
                 y = y[keep]
                 x = x[keep]
                 connected = connected[keep]
+
+                # convert date units to float with decimal year and second precision
+                if isinstance(x[0], (datetime.datetime, datetime.date, datetime.time, np.datetime64)):
+                    x = convertDateUnit(datetime64(x), 'DecimalYear')
+
+                if isinstance(y[0], (datetime.datetime, datetime.date, datetime.time, np.datetime64)):
+                    y = convertDateUnit(datetime64(y), 'DecimalYear')
+
                 self.setData(x=x, y=y, connect=connected)
             else:
                 self.setData(x=x, y=y, connect='finite')
+
             self.setVisible(True)
         else:
             # self.setData(x=[], y=[])
@@ -1393,9 +1406,8 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
                     self.mNumberOfValueErrorsProfiles += 1
             else:
                 # create a new PDI
-                profile = self.speclib().profile(fid, value_field=field_name)
-                assert isinstance(profile, SpectralProfile)
-                if profile.isEmpty():
+                profile: SpectralProfile = self.speclib().profile(fid, value_field=field_name)
+                if not isinstance(profile, SpectralProfile) or profile.isEmpty():
                     self.mNumberOfEmptyProfiles += 1
                     continue
 
@@ -2048,6 +2060,8 @@ class SpectralProfileEditorWidgetWrapper(QgsEditorWidgetWrapper):
         super(SpectralProfileEditorWidgetWrapper, self).__init__(vl, fieldIdx, editor, parent)
         self.mWidget: QWidget = None
 
+        self.mLastValue = QVariant()
+
     def createWidget(self, parent: QWidget):
         # log('createWidget')
 
@@ -2078,7 +2092,7 @@ class SpectralProfileEditorWidgetWrapper(QgsEditorWidgetWrapper):
         return isinstance(self.mWidget, (SpectralProfileEditorWidget, QLabel))
 
     def value(self, *args, **kwargs):
-        value = QVariant(None)
+        value = self.mLastValue
         w = self.widget()
         if isinstance(w, SpectralProfileEditorWidget):
             p = w.profile()
@@ -2092,6 +2106,7 @@ class SpectralProfileEditorWidgetWrapper(QgsEditorWidgetWrapper):
             w.setEnabled(enabled)
 
     def setValue(self, value):
+        self.mLastValue = value
         p = SpectralProfile(values=decodeProfileValueDict(value))
         w = self.widget()
         if isinstance(w, SpectralProfileEditorWidget):
@@ -2414,11 +2429,12 @@ class SpectralLibraryWidget(AttributeTableWidget):
         self.actionShowProperties.setToolTip('Show Spectral Library Properties')
         self.actionShowProperties.setIcon(QIcon(':/images/themes/default/propertyicons/system.svg'))
         self.actionShowProperties.triggered.connect(self.showProperties)
-
+        
         self.btnShowProperties = QToolButton()
         self.btnShowProperties.setAutoRaise(True)
         self.btnShowProperties.setDefaultAction(self.actionShowProperties)
-
+        
+        self.tbSpeclibAction.addAction(self.actionShowProperties)
         self.centerBottomLayout.insertWidget(self.centerBottomLayout.indexOf(self.mAttributeViewButton),
                                              self.btnShowProperties)
 

@@ -694,7 +694,11 @@ class SpectralProfile(QgsFeature):
         assert isinstance(feature, QgsFeature)
         if isinstance(value_field, QgsField):
             value_field = value_field.name()
-        assert value_field in feature.fields().names(), f'field "{value_field}" does not exist'
+
+        if not value_field in feature.fields().names():
+            print(f'field "{value_field}" does not exist. Allows values: {",".join(feature.fields().names())}')
+            return None
+
         sp = SpectralProfile(fields=feature.fields(), value_field=value_field)
         sp.setId(feature.id())
         sp.setAttributes(feature.attributes())
@@ -824,7 +828,7 @@ class SpectralProfile(QgsFeature):
     def geoCoordinate(self):
         return self.geometry()
 
-    def updateMetadata(self, metaData):
+    def updateMetadata(self, metaData:dict):
         if isinstance(metaData, dict):
             for key, value in metaData.items():
                 self.setMetadata(key, value)
@@ -1327,7 +1331,8 @@ class SpectralProfileRenderer(object):
             customStyle = PlotStyle.readXml(customStyleNode)
             if isinstance(customStyle, PlotStyle):
                 fids = customStyleNode.firstChildElement('keys').firstChild().nodeValue().split(',')
-                fids = [int(f) for f in fids]
+                rxInt = re.compile(r'\d+[ ]*')
+                fids = [int(f) for f in fids if re.match(rxInt)]
                 renderer.setProfilePlotStyle(customStyle, fids)
 
         return renderer
@@ -2711,10 +2716,9 @@ class SpectralLibrary(QgsVectorLayer):
         msg = super(SpectralLibrary, self).exportNamedStyle(doc, context=context, categories=categories)
         if msg == '':
             qgsNode = doc.documentElement().toElement()
-            # speclibNode = doc.createElement(XMLNODE_PROFILE_RENDERER)
+
             if isinstance(self.mProfileRenderer, SpectralProfileRenderer):
                 self.mProfileRenderer.writeXml(qgsNode, doc)
-            # qgsNode.appendChild(speclibNode)
 
         return msg
 
@@ -2747,7 +2751,7 @@ class SpectralLibrary(QgsVectorLayer):
 
         basename, ext = os.path.splitext(pathOne.name)
 
-        assert pathOne.parent.is_dir()
+        assert pathOne.as_posix().startswith('/vsimem/') or pathOne.parent.is_dir(), f'Canot write to {pathOne}'
         imageFiles = []
         for k, profiles in self.groupBySpectralProperties().items():
             xValues, xUnit, yUnit = k
@@ -2773,8 +2777,13 @@ class SpectralLibrary(QgsVectorLayer):
             dsDst.SetProjection(fakeProjection.ExportToWkt())
             # north-up project, 1 px above equator, starting at 0°, n pixels = n profiles towards east
             dsDst.SetGeoTransform([0.0, 1.0, 0.0, 1.0, 0.0, -1.0])
+            xvalue_string = ','.join(f'{v}' for v in xValues)
             dsDst.SetMetadataItem('wavelength units', xUnit)
-            dsDst.SetMetadataItem('wavelength', ','.join(f'{v}' for v in xValues))
+            dsDst.SetMetadataItem('wavelength', xvalue_string)
+            # backward compatibility for stupid algorithms
+            dsDst.SetMetadataItem('wavelength units', xUnit, 'ENVI')
+            dsDst.SetMetadataItem('wavelength', f'{{{xvalue_string}}}', 'ENVI')
+
             dsDst.FlushCache()
             imageFiles.append(pathDst)
             del dsDst
@@ -2795,8 +2804,9 @@ class SpectralLibrary(QgsVectorLayer):
         if path is None:
             path, filter = QFileDialog.getSaveFileName(parent=kwds.get('parent'),
                                                        caption='Save Spectral Library',
-                                                       directory=QgsFileUtils.stringToSafeFilename(self.name()),
-                                                       filter=FILTERS)
+                                                       directory=QgsFileUtils.stringToSafeFilename(self.name()+'.gpkg'),
+                                                       filter=FILTERS,
+                                                       initialFilter='Geopackage (*.gpkg)')
 
         if isinstance(path, pathlib.Path):
             path = path.as_posix()
@@ -2813,7 +2823,8 @@ class SpectralLibrary(QgsVectorLayer):
 
             elif ext in ['.json', '.geojson', '.geojsonl', '.csv', '.gpkg']:
                 return VectorSourceSpectralLibraryIO.write(self, path, **kwds)
-
+            else:
+                raise Exception(f'Filetype not supported: {path}')
         return []
 
     def spectralValueFields(self) -> typing.List[QgsField]:
