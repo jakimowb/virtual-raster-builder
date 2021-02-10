@@ -29,6 +29,7 @@ import requests
 import shutil
 import sys
 import typing
+import io
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 from http.client import responses
@@ -61,6 +62,7 @@ MD.mEmail = 'benjamin.jakimow@geo.hu-berlin.de'
 
 PLUGIN_DIR_NAME = 'vrtbuilderplugin'
 
+
 ########## End of config section
 
 def scantree(path, pattern=re.compile('.$')) -> typing.Iterator[pathlib.Path]:
@@ -78,7 +80,6 @@ def scantree(path, pattern=re.compile('.$')) -> typing.Iterator[pathlib.Path]:
 
 
 def create_plugin(include_testdata: bool = False, include_qgisresources: bool = False):
-
     DIR_REPO = pathlib.Path(__file__).resolve().parents[1]
     assert (DIR_REPO / '.git').is_dir()
 
@@ -162,17 +163,16 @@ def create_plugin(include_testdata: bool = False, include_qgisresources: bool = 
         info.append('from pyplugin_installer.installer import pluginInstaller')
         info.append('pluginInstaller.installFromZipFile(r"{}")'.format(PLUGIN_ZIP))
         info.append('#### Close (and restart manually)\n')
-        #print('iface.mainWindow().close()\n')
+        # print('iface.mainWindow().close()\n')
         info.append('QProcess.startDetached(QgsApplication.arguments()[0], [])')
         info.append('QgsApplication.quit()\n')
         info.append('## press ENTER\n')
 
         print('\n'.join(info))
 
-        #cb = QGuiApplication.clipboard()
-        #if isinstance(cb, QClipboard):
+        # cb = QGuiApplication.clipboard()
+        # if isinstance(cb, QClipboard):
         #    cb.setText('\n'.join(info))
-
 
     print('Finished')
 
@@ -190,13 +190,16 @@ def createCHANGELOG(dirPlugin):
     assert os.path.isfile(pathMD)
     import docutils.core
 
-    overrides = {'stylesheet':None,
-                 'embed_stylesheet':False,
-                 'output_encoding':'utf-8',
+    overrides = {'stylesheet': None,
+                 'embed_stylesheet': False,
+                 'output_encoding': 'utf-8',
                  }
-
-    html = docutils.core.publish_file(source_path=pathMD, writer_name='html5', settings_overrides=overrides)
-
+    buffer = io.StringIO()
+    html = docutils.core.publish_file(
+        source_path=pathMD,
+        writer_name='html5',
+        destination=buffer,
+        settings_overrides=overrides)
 
     xml = minidom.parseString(html)
     #  remove headline
@@ -212,7 +215,6 @@ def createCHANGELOG(dirPlugin):
     for node in xml.getElementsByTagName('meta'):
         if node.getAttribute('name') == 'generator':
             node.parentNode.removeChild(node)
-
 
     xml = xml.getElementsByTagName('body')[0]
     html = xml.toxml()
@@ -233,7 +235,7 @@ def createCHANGELOG(dirPlugin):
         f.write('\n'.join(html_cleaned))
 
     if False:
-        with open(pathCL+'.html', 'w', encoding='utf-8') as f:
+        with open(pathCL + '.html', 'w', encoding='utf-8') as f:
             f.write('\n'.join(html_cleaned))
     s = ""
 
@@ -255,4 +257,3 @@ if __name__ == "__main__":
 
     create_plugin(include_testdata=args.testdata, include_qgisresources=args.qgisresources)
     exit()
-

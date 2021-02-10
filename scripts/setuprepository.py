@@ -5,29 +5,25 @@ Initial setup of the VRT Raster Builder repository.
 # specify the local path to the cloned QGIS repository
 import os
 import sys
-
-DIR_QGIS_REPO = os.environ.get('DIR_QGIS_REPO', None)
-
-
-from os.path import dirname as dn
-from os.path import join as jn
-DIR_REPO = dn(dn(__file__))
-DIR_QGISRESOURCES = jn(DIR_REPO, 'qgisresources')
-
-# 1. compile all resource files (*.qrc) into corresponding python modules (*.py)
-from vrtbuilder.externals.qps.resources import compileResourceFiles, compileQGISResourceFiles
-
-# 2. create the qgisresource folder
-if isinstance(DIR_QGIS_REPO, str):
-    pathImages = os.path.join(DIR_QGIS_REPO, *['images', 'images.qrc'])
-    if not os.path.isfile(pathImages):
-        print('Wrong DIR_QGIS_REPO. Unable to find QGIS images.qrc in {}'.format(DIR_QGIS_REPO), file=sys.stderr)
-    else:
-        compileQGISResourceFiles(DIR_QGIS_REPO)
-else:
-    print('DIR_QGIS_REPO undefined. Some widgets might appear without icons', file=sys.stderr)
+import site
+import pathlib
 
 
-print('VRT Raster Builder repository setup finished')
+def setup_repository():
 
-exit(0)
+    DIR_REPO = pathlib.Path(__file__).parents[1].resolve()
+    site.addsitedir(DIR_REPO)
+
+    from scripts.compile_resourcefiles import compileVRTBuilderResources
+    from scripts.install_testdata import install_qgisresources
+    print('Compile VRT Raster Builder resources')
+    compileVRTBuilderResources()
+
+    print('Install QGIS resource files')
+    install_qgisresources()
+
+    print('VRT Raster Builder repository setup finished')
+
+if __name__ == "__main__":
+    print('setup repository')
+    setup_repository()

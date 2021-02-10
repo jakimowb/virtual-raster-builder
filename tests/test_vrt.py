@@ -122,7 +122,6 @@ class VRTBuilderTests(TestCase):
 
     def test_read_write_VRT(self):
 
-
         lyrSrc1 = TestObjects.createRasterLayer(ns=10, nb=3)
         lyrSrc2 = TestObjects.createRasterLayer(ns=20, nb=5)
 
@@ -154,8 +153,7 @@ class VRTBuilderTests(TestCase):
         VRT2 = VRTRaster()
         VRT2.loadVRT(PATH_VRT)
         self.assertEqual(VRT, VRT2)
-        s  = ""
-
+        s = ""
 
     def test_vrtRasterMetadata(self):
         ds = gdal.Open(Landsat8_East_tif.as_posix())
