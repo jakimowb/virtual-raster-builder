@@ -17,6 +17,11 @@ import unittest
 import xmlrunner
 import tempfile
 import numpy as np
+import site
+import pathlib
+DIR_REPO = pathlib.Path(__file__).parents[1].resolve()
+site.addsitedir(DIR_REPO)
+
 from exampledata import Landsat8_West_tif, Landsat8_East_tif, RapidEye_tif, Sentinel2_East_tif, Sentinel2_West_tif
 from qgis.core import QgsRectangle, QgsRasterLayer, QgsPointXY, QgsCoordinateReferenceSystem, QgsProject, \
     QgsWkbTypes, QgsMapLayer
