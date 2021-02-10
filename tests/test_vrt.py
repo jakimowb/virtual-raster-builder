@@ -403,7 +403,7 @@ class VRTBuilderTests(TestCase):
             # simulate a mouse click
             event = QMouseEvent(QEvent.MouseButtonPress, pointCenter, Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
             canvas.mousePressEvent(event)
-            # QApplication.processEvents()
+            QApplication.processEvents()
 
             if isinstance(mapTool, SpatialExtentMapTool):
                 # simulate drawing a rectangle
