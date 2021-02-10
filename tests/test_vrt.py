@@ -16,6 +16,7 @@ import random
 import unittest
 import xmlrunner
 import tempfile
+import sys
 import numpy as np
 import site
 import pathlib
@@ -31,6 +32,7 @@ from vrtbuilder import DIR_UI
 from vrtbuilder.virtualrasters import alignRectangleToGrid, alignPointToGrid, describeRawFile, read_vsimem
 from vrtbuilder.widgets import *
 
+from qgis.core import Qgis
 
 class VRTBuilderTests(TestCase):
 
@@ -415,6 +417,9 @@ class VRTBuilderTests(TestCase):
                 # QApplication.processEvents()
 
             if isinstance(mapTool, MapToolIdentifySource):
+                if layer is None:
+                    print(sys.version)
+                    print(Qgis.QGIS_VERSION)
 
                 self.assertIsInstance(layer, QgsMapLayer)
 
