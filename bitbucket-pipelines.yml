@@ -3,7 +3,7 @@
 # Only use spaces to indent your .yml configuration.
 # -----
 # You can specify a custom docker image from Docker Hub as your build environment.
-image: qgis/qgis:3.16
+image: qgis/qgis:release
 
 pipelines:
   default:
