@@ -16,6 +16,7 @@ import random
 import unittest
 import xmlrunner
 import tempfile
+import sys
 import numpy as np
 import site
 import pathlib
@@ -31,6 +32,7 @@ from vrtbuilder import DIR_UI
 from vrtbuilder.virtualrasters import alignRectangleToGrid, alignPointToGrid, describeRawFile, read_vsimem
 from vrtbuilder.widgets import *
 
+from qgis.core import Qgis
 
 class VRTBuilderTests(TestCase):
 
@@ -403,7 +405,7 @@ class VRTBuilderTests(TestCase):
             # simulate a mouse click
             event = QMouseEvent(QEvent.MouseButtonPress, pointCenter, Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
             canvas.mousePressEvent(event)
-            # QApplication.processEvents()
+            QApplication.processEvents()
 
             if isinstance(mapTool, SpatialExtentMapTool):
                 # simulate drawing a rectangle
@@ -416,7 +418,9 @@ class VRTBuilderTests(TestCase):
 
             if isinstance(mapTool, MapToolIdentifySource):
 
-                self.assertIsInstance(layer, QgsMapLayer)
+                info = f'python:{sys.version}\nQGIS:{Qgis.QGIS_VERSION}'
+
+                self.assertIsInstance(layer, QgsMapLayer, msg=info)
 
             elif isinstance(mapTool, SpatialExtentMapTool):
 
