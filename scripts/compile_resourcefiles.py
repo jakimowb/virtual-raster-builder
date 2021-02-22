@@ -1,5 +1,8 @@
 import pathlib
+import site
 
+DIR_REPO = pathlib.Path(__file__).parents[1]
+site.addsitedir(DIR_REPO)
 
 def compileVRTBuilderResources():
     from vrtbuilder.externals.qps.resources import compileResourceFiles

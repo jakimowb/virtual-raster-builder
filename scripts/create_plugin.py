@@ -30,9 +30,12 @@ import shutil
 import sys
 import typing
 import io
+import site
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 from http.client import responses
+DIR_REPO = pathlib.Path(__file__).parents[1]
+site.addsitedir(DIR_REPO)
 
 import vrtbuilder
 from vrtbuilder import DIR_REPO, __version__

@@ -1,9 +1,12 @@
-import os, sys, re, shutil, zipfile, datetime
+import os
+import pathlib
+import site
+DIR_REPO = pathlib.Path(__file__).parents[1]
+site.addsitedir(DIR_REPO)
 from vrtbuilder.externals.qps.make import updateexternals
-from vrtbuilder.externals.qps.make.updateexternals import RemoteInfo, updateRemoteLocations
-from vrtbuilder import DIR_REPO
+from vrtbuilder.externals.qps.make.updateexternals import RemoteInfo
 
-import git  # install with: pip install gitpython
+
 
 updateexternals.setProjectRepository(DIR_REPO)
 
