@@ -27,6 +27,10 @@ from typing import List, Tuple
 
 import sip
 import textwrap
+
+from PyQt5.QtCore import QAbstractTableModel, pyqtSignal, Qt, QModelIndex, QVariant, QPoint, QTimer, QPointF, pyqtSlot
+from PyQt5.QtGui import QColor, QDragMoveEvent, QDropEvent, QIcon, QDragEnterEvent, QContextMenuEvent
+
 from .core import *
 import collections
 from ..externals.pyqtgraph import PlotItem, PlotWindow, PlotCurveItem
@@ -430,7 +434,7 @@ class SpectralProfilePlotDataItem(PlotDataItem):
 
                 # 1. convert to numpy arrays
                 if not isinstance(y, np.ndarray):
-                    y = np.asarray(y, dtype=np.float)
+                    y = np.asarray(y, dtype=float)
                 if not isinstance(x, np.ndarray):
                     x = np.asarray(x)
 
@@ -1764,8 +1768,7 @@ class SpectralLibraryPlotWidget(pg.PlotWidget):
                 b = self.speclib().isEditable()
                 self.speclib().startEditing()
                 self.speclib().addSpeclib(speclib)
-                if not b:
-                    self.speclib().commitChanges()
+                self.speclib().commitChanges(stopEditing=not b)
             event.accept()
         else:
             super().dropEvent(event)
@@ -2185,7 +2188,7 @@ class SpectralProfileFieldFormatter(QgsFieldFormatter):
 
     def representValue(self, layer: QgsVectorLayer, fieldIndex: int, config: dict, cache, value):
 
-        if value not in [None, NULL]:
+        if value not in [None, QVariant()]:
             return SPECTRAL_PROFILE_FIELD_REPRESENT_VALUE
         else:
             return 'Empty'
@@ -2413,6 +2416,7 @@ class SpectralLibraryWidget(AttributeTableWidget):
         self.actionExportSpeclib.triggered.connect(self.onExportSpectra)
 
         self.tbSpeclibAction = QToolBar('Spectral Profiles')
+        self.tbSpeclibAction.setObjectName('SpectralLibraryToolbar')
         self.tbSpeclibAction.addAction(self.actionSelectProfilesFromMap)
         self.tbSpeclibAction.addAction(self.actionAddProfiles)
         self.tbSpeclibAction.addAction(self.actionImportSpeclib)
@@ -2572,9 +2576,9 @@ class SpectralLibraryWidget(AttributeTableWidget):
             info = 'Add {} profiles from {} ...'.format(len(speclib), speclib.name())
             sl.beginEditCommand(info)
             sl.addSpeclib(speclib)
+            sl.commitChanges(stopEditing=not wasEditable)
             sl.endEditCommand()
-            if not wasEditable:
-                sl.commitChanges()
+            s = ""
         except Exception as ex:
             print(ex, file=sys.stderr)
             pass
@@ -2608,7 +2612,9 @@ class SpectralLibraryWidget(AttributeTableWidget):
 
         if not addAuto:
             # delete previous current profiles from speclib
+            speclib.beginEditCommand('Remove temporary profiles')
             speclib.deleteFeatures(oldCurrentIDs)
+            speclib.endEditCommand()
             plotWidget.removeSpectralProfilePDIs(oldCurrentKeys, updateScene=False)
             # now there shouldn't be any PDI or style ref related to an old ID
         else:

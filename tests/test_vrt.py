@@ -369,7 +369,7 @@ class VRTBuilderTests(TestCase):
         self.assertTrue(lyrR.isValid())
         canvas.setLayers([lyrR])
         canvas.mapSettings().setDestinationCrs(lyrR.crs())
-        canvas.zoomToFullExtent()
+        canvas.setExtent(lyrR.extent())
         pointCenter = QPointF(0.5 * canvas.size().width(), 0.5 * canvas.size().height())
         pointLeft = QPointF(0.3 * canvas.size().width(), 0.3 * canvas.size().height())
         GUI.sigAboutCreateCurrentMapTools.connect(lambda *args, g=GUI, c=canvas: g.createCurrentMapTool(c))
@@ -417,6 +417,7 @@ class VRTBuilderTests(TestCase):
                 # QApplication.processEvents()
 
             if isinstance(mapTool, MapToolIdentifySource):
+
 
                 info = f'python:{sys.version}\nQGIS:{Qgis.QGIS_VERSION}'
 
