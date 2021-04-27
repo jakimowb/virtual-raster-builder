@@ -1822,17 +1822,16 @@ class VRTBuilderWidget(QMainWindow):
         self.progressBar.setValue(100)
         QTimer.singleShot(2000, lambda: self.progressBar.setValue(0))
 
-    def onSrcModelSelectionChanged(self, selected, deselected):
+    def onSrcModelSelectionChanged(self, selected: QItemSelection, deselected: QItemSelection):
 
         self.actionRemoveSourceFiles.setEnabled(selected.count() > 0)
         selectedSources = set()
-        for idx in selected.indexes():
+        for idx in self.treeViewSourceFiles.selectedIndexes():
             assert isinstance(idx, QModelIndex)
             node = idx.data(Qt.UserRole)
             if isinstance(node, (SourceRasterBandNode, SourceRasterFileNode)):
                 selectedSources.add(node.source())
-            if len(selectedSources) > 1:
-                break
+
         self.optionStackMode.setEnabled(len(selectedSources) > 1)
 
     def addSourceFile(self, file):
