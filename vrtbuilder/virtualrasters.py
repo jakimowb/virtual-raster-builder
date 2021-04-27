@@ -746,7 +746,7 @@ class VRTRaster(QObject):
         Sets the image no data value, which will be applied to each single band
         :param value: float | None
         """
-        assert isinstance(value, (None, float))
+        assert isinstance(value, (int, float)) or value is None
         if self.mNoDataValue != value:
             self.mNoDataValue = value
             self.sigNoDataValueChanged.emit(value)
@@ -1408,6 +1408,9 @@ class VRTRaster(QObject):
                 xml = re.sub('<SourceBand>1</SourceBand>', '<SourceBand>{}</SourceBand>'.format(bandIndex + 1), xml)
                 md['source_{}'.format(iSrc)] = xml
             vrtBandDst.SetMetadata(md, 'vrt_sources')
+
+            if self.noDataValue():
+                vrtBandDst.SetNoDataValue(self.noDataValue())
 
         assert dsVRTDst.RasterCount == len(self.mBands)
         dsVRTDst.FlushCache()

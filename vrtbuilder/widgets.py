@@ -1149,6 +1149,7 @@ class VRTBuilderWidget(QMainWindow):
         selectionModel.selectionChanged.connect(self.onSrcModelSelectionChanged)
         self.onSrcModelSelectionChanged(QItemSelection(), QItemSelection())
         self.tbNoData.setValidator(QDoubleValidator())
+        self.tbNoData.textChanged.connect(self.setNoDataValue)
 
         filter = 'GDAL Virtual Raster (*.vrt);;GeoTIFF (*.tiff *.tif);;ENVI (*.bsq *.bil *.bip)'
 
@@ -1497,6 +1498,19 @@ class VRTBuilderWidget(QMainWindow):
         lyr = qgsRasterLayer(source)
         if isinstance(lyr, QgsRasterLayer):
             self.mVRTRaster.setResolution(resolution(lyr), crs=lyr.crs())
+
+    def setNoDataValue(self, value):
+        if isinstance(value, str):
+            value = value.strip()
+            if value == '':
+                value = None
+            else:
+                try:
+                    value = float(value)
+                except:
+                    return
+        assert isinstance(value, (int, float)) or value is None
+        self.mVRTRaster.setNoDataValue(value)
 
     def setGridFrom(self, source):
         """
