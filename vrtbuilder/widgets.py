@@ -1353,8 +1353,7 @@ class VRTBuilderWidget(QMainWindow):
         m = self.treeViewSourceFiles.model()
 
         to_remove = set()
-        rows = sm.selectedRows()
-        for rowIdx in rows:
+        for rowIdx in sm.selectedIndexes():
             node = m.data(rowIdx, Qt.UserRole)
             if isinstance(node, SourceRasterFileNode):
                 to_remove.add(node.source())
