@@ -31,7 +31,7 @@ from PyQt5.QtCore import QObject, pyqtSignal, QSize, QSizeF, QPoint
 from qgis.core import QgsRasterLayer, QgsCoordinateReferenceSystem, QgsRectangle, QgsCoordinateTransform, \
     QgsPointXY, QgsPoint
 
-from vrtbuilder.externals.qps.utils import qgsRasterLayer, gdalDataset
+from vrtbuilder.externals.qps.utils import qgsRasterLayer, gdalDataset, SpatialPoint, px2geo
 from vrtbuilder.externals.qps.models import Option, OptionListModel
 
 # lookup GDAL Data Type and its size in bytes
@@ -133,50 +133,6 @@ def resolution(lyr) -> QSizeF:
         return QSizeF(gt[1], abs(gt[5]))
     else:
         raise Exception('Unsupported type: {}'.format(lyr))
-
-
-def px2geo(px, gt) -> QgsPointXY:
-    """
-    :param px:
-    :param gt:
-    :return:
-    """
-    gx = gt[0] + px.x() * gt[1] + px.y() * gt[2]
-    gy = gt[3] + px.x() * gt[4] + px.y() * gt[5]
-    return QgsPointXY(gx, gy)
-
-
-def geo2pxF(geo, gt):
-    """
-    Returns the pixel position related to a Geo-Coordinate in floating point precision.
-    :param geo: Geo-Coordinate as QgsPoint
-    :param gt: GDAL Geo-Transformation tuple, as described in http://www.gdal.org/gdal_datamodel.html
-    :return: pixel position as QPointF
-    """
-    assert isinstance(geo, QgsPointXY)
-    # see http://www.gdal.org/gdal_datamodel.html
-    px = (geo.x() - gt[0]) / gt[1]  # x pixel
-    py = (geo.y() - gt[3]) / gt[5]  # y pixel
-    return QPointF(px, py)
-
-
-def geo2px(geo, gt):
-    """
-    Returns the pixel position related to a Geo-Coordinate as integer number.
-    Floating-point coordinate are casted to integer coordinate, e.g. the pixel coordinate (0.815, 23.42) is returned as (0,23)
-    :param geo: Geo-Coordinate as QgsPointXY
-    :param gt: GDAL Geo-Transformation tuple, as described in http://www.gdal.org/gdal_datamodel.html or
-          gdal.Dataset or QgsRasterLayer
-    :return: pixel position as QPpint
-    """
-
-    if isinstance(gt, QgsRasterLayer):
-        return geo2px(geo, geotransform(gt))
-    elif isinstance(gt, gdal.Dataset):
-        return geo2px(gt.GetGeoTransform())
-    else:
-        px = geo2pxF(geo, gt)
-        return QPoint(int(px.x()), int(px.y()))
 
 
 def transformBoundingBox(rectangle: QgsRectangle, trans: QgsCoordinateTransform) -> QgsRectangle:
@@ -403,8 +359,8 @@ class VRTRasterInputSourceBand(object):
         self.mSource: str = path
         self.mBandIndex: int = bandIndex
         self.mBandName: str = bandName
-        self.mNoData = None
-        self.mVirtualBand = None
+        self.mNoData: typing.Union[int, float] = None
+        self.mVirtualBand: VRTRasterBand = None
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, VRTRasterInputSourceBand):
@@ -621,6 +577,21 @@ class VRTRasterBand(QObject):
             infos.append('\t{} SourceFileName {} SourceBand {}'.format(i + 1, info.mSource, info.mBandIndex))
         return '\n'.join(infos)
 
+class VRTRasterInputSourceProperties(object):
+
+    def __init__(self, dataset):
+        dataset: gdal.Dataset = gdalDataset(dataset)
+        assert isinstance(dataset, gdal.Dataset)
+
+        self.crs: QgsCoordinateReferenceSystem = QgsCoordinateReferenceSystem(dataset.GetProjection())
+        self.gt = dataset.GetGeoTransform()
+
+        self.ul: SpatialPoint = SpatialPoint(self.crs, QgsPointXY(self.gt[0], self.gt[3]))
+        pxLR = QgsPointXY(dataset.RasterXSize+1, dataset.RasterYSize+1)
+        self.lr: SpatialPoint = SpatialPoint(self.crs, px2geo(pxLR, self.gt))
+
+
+
 
 class VRTRaster(QObject):
     sigSourceBandInserted = pyqtSignal(VRTRasterBand, VRTRasterInputSourceBand)
@@ -631,7 +602,7 @@ class VRTRaster(QObject):
     sigResolutionChanged = pyqtSignal()
     sigResamplingAlgChanged = pyqtSignal([str], [int])
     sigExtentChanged = pyqtSignal()
-    sigNoDataValueChanged = pyqtSignal(float)
+    sigNoDataValueChanged = pyqtSignal()
 
     def __init__(self, parent=None):
         super(VRTRaster, self).__init__(parent)
@@ -639,36 +610,63 @@ class VRTRaster(QObject):
         self.mCrs = None
         self.mResamplingAlg = gdal.GRA_NearestNeighbour
         self.mMetadata = dict()
-        self.mUL = None
-        self.mResolution = None
-        self.mSize = None
+        self.mUL: QgsPointXY = None
+        self.mResolution: QSizeF = None
+        self.mSize: QSize = None
+        self.mAutoExtent: bool = True
+        self.mAutoNoData: bool = True
         self.mNoDataValue = None
-        self.sigSourceBandInserted.connect(self.checkBasicParameters)
+        self.sigSourceBandInserted.connect(self.updateBasicParameters)
+        self.mSourceFileProperties: typing.Dict[str, VRTRasterInputSourceProperties] = dict()
 
-    def checkBasicParameters(self, vrtBand: VRTRasterBand):
+    def updateBasicParameters(self, vrtBand: VRTRasterBand, vrtSourceBand: VRTRasterInputSourceBand):
 
         if len(vrtBand) == 0:
             return
 
-        if not (isinstance(self.crs(), QgsCoordinateReferenceSystem) and
+        if not isinstance(vrtSourceBand, VRTRasterInputSourceBand):
+            sourceBands = vrtBand[:]
+        else:
+            sourceBands = [vrtSourceBand]
+        for sourceBand in sourceBands:
+            assert sourceBand in vrtBand
+            if sourceBand.source() not in self.mSourceFileProperties.keys():
+                self.mSourceFileProperties[sourceBand.source()] = VRTRasterInputSourceProperties(sourceBand.toDataset())
+
+        if self.mAutoNoData and self.noDataValue() is None and isinstance(vrtSourceBand.mNoData, (int, float)):
+            self.setNoDataValue(vrtSourceBand.mNoData)
+
+        if self.mAutoExtent or not \
+                (isinstance(self.crs(), QgsCoordinateReferenceSystem) and
                 isinstance(self.extent(), QgsRectangle) and
                 isinstance(self.resolution(), QSizeF)):
-            lyr = vrtBand[0].toRasterLayer()
-            assert isinstance(lyr, QgsRasterLayer), 'Unable to open {} as QgsRasterLayer'.format(vrtBand[0])
+
+            referenceLayer = vrtBand[0].toRasterLayer()
+            assert isinstance(referenceLayer, QgsRasterLayer), 'Unable to open {} as QgsRasterLayer'.format(vrtBand[0])
 
             if not isinstance(self.mCrs, QgsCoordinateReferenceSystem):
-                self.setCrs(lyr.crs())
+                self.setCrs(referenceLayer.crs())
 
             if not isinstance(self.mResolution, QSizeF):
-                res = resolution(lyr)
+                res = resolution(referenceLayer)
                 self.setResolution(res)
 
-            if not isinstance(self.ul(), QgsPointXY):
-                ext = lyr.extent()
-                self.mUL = QgsPointXY(ext.xMinimum(), ext.yMaximum())
+            if self.mAutoExtent or not isinstance(self.extent(), QgsRectangle):
+                # set VRT bounding box from most upper left and lower right coordinates
+                upperLefts = [p.ul.toCrs(self.crs()) for p in self.mSourceFileProperties.values()]
+                lowerRights = [p.lr.toCrs(self.crs()) for p in self.mSourceFileProperties.values()]
+                min_x = min([p.x() for p in upperLefts+lowerRights])
+                max_x = max([p.x() for p in upperLefts+lowerRights])
+                min_y = min([p.y() for p in upperLefts+lowerRights])
+                max_y = max([p.y() for p in upperLefts+lowerRights])
 
-            if not isinstance(self.size(), QSize):
-                self.setSize(QSize(lyr.width(), lyr.height()))
+                self.mUL = QgsPointXY(min_x, max_y)
+
+                size_x = round((max_x - min_x) / self.resolution().width())
+                size_y = round((max_y - min_y) / self.resolution().height())
+
+                self.setSize(QSize(size_x, size_y))
+
 
     def alignToRasterGrid(self, reference, crop: bool = False):
         """
@@ -749,7 +747,8 @@ class VRTRaster(QObject):
         assert isinstance(value, (int, float)) or value is None
         if self.mNoDataValue != value:
             self.mNoDataValue = value
-            self.sigNoDataValueChanged.emit(value)
+            self.sigNoDataValueChanged.emit()
+        self.mAutoNoData = False
 
     def noDataValue(self) -> float:
         """
@@ -758,13 +757,17 @@ class VRTRaster(QObject):
         """
         return self.mNoDataValue
 
-    def setExtent(self, rectangle: QgsRectangle, crs: QgsCoordinateReferenceSystem = None,
+    def setExtent(self,
+                  rectangle: QgsRectangle,
+                  crs: QgsCoordinateReferenceSystem = None,
                   referenceGrid: QgsPointXY = None):
         """
         Sets a new extent. This will change the number of pixels
         :param rectangle: QgsRectangle
         :param crs: QgsCoordinateReferenceSystem of coordinate in rectangle.
         """
+        # explicit extent. Don't derive automatically
+        self.mAutoExtent = False
 
         last = self.extent()
 
@@ -830,8 +833,7 @@ class VRTRaster(QObject):
 
     def lr(self) -> QgsPointXY:
         """
-        Returns the lower-right image pixel corner coordinate.
-
+        Returns the lower-right image pixel corner coordinate, as calculated from UL, resolution and image size
         :return: QgsPointXY
         """
         size = self.size()
@@ -1060,7 +1062,7 @@ class VRTRaster(QObject):
             lambda _, sourceBand: self.sigSourceBandInserted.emit(virtualBand, sourceBand))
 
         self.mBands.insert(index, virtualBand)
-        self.checkBasicParameters(virtualBand)
+        self.updateBasicParameters(virtualBand, None)
         self.sigBandInserted.emit(index, virtualBand)
 
         return self[index]
@@ -1357,6 +1359,9 @@ class VRTRaster(QObject):
                 srcXML = vrt_sources['source_0']
                 assert os.path.basename(srcFile) + '</SourceFilename>' in srcXML
                 assert '<SourceBand>1</SourceBand>' in srcXML
+                # do not add empty source rectangles
+                if 'xSize="0"' in srcXML or 'ySize="0"' in srcXML:
+                    continue
                 SOURCE_TEMPLATES[srcFile] = srcXML
             gdal.Unlink(pathTemplateVRT)
             # drvVRT.Delete(pathInMEMVRT)
@@ -1401,12 +1406,16 @@ class VRTRaster(QObject):
             vrtBandDst.SetDescription(vBand.name())
             md = {}
             # add all input sources for this virtual band
-            for iSrc, sourceInfo in enumerate(vBand.mSources):
+            iSrc = 0
+
+            for sourceInfo in vBand.mSources:
                 assert isinstance(sourceInfo, VRTRasterInputSourceBand)
                 bandIndex = sourceInfo.mBandIndex
-                xml = SOURCE_TEMPLATES[srcPathLookup[sourceInfo.mSource]]
-                xml = re.sub('<SourceBand>1</SourceBand>', '<SourceBand>{}</SourceBand>'.format(bandIndex + 1), xml)
-                md['source_{}'.format(iSrc)] = xml
+                xml = SOURCE_TEMPLATES.get(srcPathLookup[sourceInfo.mSource], None)
+                if xml:
+                    xml = re.sub('<SourceBand>1</SourceBand>', '<SourceBand>{}</SourceBand>'.format(bandIndex + 1), xml)
+                    md['source_{}'.format(iSrc)] = xml
+                    iSrc += 1
             vrtBandDst.SetMetadata(md, 'vrt_sources')
 
             if self.noDataValue():

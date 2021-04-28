@@ -563,7 +563,21 @@ class SourceRasterModel(TreeModel):
             s = ""
         return flags
 
-    def dropMimeData(self, mimeData, action, row, col, parentIndex):
+    def canDropMimeData(self, mimeData: QMimeData, action: Qt.DropAction, row, col, parent:QModelIndex) -> bool:
+        return action == Qt.CopyAction
+
+    def dropMimeData(self, mimeData, action, row, col, parentIndex) -> bool:
+
+        supportedFormats = ['application/qgis.layertreemodeldata']
+        if action != Qt.CopyAction:
+            return False
+        if mimeData.hasUrls():
+            return True
+        for f in supportedFormats:
+            if f in mimeData.formats():
+                return True
+        return False
+
 
         assert isinstance(mimeData, QMimeData)
 
@@ -936,6 +950,7 @@ class VRTRasterTreeModel(TreeModel):
 
             if action == Qt.MoveAction:
                 s = ""
+
         # drop files
         elif mimeData.hasUrls():
             for url in mimeData.urls():
@@ -1166,7 +1181,7 @@ class VRTBuilderWidget(QMainWindow):
 
         self.mVRTRaster.sigCrsChanged.connect(self.updateSummary)
         # self.mVRTRaster.sigSourceBandInserted.connect(self.onVRTSourceBandAdded)
-
+        self.mVRTRaster.sigNoDataValueChanged.connect(self.onNoDataValueChanged)
         self.mVRTRaster.sigSourceBandInserted.connect(self.onSourceFilesChanged)
         self.mVRTRaster.sigSourceBandRemoved.connect(self.onSourceFilesChanged)
         self.mVRTRaster.sigBandInserted.connect(self.updateSummary)
@@ -1608,6 +1623,13 @@ class VRTBuilderWidget(QMainWindow):
         self.btnCopyExtent.setMenu(menuCopyExtent)
         self.bntCopyGrid.setMenu(menuCopyGrid)
         self.btnAlignGrid.setMenu(menuAlignGrid)
+
+    def onNoDataValueChanged(self, *args):
+        value = self.mVRTRaster.noDataValue()
+        if isinstance(value, (float, int)):
+            self.tbNoData.setText(f'{value}')
+        else:
+            self.tbNoData.setText('')
 
     def onSourceFilesChanged(self, *args):
 

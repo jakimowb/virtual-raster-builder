@@ -625,6 +625,9 @@
           <property name="readOnly">
            <bool>false</bool>
           </property>
+          <property name="placeholderText">
+           <string>No Data Value</string>
+          </property>
          </widget>
         </item>
        </layout>
