@@ -615,7 +615,7 @@ class VRTRaster(QObject):
         self.mSize: QSize = None
         self.mAutoExtent: bool = True
         self.mAutoNoData: bool = True
-        self.mNoDataValue = None
+        self.mNoDataValue: float = None
         self.sigSourceBandInserted.connect(self.updateBasicParameters)
         self.mSourceFileProperties: typing.Dict[str, VRTRasterInputSourceProperties] = dict()
 

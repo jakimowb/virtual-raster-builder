@@ -61,7 +61,7 @@ class VRTBuilderTests(TestCase):
         self.assertTrue(len(VRT), 2)
 
         path = '/vsimem/myinmemory.vrt'
-        ds1 = VRT.saveVRT(path)
+        ds1: gdal.Dataset = VRT.saveVRT(path)
         ds2 = gdal.Open(path)
 
         self.assertIsInstance(ds1, gdal.Dataset)
@@ -75,6 +75,10 @@ class VRTBuilderTests(TestCase):
         self.assertEqual(crs1, crs2)
         arr1 = ds1.ReadAsArray()
         arr2 = ds2.ReadAsArray()
+
+        del ds2
+        del ds1
+
         self.assertTrue(np.array_equal(arr1, arr2))
 
     def test_vrtRaster(self):
