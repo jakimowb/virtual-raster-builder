@@ -344,7 +344,7 @@ def describeRawFile(pathRaw, pathVrt, xsize, ysize,
         options.append('LineOffset={}'.format(lineOffset))
         options.append('ByteOrder={}'.format(byteOrder))
 
-        xml = """<SourceFilename relativetoVRT="{relativeToVRT}">{srcFilename}</SourceFilename>
+        xml = f"""<SourceFilename relativetoVRT="{relativeToVRT}">{srcFilename}</SourceFilename>
             <ImageOffset>{imageOffset}</ImageOffset>
             <PixelOffset>{pixelOffset}</PixelOffset>
             <LineOffset>{lineOffset}</LineOffset>

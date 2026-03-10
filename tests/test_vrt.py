@@ -32,12 +32,14 @@ from qgis.core import QgsRectangle, QgsRasterLayer, QgsPointXY, QgsCoordinateRef
 from qgis.gui import QgsMapCanvas, QgsMapTool
 from vrtbuilder.qgispluginsupport.qps.maptools import SpatialExtentMapTool
 from vrtbuilder.qgispluginsupport.qps.models import TreeView, TreeModel, TreeNode
-from vrtbuilder.qgispluginsupport.qps.testing import TestCase, TestObjects
+from vrtbuilder.qgispluginsupport.qps.testing import TestCase, TestObjects, start_app
 from vrtbuilder.qgispluginsupport.qps.utils import qgsRasterLayer
 from vrtbuilder.virtualrasters import alignRectangleToGrid, alignPointToGrid, describeRawFile, read_vsimem, VRTRaster, \
     VRTRasterBand, VRTRasterInputSourceBand
 from vrtbuilder.widgets import VRTBuilderWidget, SourceRasterFileNode, SourceRasterBandNode, VRTBuilderMapTools, \
     MapToolIdentifySource
+
+start_app()
 
 
 class VRTBuilderTests(TestCase):
@@ -280,9 +282,10 @@ class VRTBuilderTests(TestCase):
         tmpDir = tempfile.gettempdir()
         pathVRT1 = os.path.join(tmpDir, 'vrtRawfile.vrt')
         pathVRT2 = '/vsimem/myrawvrt'
-
+        gdal.SetConfigOption('GDAL_VRT_RAWRASTERBAND_ALLOWED_SOURCE', 'ALL')
         for pathVRT in [pathVRT1, pathVRT2]:
             self.assertTrue(os.path.isfile(pathESL))
+
             dsVRT = describeRawFile(pathESL, pathVRT, ns, nl, bands=nb, eType=eType, byteOrder=byteOrder)
 
             self.assertIsInstance(dsVRT, gdal.Dataset)
@@ -308,6 +311,7 @@ class VRTBuilderTests(TestCase):
         reg.addMapLayer(TestObjects.createRasterLayer())
         GUI.loadSrcFromMapLayerRegistry()
         self.showGui(GUI)
+        reg.removeAllMapLayers()
 
     def test_gui(self):
         from exampledata import Landsat8_West_tif
