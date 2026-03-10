@@ -1,3 +1,6 @@
+1.0 2026-03-10
+    *
+
 0.9 2021-02-10
    * fixed loading from VRt files (#23)
    * main window got a toolbar and dock widgets

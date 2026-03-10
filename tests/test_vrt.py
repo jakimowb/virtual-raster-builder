@@ -12,27 +12,41 @@ __author__ = 'benjamin.jakimow@geo.hu-berlin.de'
 __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
-import random
-import unittest
-import xmlrunner
-import tempfile
-import sys
-import numpy as np
-import site
+import os
 import pathlib
+import random
+import re
+import site
+import sys
+import tempfile
+import unittest
+
+import numpy as np
+from PyQt5.QtCore import QSizeF, QSize, Qt, QModelIndex, QMimeData, QPointF, QEvent
+from PyQt5.QtGui import QMouseEvent
+from PyQt5.QtWidgets import QPushButton, QWidget, QHBoxLayout, QVBoxLayout, QApplication
+from osgeo import gdal
+
+from vrtbuilder.qgispluginsupport.qps.maptools import SpatialExtentMapTool
+from vrtbuilder.qgispluginsupport.qps.models import TreeView, TreeModel, TreeNode
+from vrtbuilder.qgispluginsupport.qps.utils import qgsRasterLayer
+from vrtbuilder.widgets import VRTBuilderWidget, SourceRasterFileNode, SourceRasterBandNode, VRTBuilderMapTools, \
+    MapToolIdentifySource
+
 DIR_REPO = pathlib.Path(__file__).parents[1].resolve()
-site.addsitedir(DIR_REPO)
+site.addsitedir(str(DIR_REPO))
 
 from exampledata import Landsat8_West_tif, Landsat8_East_tif, RapidEye_tif, Sentinel2_East_tif, Sentinel2_West_tif
 from qgis.core import QgsRectangle, QgsRasterLayer, QgsPointXY, QgsCoordinateReferenceSystem, QgsProject, \
     QgsWkbTypes, QgsMapLayer
 from qgis.gui import QgsMapCanvas, QgsMapTool
-from vrtbuilder.externals.qps.testing import TestCase, TestObjects
+from vrtbuilder.qgispluginsupport.qps.testing import TestCase, TestObjects
 from vrtbuilder import DIR_UI
-from vrtbuilder.virtualrasters import alignRectangleToGrid, alignPointToGrid, describeRawFile, read_vsimem
-from vrtbuilder.widgets import *
+from vrtbuilder.virtualrasters import alignRectangleToGrid, alignPointToGrid, describeRawFile, read_vsimem, VRTRaster, \
+    VRTRasterBand, VRTRasterInputSourceBand
 
 from qgis.core import Qgis
+
 
 class VRTBuilderTests(TestCase):
 
@@ -527,4 +541,4 @@ class VRTBuilderTests(TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main(testRunner=xmlrunner.XMLTestRunner(output='test-reports'), buffer=False)
+    unittest.main()

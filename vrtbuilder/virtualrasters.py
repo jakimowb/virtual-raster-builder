@@ -20,19 +20,20 @@
  ***************************************************************************/
 """
 import os
+import pathlib
 import re
 import sys
 import typing
 import uuid
-import pathlib
 from xml.etree import ElementTree
+
+from PyQt5.QtCore import QObject, pyqtSignal, QSize, QSizeF, QPoint, QPointF
 from osgeo import gdal, osr
-from PyQt5.QtCore import QObject, pyqtSignal, QSize, QSizeF, QPoint
+
 from qgis.core import QgsRasterLayer, QgsCoordinateReferenceSystem, QgsRectangle, QgsCoordinateTransform, \
     QgsPointXY, QgsPoint
-
-from vrtbuilder.externals.qps.utils import qgsRasterLayer, gdalDataset
-from vrtbuilder.externals.qps.models import Option, OptionListModel
+from vrtbuilder.qgispluginsupport.qps.models import Option, OptionListModel
+from vrtbuilder.qgispluginsupport.qps.utils import qgsRasterLayer, gdalDataset
 
 # lookup GDAL Data Type and its size in bytes
 LUT_GDT_SIZE = {gdal.GDT_Byte: 1,

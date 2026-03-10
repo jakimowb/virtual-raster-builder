@@ -1,0 +1,3 @@
+[submodule "vrtbuilder/qgispluginsupport"]
+	path = vrtbuilder/qgispluginsupport
+	url = https://github.com/EnMAP-Box/qgispluginsupport

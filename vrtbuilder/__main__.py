@@ -18,17 +18,17 @@
 """
 
 
-class run():
+def run():
     # add site-packages to sys.path as done by enmapboxplugin.py
 
-    from vrtbuilder.externals.qps.testing import start_app
-    qgsApp = start_app()
+    from vrtbuilder.qgispluginsupport.qps.testing import start_app
+    qgs_app = start_app()
     from vrtbuilder.widgets import VRTBuilderWidget
-    W = VRTBuilderWidget(None)
-    W.show()
+    w = VRTBuilderWidget(None)
+    w.show()
 
-    qgsApp.exec_()
-    qgsApp.exitQgis()
+    qgs_app.exec_()
+    qgs_app.exitQgis()
 
 
 if __name__ == '__main__':

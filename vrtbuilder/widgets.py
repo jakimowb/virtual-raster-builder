@@ -17,33 +17,37 @@
 ***************************************************************************
 """
 
-from collections import OrderedDict
-import pickle
-import webbrowser
-import pathlib
-import os
-import typing
-import re
 import enum
-from .externals.qps.maptools import SpatialExtentMapTool
-from .externals.qps.models import TreeModel, TreeNode, TreeView
+import os
+import pathlib
+import pickle
+import re
+import typing
+import webbrowser
+from collections import OrderedDict
+
+from PyQt5.QtCore import QModelIndex, Qt, QSortFilterProxyModel, QUrl, QMimeData, pyqtSignal, QItemSelectionModel, \
+    QItemSelection, QSizeF, QRegExp, pyqtSlot, QSize, QSettings, QTimer
+from PyQt5.QtGui import QColor, QIcon, QDragEnterEvent, QContextMenuEvent, QDoubleValidator, QRegExpValidator, \
+    QValidator
+from PyQt5.QtWidgets import QMenu, QDialogButtonBox, QDockWidget, QPushButton, QProgressBar, QApplication, QDialog, \
+    QMainWindow, QHeaderView, QWidget, QAction, QFileDialog, QTreeView
 from osgeo import gdal
-from qgis.PyQt.QtGui import *
-from qgis.PyQt.QtCore import *
-from qgis.PyQt.QtWidgets import *
+
 from qgis.PyQt.QtXml import QDomDocument, QDomElement
 from qgis.core import QgsRasterLayer, QgsMapLayer, QgsVectorLayer, \
     QgsCoordinateReferenceSystem, QgsUnitTypes, QgsRectangle, QgsCoordinateTransform, \
     QgsPointXY, QgsWkbTypes, QgsProject, \
     QgsGeometry, QgsMapLayerStore
 from qgis.gui import QgsMapCanvas, QgsFileWidget, QgsRubberBand, QgisInterface, \
-    QgsMapToolIdentify, QgsMapTool, QgsMapToolPan, QgsMapToolZoom, QgsMapToolEmitPoint, \
+    QgsMapToolIdentify, QgsMapTool, QgsMapToolEmitPoint, \
     QgsStatusBar
-
-from vrtbuilder import DIR_UI, __version__, URL_REPOSITORY, URL_ISSUETRACKER, URL_HOMEPAGE
+from vrtbuilder import DIR_UI, __version__, URL_ISSUETRACKER, URL_HOMEPAGE
+from vrtbuilder.qgispluginsupport.qps.maptools import MapTools
+from vrtbuilder.qgispluginsupport.qps.maptools import SpatialExtentMapTool
+from vrtbuilder.qgispluginsupport.qps.models import TreeModel, TreeNode, TreeView
+from vrtbuilder.qgispluginsupport.qps.utils import loadUi, SpatialExtent, qgsRasterLayer, qgsRasterLayers, qgsMapLayer
 from .virtualrasters import VRTRaster, VRTRasterBand, VRTRasterInputSourceBand, RESAMPLE_ALGS, resolution
-from .externals.qps.utils import loadUi, SpatialExtent, SpatialPoint, qgsRasterLayer, qgsRasterLayers, qgsMapLayer
-from .externals.qps.maptools import MapTools
 
 
 def settings() -> QSettings:
@@ -1635,7 +1639,7 @@ class VRTBuilderWidget(QMainWindow):
             pass
 
         if changedExtent:
-            # recalculate with new extent
+            # recalculate with a new extent
 
             if self.cbBoundsFromSourceFiles.isChecked():
                 # derive from source files
