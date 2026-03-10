@@ -1,0 +1,17 @@
+# run to install: conda env create --file=eodag.yml
+# run to update : conda env update --file=eodag.yml --prune
+
+channels:
+  - conda-forge
+dependencies:
+  - python>=3.12.*
+  - qgis
+  - pip
+  - flake8
+  - colorama
+  - pytest
+  - pytest-cov
+  - pytest-xdist
+  - pip:
+      - flake8-qgis
+name: virtualrasterbuilder
