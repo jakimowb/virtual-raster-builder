@@ -26,14 +26,14 @@ import typing
 import webbrowser
 from collections import OrderedDict
 
-from PyQt5.QtCore import QModelIndex, Qt, QSortFilterProxyModel, QUrl, QMimeData, pyqtSignal, QItemSelectionModel, \
-    QItemSelection, QSizeF, QRegExp, pyqtSlot, QSize, QSettings, QTimer
-from PyQt5.QtGui import QColor, QIcon, QDragEnterEvent, QContextMenuEvent, QDoubleValidator, QRegExpValidator, \
-    QValidator
-from PyQt5.QtWidgets import QMenu, QDialogButtonBox, QDockWidget, QPushButton, QProgressBar, QApplication, QDialog, \
-    QMainWindow, QHeaderView, QWidget, QAction, QFileDialog, QTreeView
 from osgeo import gdal
 
+from qgis.PyQt.QtCore import QModelIndex, Qt, QSortFilterProxyModel, QUrl, QMimeData, pyqtSignal, QItemSelectionModel, \
+    QItemSelection, QSizeF, QRegExp, pyqtSlot, QSize, QSettings, QTimer
+from qgis.PyQt.QtGui import QColor, QIcon, QDragEnterEvent, QContextMenuEvent, QDoubleValidator, QRegExpValidator, \
+    QValidator
+from qgis.PyQt.QtWidgets import QMenu, QDialogButtonBox, QDockWidget, QPushButton, QProgressBar, QApplication, QDialog, \
+    QMainWindow, QHeaderView, QWidget, QAction, QFileDialog, QTreeView
 from qgis.PyQt.QtXml import QDomDocument, QDomElement
 from qgis.core import QgsRasterLayer, QgsMapLayer, QgsVectorLayer, \
     QgsCoordinateReferenceSystem, QgsUnitTypes, QgsRectangle, QgsCoordinateTransform, \
@@ -100,9 +100,10 @@ class VRTBuilderMapTools(enum.Enum):
 
 def sourceBaseName(source) -> str:
     """
-    
-    :param source: 
-    :return: 
+
+
+    :param source:
+    :return:
     """
     if isinstance(source, str):
         return os.path.basename(source)
@@ -125,7 +126,7 @@ def sourceBaseName(source) -> str:
 
 def sourceIcon(source) -> QIcon:
     """
-    Returns a QgsMapLayer icon 
+    Returns a QgsMapLayer icon
     :param layer: QgsMapLayer | str (considered as Raster)
     :return: QIcon
     """
@@ -543,7 +544,7 @@ class SourceRasterModel(TreeModel):
     def removeFiles(self, listOfFiles):
         assert isinstance(listOfFiles, list)
 
-        toRemove = [n for n in self.rootNode().childNodes() \
+        toRemove = [n for n in self.rootNode().childNodes()
                     if isinstance(n, SourceRasterFileNode) and n.source() in listOfFiles]
 
         if len(toRemove) > 0:
@@ -964,7 +965,7 @@ class VRTRasterTreeModel(TreeModel):
             sourceImages = {}
             for b in sourceBands:
                 assert isinstance(b, VRTRasterInputSourceBand)
-                if not b.mSource in sourceImages.keys():
+                if b.mSource not in sourceImages.keys():
                     sourceImages[b.mSource] = []
                 sourceImages[b.mSource].append(b)
             for p in sourceImages.keys():
@@ -1330,7 +1331,7 @@ class VRTBuilderWidget(QMainWindow):
 
     def onStackModelToggled(self, is_nested: bool):
 
-        if is_nested == True:
+        if is_nested:
             dropMode = DropMode.NestedStack
         else:
             dropMode = DropMode.Stack

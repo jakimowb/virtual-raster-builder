@@ -27,9 +27,9 @@ import typing
 import uuid
 from xml.etree import ElementTree
 
-from PyQt5.QtCore import QObject, pyqtSignal, QSize, QSizeF, QPoint, QPointF
 from osgeo import gdal, osr
 
+from qgis.PyQt.QtCore import QObject, pyqtSignal, QSize, QSizeF, QPoint, QPointF
 from qgis.core import QgsRasterLayer, QgsCoordinateReferenceSystem, QgsRectangle, QgsCoordinateTransform, \
     QgsPointXY, QgsPoint
 from vrtbuilder.qgispluginsupport.qps.models import Option, OptionListModel
@@ -883,7 +883,6 @@ class VRTRaster(QObject):
             res = []
             self.sourceRaster()
 
-
         else:
             if isinstance(resolution, QSizeF):
                 assert resolution.width() > 0
@@ -1221,9 +1220,8 @@ class VRTRaster(QObject):
         :return:
         """
         """
-        :param pathVRT: 
+        :param pathVRT:
         :return:
-        
         """
 
         sources = self.sourceRaster()

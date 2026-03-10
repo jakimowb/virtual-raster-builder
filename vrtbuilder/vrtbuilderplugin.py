@@ -25,7 +25,6 @@ import site
 
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
-from qgis.core import QgsRasterLayer, QgsProject
 from qgis.gui import QgisInterface, QgsMapCanvas
 
 
@@ -83,7 +82,7 @@ class VRTBuilderPlugin(object):
             emb = EnMAPBox.instance()
             if isinstance(emb, EnMAPBox):
                 canvases.extend(emb.mapCanvases())
-        except:
+        except Exception as ex:
             pass
         canvases = set(canvases)
 

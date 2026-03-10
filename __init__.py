@@ -33,7 +33,7 @@ def classFactory(iface):  # pylint: disable=invalid-name
     """
 
     d = os.path.dirname(__file__)
-    if not d in sys.path:
+    if d not in sys.path:
         sys.path.append(d)
 
     from vrtbuilder.vrtbuilderplugin import VRTBuilderPlugin

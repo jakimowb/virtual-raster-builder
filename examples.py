@@ -18,14 +18,12 @@
 """
 import os
 
-from vrtbuilder.virtualrasters import VRTRaster
-from vrtbuilder.widgets import VRTBuilderWidget
 from vrtbuilder import DIR_EXAMPLEDATA
 from vrtbuilder.qgispluginsupport.qps.testing import start_app
 from vrtbuilder.qgispluginsupport.qps.utils import file_search
+from vrtbuilder.widgets import VRTBuilderWidget
 
 qgsApp = start_app()
-from vrtbuilder.widgets import VRTBuilderWidget
 
 W = VRTBuilderWidget(None)
 W.show()
@@ -37,4 +35,3 @@ if True and os.path.isdir(DIR_EXAMPLEDATA):
 # close QGIS
 qgsApp.exec_()
 qgsApp.exitQgis()
-

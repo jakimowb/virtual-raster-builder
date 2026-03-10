@@ -13,52 +13,34 @@ __date__ = '2017-07-17'
 __copyright__ = 'Copyright 2017, Benjamin Jakimow'
 
 import os
-import pathlib
 import random
 import re
-import site
 import sys
 import tempfile
 import unittest
 
 import numpy as np
-from PyQt5.QtCore import QSizeF, QSize, Qt, QModelIndex, QMimeData, QPointF, QEvent
-from PyQt5.QtGui import QMouseEvent
-from PyQt5.QtWidgets import QPushButton, QWidget, QHBoxLayout, QVBoxLayout, QApplication
 from osgeo import gdal
 
-from vrtbuilder.qgispluginsupport.qps.maptools import SpatialExtentMapTool
-from vrtbuilder.qgispluginsupport.qps.models import TreeView, TreeModel, TreeNode
-from vrtbuilder.qgispluginsupport.qps.utils import qgsRasterLayer
-from vrtbuilder.widgets import VRTBuilderWidget, SourceRasterFileNode, SourceRasterBandNode, VRTBuilderMapTools, \
-    MapToolIdentifySource
-
-DIR_REPO = pathlib.Path(__file__).parents[1].resolve()
-site.addsitedir(str(DIR_REPO))
-
 from exampledata import Landsat8_West_tif, Landsat8_East_tif, RapidEye_tif, Sentinel2_East_tif, Sentinel2_West_tif
+from qgis.PyQt.QtCore import QSizeF, QSize, Qt, QModelIndex, QMimeData, QPointF, QEvent
+from qgis.PyQt.QtGui import QMouseEvent
+from qgis.PyQt.QtWidgets import QPushButton, QWidget, QHBoxLayout, QVBoxLayout, QApplication
+from qgis.core import Qgis
 from qgis.core import QgsRectangle, QgsRasterLayer, QgsPointXY, QgsCoordinateReferenceSystem, QgsProject, \
     QgsWkbTypes, QgsMapLayer
 from qgis.gui import QgsMapCanvas, QgsMapTool
+from vrtbuilder.qgispluginsupport.qps.maptools import SpatialExtentMapTool
+from vrtbuilder.qgispluginsupport.qps.models import TreeView, TreeModel, TreeNode
 from vrtbuilder.qgispluginsupport.qps.testing import TestCase, TestObjects
-from vrtbuilder import DIR_UI
+from vrtbuilder.qgispluginsupport.qps.utils import qgsRasterLayer
 from vrtbuilder.virtualrasters import alignRectangleToGrid, alignPointToGrid, describeRawFile, read_vsimem, VRTRaster, \
     VRTRasterBand, VRTRasterInputSourceBand
-
-from qgis.core import Qgis
+from vrtbuilder.widgets import VRTBuilderWidget, SourceRasterFileNode, SourceRasterBandNode, VRTBuilderMapTools, \
+    MapToolIdentifySource
 
 
 class VRTBuilderTests(TestCase):
-
-    @classmethod
-    def setUpClass(cls, resources=[]) -> None:
-
-        resources.append(DIR_UI / 'vrtbuilderresources_rc.py')
-        super().setUpClass(resources=resources)
-
-    def test_subdataset(self):
-
-        s = ""
 
     def test_vsi_support(self):
 
@@ -119,7 +101,7 @@ class VRTBuilderTests(TestCase):
             continue
 
         ext = VRT.extent()
-        self.assertTrue(ext == None)
+        self.assertTrue(ext is None)
         band1 = VRT[0]
         self.assertIsInstance(band1, VRTRasterBand)
         band1.addSource(VRTRasterInputSourceBand(Landsat8_East_tif.as_posix(), 0))
