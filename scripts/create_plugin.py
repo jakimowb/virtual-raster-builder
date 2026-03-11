@@ -39,8 +39,8 @@ site.addsitedir(DIR_REPO)
 
 import vrtbuilder
 from vrtbuilder import DIR_REPO, __version__
-from vrtbuilder.externals.qps.make.deploy import QGISMetadataFileWriter
-from vrtbuilder.externals.qps.utils import file_search, zipdir
+from vrtbuilder.qgispluginsupport.qps.make.deploy import QGISMetadataFileWriter
+from vrtbuilder.qgispluginsupport.qps.utils import file_search, zipdir
 from requests.auth import HTTPBasicAuth
 
 from qgis.PyQt.QtCore import *
