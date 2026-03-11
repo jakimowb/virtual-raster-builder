@@ -35,9 +35,9 @@ from vrtbuilder.qgispluginsupport.qps.models import TreeView, TreeModel, TreeNod
 from vrtbuilder.qgispluginsupport.qps.testing import TestCase, TestObjects, start_app
 from vrtbuilder.qgispluginsupport.qps.utils import qgsRasterLayer
 from vrtbuilder.virtualrasters import alignRectangleToGrid, alignPointToGrid, describeRawFile, read_vsimem, VRTRaster, \
-    VRTRasterBand, VRTRasterInputSourceBand
+    VRTRasterBand, VRTInputRasterBand
 from vrtbuilder.widgets import VRTBuilderWidget, SourceRasterFileNode, SourceRasterBandNode, VRTBuilderMapTools, \
-    MapToolIdentifySource
+    MapToolIdentifySource, MDK_BANDLIST
 
 start_app()
 
@@ -49,8 +49,8 @@ class VRTBuilderTests(TestCase):
         VRT = VRTRaster()
         vb1 = VRTRasterBand()
         vb2 = VRTRasterBand()
-        vb1.addSource(VRTRasterInputSourceBand.fromGDALDataSet(Landsat8_East_tif)[0])
-        vb2.addSource(VRTRasterInputSourceBand.fromGDALDataSet(Landsat8_West_tif)[0])
+        vb1.addSource(VRTInputRasterBand.fromGDALDataSet(Landsat8_East_tif)[0])
+        vb2.addSource(VRTInputRasterBand.fromGDALDataSet(Landsat8_West_tif)[0])
         VRT.addVirtualBand(vb1)
         VRT.addVirtualBand(vb2)
 
@@ -106,7 +106,7 @@ class VRTBuilderTests(TestCase):
         self.assertTrue(ext is None)
         band1 = VRT[0]
         self.assertIsInstance(band1, VRTRasterBand)
-        band1.addSource(VRTRasterInputSourceBand(Landsat8_East_tif.as_posix(), 0))
+        band1.addSource(VRTInputRasterBand(Landsat8_East_tif.as_posix(), 0))
         ext = VRT.extent()
         res = VRT.resolution()
         crs = VRT.crs()
@@ -134,8 +134,8 @@ class VRTBuilderTests(TestCase):
         os.makedirs(TMP_DIR, exist_ok=True)
         PATH_VRT = TMP_DIR / 'test.vrt'
         VRT = VRTRaster()
-        sourceBands1 = VRTRasterInputSourceBand.fromRasterLayer(lyrSrc1)
-        sourceBands2 = VRTRasterInputSourceBand.fromRasterLayer(lyrSrc2)
+        sourceBands1 = VRTInputRasterBand.fromRasterLayer(lyrSrc1)
+        sourceBands2 = VRTInputRasterBand.fromRasterLayer(lyrSrc2)
 
         vBand1 = VRTRasterBand(name='Band1')
         vBand1.addSource(sourceBands1[0])
@@ -166,7 +166,7 @@ class VRTBuilderTests(TestCase):
         lyr = qgsRasterLayer(ds)
         self.assertIsInstance(lyr, QgsRasterLayer)
         VRT = VRTRaster()
-        VRT.addFilesAsStack([Landsat8_East_tif, Sentinel2_West_tif])
+        VRT.addSourcesAsStack([Landsat8_East_tif, Sentinel2_West_tif])
 
     def test_alignExtent(self):
 
@@ -199,16 +199,16 @@ class VRTBuilderTests(TestCase):
 
     def test_VRTRasterInputSourceBand(self):
 
-        bands1 = VRTRasterInputSourceBand.fromRasterLayer(Landsat8_East_tif)
-        bands2 = VRTRasterInputSourceBand.fromGDALDataSet(Landsat8_East_tif)
+        bands1 = VRTInputRasterBand.fromRasterLayer(Landsat8_East_tif)
+        bands2 = VRTInputRasterBand.fromGDALDataSet(Landsat8_East_tif)
 
         self.assertIsInstance(bands1, list)
         self.assertIsInstance(bands2, list)
         self.assertTrue(len(bands1) == len(bands2))
 
         for b1, b2 in zip(bands1, bands2):
-            self.assertIsInstance(b1, VRTRasterInputSourceBand)
-            self.assertIsInstance(b2, VRTRasterInputSourceBand)
+            self.assertIsInstance(b1, VRTInputRasterBand)
+            self.assertIsInstance(b2, VRTInputRasterBand)
             self.assertTrue(b2.name() in b1.name())
 
     def test_core_models(self):
@@ -336,7 +336,7 @@ class VRTBuilderTests(TestCase):
         self.assertIsInstance(child1, SourceRasterFileNode)
 
         for b in child1.sourceBands():
-            self.assertIsInstance(b, VRTRasterInputSourceBand)
+            self.assertIsInstance(b, VRTInputRasterBand)
 
         sourceBandIndices = []
         for node in child1.childNodes()[-1].childNodes():
@@ -347,6 +347,7 @@ class VRTBuilderTests(TestCase):
 
         # get the first band of first source
         mimeData = GUI.mSourceFileModel.mimeData(sourceBandIndices[0:1])
+        self.assertTrue(MDK_BANDLIST in mimeData.formats())
         self.assertIsInstance(mimeData, QMimeData)
         # drop a source on to the VRTRasterTreeModel
         GUI.mVRTRasterTreeModel.dropMimeData(mimeData, Qt.CopyAction, 0, 0, QModelIndex())
@@ -434,8 +435,8 @@ class VRTBuilderTests(TestCase):
         VRT = VRTRaster()
         vb1 = VRTRasterBand()
         vb2 = VRTRasterBand()
-        vb1.addSource(VRTRasterInputSourceBand.fromGDALDataSet(Landsat8_West_tif)[0])
-        vb2.addSource(VRTRasterInputSourceBand.fromGDALDataSet(RapidEye_tif)[0])
+        vb1.addSource(VRTInputRasterBand.fromGDALDataSet(Landsat8_West_tif)[0])
+        vb2.addSource(VRTInputRasterBand.fromGDALDataSet(RapidEye_tif)[0])
         VRT.addVirtualBand(vb1)
         VRT.addVirtualBand(vb2)
 

@@ -18,6 +18,7 @@
 """
 
 import enum
+import json
 import os
 import pathlib
 import pickle
@@ -26,6 +27,7 @@ import typing
 import webbrowser
 from collections import OrderedDict
 
+from PyQt5.QtCore import QByteArray
 from osgeo import gdal
 
 from qgis.PyQt.QtCore import QModelIndex, Qt, QSortFilterProxyModel, QUrl, QMimeData, pyqtSignal, QItemSelectionModel, \
@@ -45,9 +47,13 @@ from qgis.gui import QgsMapCanvas, QgsFileWidget, QgsRubberBand, QgisInterface, 
 from vrtbuilder import DIR_UI, __version__, URL_ISSUETRACKER, URL_HOMEPAGE
 from vrtbuilder.qgispluginsupport.qps.maptools import MapTools
 from vrtbuilder.qgispluginsupport.qps.maptools import SpatialExtentMapTool
-from vrtbuilder.qgispluginsupport.qps.models import TreeModel, TreeNode, TreeView
 from vrtbuilder.qgispluginsupport.qps.utils import loadUi, SpatialExtent, qgsRasterLayer, qgsRasterLayers, qgsMapLayer
-from .virtualrasters import VRTRaster, VRTRasterBand, VRTRasterInputSourceBand, RESAMPLE_ALGS, resolution
+from .virtualrastermodel import (
+    SourceRasterModel, SourceRasterFilterModel, SourceRasterTreeView,
+    VRTRasterTreeModel, VRTRasterTreeView, DropMode,
+    MDK_BANDLIST, MDK_INDICES, sourceBaseName, sourceIcon
+)
+from .virtualrasters import VRTRaster, VRTRasterBand, VRTInputRasterBand, RESAMPLE_ALGS, resolution
 
 
 def settings() -> QSettings:
@@ -55,9 +61,6 @@ def settings() -> QSettings:
 
 
 LUT_FILEXTENSIONS = {}
-
-MDK_BANDLIST = 'hub.vrtbuilder/bandlist'
-MDK_INDICES = 'hub.vrtbuilder/vrt.indices'
 
 for i in range(gdal.GetDriverCount()):
     drv = gdal.GetDriver(i)
@@ -96,156 +99,6 @@ class VRTBuilderMapTools(enum.Enum):
     CopyGrid = 'COPY_GRID'
     CopyExtent = 'COPY_EXTENT'
     CopyResolution = 'COPY_RESOLUTION'
-
-
-def sourceBaseName(source) -> str:
-    """
-
-
-    :param source:
-    :return:
-    """
-    if isinstance(source, str):
-        return os.path.basename(source)
-    elif isinstance(source, QgsRasterLayer):
-        if source.dataProvider().name() == 'gdal':
-            return os.path.basename(source.source())
-        else:
-            return source.name()
-    elif isinstance(source, QgsVectorLayer):
-        if source.dataProvider().name() == 'ogr':
-            return os.path.basename(source.source())
-        else:
-            return source.name()
-
-    elif isinstance(source, QgsMapLayer):
-        return source.name()
-
-    return str(source)
-
-
-def sourceIcon(source) -> QIcon:
-    """
-    Returns a QgsMapLayer icon
-    :param layer: QgsMapLayer | str (considered as Raster)
-    :return: QIcon
-    """
-    if isinstance(source, str):
-        return QIcon(r':/images/themes/default/mIconRaster.svg')
-    elif isinstance(source, QgsRasterLayer):
-        return QIcon(r':/images/themes/default/mIconRaster.svg')
-    elif isinstance(source, QgsVectorLayer):
-        if source.geometryType() == QgsWkbTypes.PolygonGeometry:
-            return QIcon(r':/images/themes/default/mIconPolygonLayer.svg')
-        elif source.geometryType() == QgsWkbTypes.LineGeometry:
-            return QIcon(r':/images/themes/default/mIconLineLayer.svg')
-        elif source.geometryType() == QgsWkbTypes.PointGeometry:
-            return QIcon(r':/images/themes/default/mIconPointLayer.svg')
-        else:
-            return QIcon(r':/images/themes/default/mIconVector.svg')
-    else:
-        return QIcon()
-
-
-class SourceRasterBandGroupNode(TreeNode):
-
-    def __init__(self, *args, **kwds):
-        super().__init__(*args, **kwds)
-
-
-class SourceRasterBandNode(TreeNode):
-    def __init__(self, vrtRasterInputSourceBand: VRTRasterInputSourceBand):
-        assert isinstance(vrtRasterInputSourceBand, VRTRasterInputSourceBand)
-        super().__init__()
-        self.mSrcBand = vrtRasterInputSourceBand
-
-        b = self.mSrcBand.mBandIndex + 1
-        self.setName(b)
-
-        # self.setName('{}:{}'.format(os.path.basename(self.mSrcBand.mSource), ))
-        self.setValues([self.mSrcBand.mBandName])
-        self.setToolTip('band {}:{}'.format(self.mSrcBand.mBandIndex + 1, self.mSrcBand.mSource))
-
-    def sourceBand(self) -> VRTRasterInputSourceBand:
-        return self.mSrcBand
-
-    def source(self) -> str:
-        return self.mSrcBand.source()
-
-
-class VRTRasterNode(TreeNode):
-    def __init__(self, vrtRaster: VRTRaster):
-        assert isinstance(vrtRaster, VRTRaster)
-        super().__init__()
-        self.mVRTRaster = vrtRaster
-        self.mVRTRaster.sigBandInserted.connect(self.onBandInserted)
-        self.mVRTRaster.sigBandRemoved.connect(self.onBandRemoved)
-
-    def onBandInserted(self, index: int, vrtRasterBand):
-        assert isinstance(vrtRasterBand, VRTRasterBand)
-        i = vrtRasterBand.bandIndex()
-        assert i == index
-        node = VRTRasterBandNode(vrtRasterBand)
-        self.insertChildNodes(i, node)
-
-    def onBandRemoved(self, index: int):
-        self.removeChildNodes(self.mChildren[index])
-
-
-class VRTRasterBandNode(TreeNode):
-    def __init__(self, virtualBand: VRTRasterBand):
-        assert isinstance(virtualBand, VRTRasterBand)
-
-        super().__init__()
-        self.mVirtualBand = virtualBand
-        self.setName(virtualBand.name())
-        self.setIcon(QIcon(":/vrtbuilder/mIconVirtualRaster.svg"))
-
-        virtualBand.sigNameChanged.connect(self.setName)
-        virtualBand.sigSourceInserted.connect(lambda _, src: self.onSourceInserted(src))
-        virtualBand.sigSourceRemoved.connect(self.onSourceRemoved)
-
-        for src in self.mVirtualBand:
-            self.onSourceInserted(src)
-
-    def onSourceInserted(self, inputSource: VRTRasterInputSourceBand):
-        assert isinstance(inputSource, VRTRasterInputSourceBand)
-        assert inputSource.virtualBand() == self.mVirtualBand
-        i = self.mVirtualBand.mSources.index(inputSource)
-
-        node = VRTRasterInputSourceBandNode(self, inputSource)
-        self.insertChildNodes(i, node)
-
-    def onSourceRemoved(self, row: int, inputSource: VRTRasterInputSourceBand):
-        assert isinstance(inputSource, VRTRasterInputSourceBand)
-
-        node = self.childNodes()[row]
-        if node.mSrc != inputSource:
-            s = ""
-        self.removeChildNodes(node)
-
-
-class VRTRasterInputSourceBandNode(TreeNode):
-    def __init__(self, parentNode, vrtRasterInputSourceBand):
-        assert isinstance(vrtRasterInputSourceBand, VRTRasterInputSourceBand)
-        super(VRTRasterInputSourceBandNode, self).__init__(parentNode)
-        self.setIcon(QIcon(":/vrtbuilder/mIconRaster.svg"))
-        self.mSrc = vrtRasterInputSourceBand
-
-        path = self.source()
-        bn = os.path.basename(path)
-        b = self.sourceBand().bandIndex() + 1
-
-        self.setName(f'{bn}:{b}')
-        self.setValues(f'{path}:{b}')
-        self.setToolTip(f'Band {b} from "{path}"'
-                        )
-
-    def sourceBand(self) -> VRTRasterInputSourceBand:
-        return self.mSrc
-
-    def source(self) -> str:
-        return self.mSrc.source()
 
 
 class VRTRasterPreviewMapCanvas(QgsMapCanvas):
@@ -345,7 +198,10 @@ class VRTRasterPreviewMapCanvas(QgsMapCanvas):
         self.refresh()
 
 
-class SourceRasterFileNode(TreeNode):
+# All Source* and VRT* model classes have been moved to virtualrastermodel.py
+
+
+class MapToolIdentifySource(QgsMapToolIdentify):
 
     def __init__(self, mapLayer: QgsRasterLayer):
 
@@ -375,7 +231,7 @@ class SourceRasterFileNode(TreeNode):
         inputSourceNodes = []
         for b in range(self.mRasterLayer.bandCount()):
             bandName = self.mRasterLayer.bandName(b + 1)
-            inputSource = VRTRasterInputSourceBand(self.mPath, b, bandName=bandName)
+            inputSource = VRTInputRasterBand(self.mPath, b, bandName=bandName)
             inputSource.mBandName = bandName
             inputSource.mNoData = self.mRasterLayer.dataProvider().sourceNoDataValue(b + 1)
             inputSourceNodes.append(SourceRasterBandNode(inputSource))
@@ -388,7 +244,7 @@ class SourceRasterFileNode(TreeNode):
     def source(self) -> str:
         return self.mPath
 
-    def sourceBands(self) -> typing.List[VRTRasterInputSourceBand]:
+    def sourceBands(self) -> typing.List[VRTInputRasterBand]:
         return [n.mSrcBand for n in self.bandNode.mChildren if isinstance(n, SourceRasterBandNode)]
 
     def rasterLayer(self) -> QgsRasterLayer:
@@ -628,7 +484,9 @@ class SourceRasterModel(TreeModel):
         mimeData = QMimeData()
 
         if len(sourceBands) > 0:
-            mimeData.setData(MDK_BANDLIST, pickle.dumps(sourceBands))
+            source_band_data = [band.toMap() for band in sourceBands]
+            dump = QByteArray(json.dumps(source_band_data, ensure_ascii=False).encode('utf-8'))
+            mimeData.setData(MDK_BANDLIST, dump)
 
         # set text/uri-list
         if len(uriList) > 0:
@@ -903,7 +761,7 @@ class VRTRasterTreeModel(TreeModel):
         for node in nodes:
             if isinstance(node, VRTRasterInputSourceBandNode):
                 sourceBand = node.sourceBand()
-                assert isinstance(sourceBand, VRTRasterInputSourceBand)
+                assert isinstance(sourceBand, VRTInputRasterBand)
                 sourceBands.append(sourceBand)
 
         sourceBands = list(OrderedDict.fromkeys(sourceBands))
@@ -913,7 +771,9 @@ class VRTRasterTreeModel(TreeModel):
         mimeData = QMimeData()
 
         if len(sourceBands) > 0:
-            mimeData.setData(MDK_BANDLIST, pickle.dumps(sourceBands))
+            source_band_data = [band.toMap() for band in sourceBands]
+            dump = QByteArray(json.dumps(source_band_data, ensure_ascii=False).encode('utf-8'))
+            mimeData.setData(MDK_BANDLIST, dump)
 
         # set text/uri-list
         if len(uriList) > 0:
@@ -932,7 +792,9 @@ class VRTRasterTreeModel(TreeModel):
 
         if MDK_BANDLIST in mimeData.formats():
             dump = mimeData.data(MDK_BANDLIST)
-            sourceBands = pickle.loads(dump)
+            json_string = bytes(dump).decode('utf-8')
+            sourceBands = [VRTInputRasterBand.fromMap(d) for d in json.loads(json_string)]
+            s = ""
 
         elif MDK_INDICES in mimeData.formats():
             dump = mimeData.data(MDK_INDICES)
@@ -946,7 +808,7 @@ class VRTRasterTreeModel(TreeModel):
             for url in mimeData.urls():
                 url = url2path(url)
                 if url is not None:
-                    sourceBands.extend(VRTRasterInputSourceBand.fromRasterLayer(url))
+                    sourceBands.extend(VRTInputRasterBand.fromRasterLayer(url))
 
         if len(sourceBands) == 0:
             return False
@@ -964,7 +826,7 @@ class VRTRasterTreeModel(TreeModel):
             # step 1: temporary storage by source image path
             sourceImages = {}
             for b in sourceBands:
-                assert isinstance(b, VRTRasterInputSourceBand)
+                assert isinstance(b, VRTInputRasterBand)
                 if b.mSource not in sourceImages.keys():
                     sourceImages[b.mSource] = []
                 sourceImages[b.mSource].append(b)
@@ -1013,7 +875,7 @@ class VRTRasterTreeModel(TreeModel):
         for bands in sourceBands:
             iSrc = row
             for src in bands:
-                assert isinstance(src, VRTRasterInputSourceBand)
+                assert isinstance(src, VRTInputRasterBand)
                 if len(vBand) == 0 and re.search(r'Band \d+$', vBand.name(), re.I):
                     vBand.setName(src.name())
                 vBand.insertSource(iSrc, src)
@@ -1173,9 +1035,9 @@ class VRTBuilderWidget(QMainWindow):
 
         self.mVRTRaster.sigSourceBandInserted.connect(self.onSourceFilesChanged)
         self.mVRTRaster.sigSourceBandRemoved.connect(self.onSourceFilesChanged)
-        self.mVRTRaster.sigBandInserted.connect(self.updateSummary)
-        self.mVRTRaster.sigBandRemoved.connect(self.updateSummary)
-        self.mVRTRaster.sigBandRemoved.connect(self.validateInputs)
+        self.mVRTRaster.sigVirtualBandInserted.connect(self.updateSummary)
+        self.mVRTRaster.sigVirtualBandRemoved.connect(self.updateSummary)
+        self.mVRTRaster.sigVirtualBandRemoved.connect(self.validateInputs)
         self.mVRTRaster.sigExtentChanged.connect(self.updateSummary)
         self.mVRTRaster.sigResolutionChanged.connect(self.updateSummary)
         self.previewMap.setVRTRaster(self.mVRTRaster)
@@ -1644,7 +1506,7 @@ class VRTBuilderWidget(QMainWindow):
 
             if self.cbBoundsFromSourceFiles.isChecked():
                 # derive from source files
-                extent = self.mVRTRaster.fullSourceRasterExtent()
+                extent = self.mVRTRaster.fullSourceExtent()
                 if isinstance(extent, QgsRectangle):
                     self.mVRTRaster.setExtent(extent)
 
@@ -1662,7 +1524,7 @@ class VRTBuilderWidget(QMainWindow):
 
     def validateInputs(self, *args):
 
-        isValid = len(self.mVRTRaster.sourceRaster()) > 0
+        isValid = len(self.mVRTRaster.sources()) > 0
         if not self.cbBoundsFromSourceFiles.isEnabled():
             for tb in [self.tbBoundsXMin, self.tbBoundsXMax, self.tbBoundsYMin, self.tbBoundsYMax]:
                 state, _, _ = tb.validator().validate(tb.text(), 0)
@@ -1713,7 +1575,7 @@ class VRTBuilderWidget(QMainWindow):
         for layer in self.mSourceFileModel.rasterLayers():
             LUT[layer.source()] = layer
 
-        for file in self.mVRTRaster.sourceRaster():
+        for file in self.mVRTRaster.sources():
             if file in LUT.keys():
                 lyr = LUT[file]
                 if lyr not in lyrs:
@@ -1856,7 +1718,7 @@ class VRTBuilderWidget(QMainWindow):
         """
         Updates (almost) all information visible to the user
         """
-        self.tbSourceFileCount.setText('{}'.format(len(self.mVRTRaster.sourceRaster())))
+        self.tbSourceFileCount.setText('{}'.format(len(self.mVRTRaster.sources())))
         self.tbVRTBandCount.setText('{}'.format(len(self.mVRTRaster)))
         assert isinstance(self.previewMap, VRTRasterPreviewMapCanvas)
         crs = self.mVRTRaster.crs()

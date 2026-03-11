@@ -23,15 +23,18 @@ import os
 import pathlib
 import re
 import sys
-import typing
 import uuid
+from pathlib import Path
+from typing import Optional, List, Dict, Tuple
 from xml.etree import ElementTree
 
+from PyQt5.QtCore import QAbstractItemModel, QModelIndex
 from osgeo import gdal, osr
 
 from qgis.PyQt.QtCore import QObject, pyqtSignal, QSize, QSizeF, QPoint, QPointF
 from qgis.core import QgsRasterLayer, QgsCoordinateReferenceSystem, QgsRectangle, QgsCoordinateTransform, \
     QgsPointXY, QgsPoint
+from qgis.core import QgsVectorLayer
 from vrtbuilder.qgispluginsupport.qps.models import Option, OptionListModel
 from vrtbuilder.qgispluginsupport.qps.utils import qgsRasterLayer, gdalDataset
 
@@ -368,131 +371,54 @@ def describeRawFile(pathRaw, pathVrt, xsize, ysize,
     return dsVRT
 
 
-class VRTRasterInputSourceBand(object):
+class VRTInputRaster(object):
+    """Describes a GDAL Dataset as a source for a VRTRasterBand."""
 
-    @staticmethod
-    def fromGDALDataSet(pathOrDataSet):
-        """
-        Returns the VRTRasterInputSourceBands from a raster data source
-        :param pathOrDataSet: str | gdal.Dataset
-        :return: [list-of-VRTRasterInputSourceBand]
-        """
-        srcBands = []
-        pathOrDataSet = gdalDataset(pathOrDataSet)
-        if isinstance(pathOrDataSet, gdal.Dataset):
-            path = pathOrDataSet.GetFileList()[0]
-            for b in range(pathOrDataSet.RasterCount):
-                srcBands.append(VRTRasterInputSourceBand(path, b))
-        return srcBands
+    def __init__(self, dataset=None):
+        self.mSource: str = ''
+        self.mRasterXSize: int = -1
+        self.mRasterYSize: int = -1
+        self.mRasterCount: int = -1
+        self.mProjection: str = ''
+        self.mGeoTransform: tuple = ()
+        self.mSRS_WKT: str = ''
+        self.nBands: int = 0
+        self.mNoDataValues: list = []
+        self.mBandNames: List[str] = []
 
-    @staticmethod
-    def fromRasterLayer(layer: QgsRasterLayer):
-        layer = qgsRasterLayer(layer)
-        srcBands = []
-        src = layer.source()
-        for b in range(layer.bandCount()):
-            name = layer.bandName(b + 1)
-            srcBands.append(VRTRasterInputSourceBand(src, b, bandName=name))
+    def initFromDataset(self, dataset):
+        ds: gdal.Dataset = gdalDataset(dataset)
+        assert isinstance(ds, gdal.Dataset)
+        self.mSource = ds.GetDescription()
+        self.mRasterXSize = ds.RasterXSize
+        self.mRasterYSize = ds.RasterYSize
+        self.mRasterCount = ds.RasterCount
+        self.mProjection = ds.GetProjection()
+        self.mGeoTransform = ds.GetGeoTransform()
+        self.mSRS_WKT: str = ds.GetSpatialRef().ExportToWkt()
+        self.nBands: int = ds.RasterCount
+        self.mBands = []
 
-        return srcBands
+        for b in range(self.mRasterCount):
+            band = ds.GetRasterBand(b + 1)
+            self.mBandNames.append(band.GetDescription())
+            self.mNoDataValues.append(band.GetNoDataValue())
 
-    def __init__(self, path: str, bandIndex: int, bandName: str = ''):
-        if isinstance(path, pathlib.Path):
-            path = path.as_posix()
-        assert isinstance(path, str)
-        assert isinstance(bandIndex, int)
-        self.mSource: str = path
-        self.mBandIndex: int = bandIndex
-        self.mBandName: str = bandName
-        self.mNoData = None
-        self.mVirtualBand = None
+    def dataset(self) -> gdal.Dataset:
+        return gdal.Open(self.mSource)
 
-    def __eq__(self, other) -> bool:
-        if not isinstance(other, VRTRasterInputSourceBand):
-            return False
-        return self.mSource == other.mSource and self.mBandIndex == other.mBandIndex
-
-    def __repr__(self):
-        return f'VRTRasterInputSourceBand {self.mSource}:{self.mBandIndex}'
-
-    def __hash__(self):
-        return hash((self.mSource, self.mBandIndex))
-
-    def name(self) -> str:
-        """
-        Returns the band name
-        :return: str
-        """
-        return self.mBandName
-
-    def bandIndex(self) -> int:
-        """
-        Returns the band index
-        :return: int
-        """
-        return self.mBandIndex
+    def __len__(self):
+        return len(self.mBands)
 
     def source(self) -> str:
-        """
-        Returns the source uri
-        :return: str
-        """
         return self.mSource
-
-    def isEqual(self, other) -> bool:
-        """
-        Returns True for same input sources
-        :param other: VRTRasterInputSourceBand
-        :return: bool
-        """
-        if isinstance(other, VRTRasterInputSourceBand):
-            return self.mSource == other.mSource and self.mBandIndex == other.mBandIndex
-        else:
-            return False
-
-    def __reduce_ex__(self, protocol):
-
-        return self.__class__, (self.mSource, self.mBandIndex, self.mBandName), self.__getstate__()
-
-    def __getstate__(self):
-        state = self.__dict__.copy()
-        state.pop('mVirtualBand')
-        return state
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-
-    def virtualBand(self):
-        return self.mVirtualBand
-
-    def toDataset(self) -> gdal.Dataset:
-        """
-        Opens the source as GDAL Dataset
-        :return: gdal.Dataset
-        """
-        ds = gdal.Open(self.source())
-        assert isinstance(ds, gdal.Dataset)
-        return ds
-
-    def toRasterLayer(self) -> QgsRasterLayer:
-        """
-        Opens the source as QgsRasterLayer
-        :return: QgsRasterLayer
-        """
-        lyr = QgsRasterLayer(self.source(), self.name(), 'gdal')
-        # todo: set renderer to this specific band
-
-        return lyr
 
 
 class VRTRasterBand(QObject):
-    sigNameChanged = pyqtSignal(str)
-    sigSourceInserted = pyqtSignal(int, VRTRasterInputSourceBand)
-    sigSourceRemoved = pyqtSignal(int, VRTRasterInputSourceBand)
 
     def __init__(self, name: str = '', parent=None):
         super(VRTRasterBand, self).__init__(parent)
-        self.mSources = []
+        self.mSources: List[Tuple[str, int]] = list()
         self.mName = ''
         self.setName(name)
         self.mVRT = None
@@ -502,20 +428,21 @@ class VRTRasterBand(QObject):
     def __iter__(self):
         return iter(self.mSources)
 
-    def __getitem__(self, slice):
+    def __getitem__(self, slice) -> Optional[VRTInputRasterBand, List[VRTInputRasterBand]]:
         return self.mSources[slice]
 
     def __len__(self):
         return len(self.mSources)
 
     def setMetadata(self, metadataDictionary: dict, domain: str = ""):
+        """
+        Adds metadata to the virtual band
+        """
         assert isinstance(metadataDictionary, dict)
         self.mMetadataDomains[domain] = metadataDictionary
 
-    def metadata(self, domain):
-        if domain is None:
-            domain = ""
-        assert isinstance(domain, "")
+    def metadata(self, domain: str = '') -> dict:
+        return self.mMetadataDomains.get(domain, {})
 
     def setName(self, name: str):
         """
@@ -535,26 +462,26 @@ class VRTRasterBand(QObject):
         """
         return self.mName
 
-    def addSource(self, vrtRasterInputSourceBand: VRTRasterInputSourceBand):
+    def addSource(self, vrtRasterInputSourceBand: VRTInputRasterBand):
         """
         Adds an input source to the virtual band
         :param vrtRasterInputSourceBand: input source
         """
-        assert isinstance(vrtRasterInputSourceBand, VRTRasterInputSourceBand)
+        assert isinstance(vrtRasterInputSourceBand, VRTInputRasterBand)
         self.insertSource(len(self.mSources), vrtRasterInputSourceBand)
 
-    def insertSource(self, index, vrtRasterInputSourceBand: VRTRasterInputSourceBand):
+    def insertSource(self, index, vrtRasterInputSourceBand: VRTInputRasterBand):
         """
         Inserts an input source to the list of virtual band sources
         :param index: index of input sources
         :param vrtRasterInputSourceBand: input source
         """
-        assert isinstance(vrtRasterInputSourceBand, VRTRasterInputSourceBand)
+        assert isinstance(vrtRasterInputSourceBand, VRTInputRasterBand)
         vrtRasterInputSourceBand.mVirtualBand = self
         if index > len(self.mSources):
             index = len(self.mSources)
 
-        if index <= len(self.mSources) and vrtRasterInputSourceBand.source() not in self.sourceFiles():
+        if index <= len(self.mSources) and vrtRasterInputSourceBand.source() not in self.sources():
             self.mSources.insert(index, vrtRasterInputSourceBand)
             self.sigSourceInserted.emit(index, vrtRasterInputSourceBand)
         else:
@@ -580,24 +507,24 @@ class VRTRasterBand(QObject):
         """
         if isinstance(vrtRasterInputSourceBand, str):
             for sourceBand in self:
-                assert isinstance(sourceBand, VRTRasterInputSourceBand)
+                assert isinstance(sourceBand, VRTInputRasterBand)
                 if sourceBand.source() == vrtRasterInputSourceBand:
                     vrtRasterInputSourceBand = sourceBand
                     break
 
-        if isinstance(vrtRasterInputSourceBand, VRTRasterInputSourceBand) and vrtRasterInputSourceBand in self.mSources:
+        if isinstance(vrtRasterInputSourceBand, VRTInputRasterBand) and vrtRasterInputSourceBand in self.mSources:
             i = self.mSources.index(vrtRasterInputSourceBand)
             self.mSources.remove(vrtRasterInputSourceBand)
             self.sigSourceRemoved.emit(i, vrtRasterInputSourceBand)
 
-    def sourceFiles(self) -> typing.List[str]:
+    def sources(self) -> List[str]:
         """
         Returns the files paths of source files
         :return: [list-of-str]
         """
         files = []
         for inputSourceBand in self.mSources:
-            assert isinstance(inputSourceBand, VRTRasterInputSourceBand)
+            assert isinstance(inputSourceBand, VRTInputRasterBand)
             if inputSourceBand.source() not in files:
                 files.append(inputSourceBand.source())
         return files
@@ -615,19 +542,49 @@ class VRTRasterBand(QObject):
 
         return True
 
+    def toMap(self) -> dict:
+        """
+        Converts the VRTRasterBand to a dictionary with basic data types only.
+        :return: dict
+        """
+        return {
+            'name': self.mName,
+            'sources': [source.toMap() for source in self.mSources],
+            'metadataDomains': self.mMetadataDomains,
+            'classificationScheme': self.mClassificationScheme
+        }
+
+    @staticmethod
+    def fromMap(data: dict, parent=None):
+        """
+        Creates a VRTRasterBand from a dictionary.
+        :param data: dict containing the band data
+        :param parent: optional parent QObject
+        :return: VRTRasterBand
+        """
+        band = VRTRasterBand(name=data.get('name', ''), parent=parent)
+        band.mMetadataDomains = data.get('metadataDomains', {})
+        band.mClassificationScheme = data.get('classificationScheme', None)
+
+        for source_data in data.get('sources', []):
+            source = VRTInputRasterBand.fromMap(source_data)
+            band.addSource(source)
+
+        return band
+
     def __repr__(self):
         infos = ['VirtualBand name="{}"'.format(self.mName)]
         for i, info in enumerate(self.mSources):
-            assert isinstance(info, VRTRasterInputSourceBand)
+            assert isinstance(info, VRTInputRasterBand)
             infos.append('\t{} SourceFileName {} SourceBand {}'.format(i + 1, info.mSource, info.mBandIndex))
         return '\n'.join(infos)
 
 
-class VRTRaster(QObject):
-    sigSourceBandInserted = pyqtSignal(VRTRasterBand, VRTRasterInputSourceBand)
-    sigSourceBandRemoved = pyqtSignal(VRTRasterBand, VRTRasterInputSourceBand)
-    sigBandInserted = pyqtSignal(int, VRTRasterBand)
-    sigBandRemoved = pyqtSignal(int, VRTRasterBand)
+class VRTRaster(QAbstractItemModel):
+    sigSourceBandInserted = pyqtSignal(VRTRasterBand, VRTInputRasterBand)
+    sigSourceBandRemoved = pyqtSignal(VRTRasterBand, VRTInputRasterBand)
+    sigVirtualBandInserted = pyqtSignal(int, VRTRasterBand)
+    sigVirtualBandRemoved = pyqtSignal(int, VRTRasterBand)
     sigCrsChanged = pyqtSignal(QgsCoordinateReferenceSystem)
     sigResolutionChanged = pyqtSignal()
     sigResamplingAlgChanged = pyqtSignal([str], [int])
@@ -636,15 +593,50 @@ class VRTRaster(QObject):
 
     def __init__(self, parent=None):
         super(VRTRaster, self).__init__(parent)
-        self.mBands = []
-        self.mCrs = None
+
+        uri = 'Polygon?crs=epsg:4326&field=source:string'
+
+        self.mBands: List[VRTRasterBand] = []
+        self.mCrs: Optional[QgsCoordinateReferenceSystem] = None
         self.mResamplingAlg = gdal.GRA_NearestNeighbour
         self.mMetadata = dict()
-        self.mUL = None
         self.mResolution = None
-        self.mSize = None
         self.mNoDataValue = None
+
+        self.mSourceInfo: Dict[str, dict] = dict()
+        self.mSourceXML: Dict[str, str] = dict()
+
+        self.mSourceBoundaries = QgsVectorLayer(uri, 'Virtual Raster Sources', 'memory')
+
         self.sigSourceBandInserted.connect(self.checkBasicParameters)
+
+    def registerSource(self, source):
+        """Registers a source and creates a VRTInputRaster for it"""
+        if isinstance(source, gdal.Dataset):
+            source = source.GetDescription()
+        elif isinstance(source, Path):
+            source = source.as_posix()
+        assert isinstance(source, str)
+        if source not in self.mSourceInfo:
+            ds: gdal.Dataset = gdalDataset(source)
+            self.mSourceInfo[source] = VRTInputRaster(ds)
+
+    def source(self, source: str) -> Optional[VRTInputRaster]:
+        """Returns the VRTInputRaster for a source"""
+        return self.mSourceInfo.get(source, None)
+
+    def sources(self) -> List[str]:
+        """Returns a list of all registered sources"""
+        return list(self.mSourceInfo.keys())
+
+    def __len__(self):
+        return len(self.mBands)
+
+    def clear(self):
+        self.beginResetModel()
+        self.mBands.clear()
+        self.mSourceInfo.clear()
+        self.endResetModel()
 
     def checkBasicParameters(self, vrtBand: VRTRasterBand):
 
@@ -673,7 +665,7 @@ class VRTRaster(QObject):
 
     def alignToRasterGrid(self, reference, crop: bool = False):
         """
-        Aligns the VRT raster grid to that in source
+        Aligns the VRT raster grid to that in the reference image
         :param reference: str path | gdal.Dataset | QgsRasterLayer
         :param crop: bool, optional, set True to crop or enlarge the VRT extent to that of the reference raster.
         """
@@ -696,7 +688,7 @@ class VRTRaster(QObject):
 
     def alignToGrid(self, pxSize: QSizeF, refPoint: QgsPointXY):
         """
-        Aligns the given VRT grid (defined by spatial extent and resolution) to the grid definde by pxSite and refPoint.
+        Aligns the given VRT grid (defined by spatial extent and resolution) to the grid defined by pxSite and refPoint.
         :param pxSize: QSizeF, new pixel resolution
         :param refPoint: QgsPointXY, point int the new grid
         """
@@ -881,7 +873,7 @@ class VRTRaster(QObject):
         if isinstance(resolution, str):
             # find source resolutions
             res = []
-            self.sourceRaster()
+            self.sources()
 
         else:
             if isinstance(resolution, QSizeF):
@@ -932,9 +924,7 @@ class VRTRaster(QObject):
 
     def setCrs(self, crs, warpArgs: dict = None):
         """
-        Sets the output Coordinate Reference System (CRS). The UL coordinate will be reprojected to automatically to new CRS
-         and the LR is calculated using the resolution and former pixel size. The new image will have at least a size of 1x1 pixel
-        :param crs: osr.SpatialReference or QgsCoordinateReferenceSystem
+        Sets the output Coordinate Reference System (CRS)
         """
         if isinstance(crs, osr.SpatialReference):
             auth = '{}:{}'.format(crs.GetAttrValue('AUTHORITY', 0), crs.GetAttrValue('AUTHORITY', 1))
@@ -1041,62 +1031,29 @@ class VRTRaster(QObject):
         vBand = self.mBands[virtualBandIndex]
         vBand.addSourceBand(pathSource, sourceBandIndex)
 
-    def insertVirtualBand(self, index: int, virtualBand: VRTRasterBand):
-        """
-        Inserts a VirtualBand
-        :param index: the insert position
-        :param virtualBand: the VirtualBand to be inserted
-        :return: the VirtualBand
-        """
-        assert isinstance(virtualBand, VRTRasterBand)
-        assert index <= len(self.mBands)
-        if len(virtualBand.name()) == 0:
-            virtualBand.setName('Band {}'.format(index + 1))
-        virtualBand.mVRT = self
+    def insertBands(self, index0: int, vrt_bands: List[VRTRasterBand]):
 
-        virtualBand.sigSourceInserted.connect(
-            lambda _, sourceBand: self.sigSourceBandInserted.emit(virtualBand, sourceBand))
-        virtualBand.sigSourceRemoved.connect(
-            lambda _, sourceBand: self.sigSourceBandInserted.emit(virtualBand, sourceBand))
+        assert 0 <= index0 <= len(self)
 
-        self.mBands.insert(index, virtualBand)
-        self.checkBasicParameters(virtualBand)
-        self.sigBandInserted.emit(index, virtualBand)
+        self.beginInsertRows(QModelIndex(), index0, index0 + len(vrt_bands) - 1)
+        for i, band in enumerate(vrt_bands):
+            self.mBands.insert(index0 + i, band)
+        self.endInsertRows()
 
-        return self[index]
+    def removeBands(self, vrt_bands: List[VRTRasterBand]):
 
-    def removeVirtualBands(self, bandsOrIndices):
-        assert isinstance(bandsOrIndices, list)
-        to_remove = []
-        for virtualBand in bandsOrIndices:
-            if not isinstance(virtualBand, VRTRasterBand):
-                virtualBand = self.mBands[virtualBand]
-            to_remove.append((self.mBands.index(virtualBand), virtualBand))
+        vrt_bands = [b for b in vrt_bands if b in self.mBands]
 
-        to_remove = sorted(to_remove, key=lambda t: t[0], reverse=True)
-        for index, virtualBand in to_remove:
-            self.mBands.remove(virtualBand)
-            self.sigBandRemoved.emit(index, virtualBand)
+        for b in vrt_bands:
+            i = self.mBands.index(b)
+            self.beginRemoveRows(QModelIndex(), i, i)
+            del self.mBands[i]
+            self.endRemoveRows()
 
-    def removeInputSource(self, path: str):
-        """
-        Removes all bands that relate to a input source image.
-        :param path: str, path of input source image
-        """
-        assert path in self.sourceRaster()
-        for vBand in self.mBands:
-            assert isinstance(vBand, VRTRasterBand)
-            if path in vBand.sourceFiles():
-                vBand.removeSource(path)
+    def removeSource(self, source: str):
+        raise NotImplementedError()
 
-    def removeVirtualBand(self, bandOrIndex):
-        """
-        Removes a single
-        :param bandOrIndex: int |VRTRasterBand
-        """
-        self.removeVirtualBands([bandOrIndex])
-
-    def addFilesAsMosaic(self, files):
+    def addSourcesAsMosaic(self, files):
         """
         Shortcut to mosaic all input files. All bands will maintain their band position in the virtual file.
         :param files: [list-of-file-paths]
@@ -1112,10 +1069,10 @@ class VRTRaster(QObject):
                     self.addVirtualBand(VRTRasterBand())
                 vBand = self[b]
                 assert isinstance(vBand, VRTRasterBand)
-                vBand.addSource(VRTRasterInputSourceBand(file, b))
+                vBand.addSource(VRTInputRasterBand(file, b))
         return self
 
-    def addFilesAsStack(self, files: list):
+    def addSourcesAsStack(self, files: list):
         """
         Shortcut to stack all input files, i.e. each band of an input file will be a new virtual band.
         Bands in the virtual file will be ordered as file1-band1, file1-band n, file2-band1, file2-band,...
@@ -1132,24 +1089,24 @@ class VRTRaster(QObject):
                 # each new band is a new virtual band
                 vBand = self.addVirtualBand(VRTRasterBand())
                 assert isinstance(vBand, VRTRasterBand)
-                vBand.addSource(VRTRasterInputSourceBand(file, b))
+                vBand.addSource(VRTInputRasterBand(file, b))
 
         return self
 
-    def sourceRaster(self) -> typing.List[str]:
+    def sources(self) -> List[str]:
         """
-        Returns the list of source raster files.
+        Returns the list of raster sources.
         :return: [list-of-str]
         """
         files = []
         for vBand in self:
             assert isinstance(vBand, VRTRasterBand)
-            for file in vBand.sourceFiles():
+            for file in vBand.sources():
                 if file not in files:
                     files.append(file)
         return files
 
-    def fullSourceRasterExtent(self) -> QgsRectangle:
+    def fullSourceExtent(self) -> QgsRectangle:
         """
         Returns a list of (str, QgsRectangle)
         :return: [(str, QgsRectangle),...]
@@ -1157,7 +1114,7 @@ class VRTRaster(QObject):
 
         extent = None
         crs = self.crs()
-        for src in self.sourceRaster():
+        for src in self.sources():
 
             lyr = QgsRasterLayer(src)
             ext = lyr.extent()
@@ -1198,7 +1155,7 @@ class VRTRaster(QObject):
                 tree = ElementTree.fromstring(xml)
                 srcPath = tree.find('SourceFilename').text
                 srcBandIndex = int(tree.find('SourceBand').text) - 1
-                vrtBand.addSource(VRTRasterInputSourceBand(srcPath, srcBandIndex))
+                vrtBand.addSource(VRTInputRasterBand(srcPath, srcBandIndex))
 
             if b == 0:
                 noData = srcBand.GetNoDataValue()
@@ -1224,7 +1181,7 @@ class VRTRaster(QObject):
         :return:
         """
 
-        sources = self.sourceRaster()
+        sources = self.sources()
         assert len(sources) >= 1, 'VRT needs to define at least 1 input source'
 
         pathVRT: pathlib.Path = pathlib.Path(pathVRT)
@@ -1246,7 +1203,7 @@ class VRTRaster(QObject):
         outputBounds = (dstExtent.xMinimum(), dstExtent.yMinimum(), dstExtent.xMaximum(), dstExtent.yMaximum())
         outputBoundsSRS = self.srs()
 
-        for i, pathSrc in enumerate(self.sourceRaster()):
+        for i, pathSrc in enumerate(self.sources()):
             dsSrc = gdal.Open(pathSrc)
             assert isinstance(dsSrc, gdal.Dataset)
             band = dsSrc.GetRasterBand(1)
@@ -1283,7 +1240,7 @@ class VRTRaster(QObject):
 
                 srcPathLookup[pathSrc] = warpedFileName
 
-        srcFiles = [srcPathLookup[src] for src in self.sourceRaster()]
+        srcFiles = [srcPathLookup[src] for src in self.sources()]
 
         # these need to be set
         ns = nl = gt = crs = eType = None
@@ -1401,7 +1358,7 @@ class VRTRaster(QObject):
             md = {}
             # add all input sources for this virtual band
             for iSrc, sourceInfo in enumerate(vBand.mSources):
-                assert isinstance(sourceInfo, VRTRasterInputSourceBand)
+                assert isinstance(sourceInfo, VRTInputRasterBand)
                 bandIndex = sourceInfo.mBandIndex
                 xml = SOURCE_TEMPLATES[srcPathLookup[sourceInfo.mSource]]
                 xml = re.sub('<SourceBand>1</SourceBand>', '<SourceBand>{}</SourceBand>'.format(bandIndex + 1), xml)
@@ -1434,8 +1391,8 @@ class VRTRaster(QObject):
 
     def __repr__(self):
 
-        info = ['VirtualRasterBuilder: {} bands, {} source files'.format(
-            len(self.mBands), len(self.sourceRaster()))]
+        info = ['VRTRaster: {} bands, {} source files'.format(
+            len(self.mBands), len(self.sources()))]
         for vBand in self.mBands:
             info.append(str(vBand))
         return '\n'.join(info)
